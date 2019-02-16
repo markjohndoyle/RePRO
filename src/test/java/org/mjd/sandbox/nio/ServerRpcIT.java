@@ -6,10 +6,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -18,29 +16,37 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.awaitility.Duration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.RpcRequestMessage;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 
+import static com.mscharhag.oleaster.matcher.Matchers.expect;
+import static com.mscharhag.oleaster.runner.StaticRunnerSupport.afterEach;
+import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;
+import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
+import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.awaitility.Awaitility.await;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 
+@RunWith(OleasterRunner.class)
 public class ServerRpcIT
 {
-    private final ExecutorService serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
+    private ExecutorService serverService;
     
     private Server<RpcRequest> rpcServer;
     
     private Kryo kryo = new Kryo();
     
+    /**
+     * Fake target for RPC calls. A server will have direct access to something like this
+     * when it's setup. 
+     */
     public static final class FakeRpcTarget
     {
         public void callMeVoid() { }
@@ -48,9 +54,47 @@ public class ServerRpcIT
     }
     
     private final FakeRpcTarget rpcTarget = new FakeRpcTarget();
+    private Socket testSocket;
+    private DataInputStream in;
+    private DataOutputStream out;
     
-    @Before
-//    @BeforeEach
+    // TEST BLOCK
+    {
+        beforeEach(()->{
+            serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
+            startServer();  
+            testSocket = new Socket("localhost", 12509);
+            in = new DataInputStream(testSocket.getInputStream());
+            out = new DataOutputStream(testSocket.getOutputStream());
+        });
+        
+        afterEach(() -> {
+            in.close();
+            out.close();
+            testSocket.close();
+            shutdownServer();
+        });
+        
+        describe("When a valid kryo RPC request/reply RpcRequest is sent to the server", () -> {
+           it("should reply with the expected object", () -> {
+               // Spin up a thread to check the response in parallel. This is probably what would happen in a client.
+               Future<?> rspReadJob = Executors.newSingleThreadExecutor().submit(() -> {
+                   expect(readResponse(in)).toEqual("callMeString");
+               });
+               
+               RpcRequest request = new RpcRequest(0, "callMeString");
+               
+               Output kryoSocketOut = new Output(out);
+               writeKryoWithHeader(kryoSocketOut, request).flush();
+               
+               rspReadJob.get();
+               
+               kryoSocketOut.close();
+               testSocket.close();
+           });
+        });
+    }
+    
     public void startServer()
     {
         kryo.register(RpcRequest.class);
@@ -131,8 +175,6 @@ public class ServerRpcIT
         await().until(() -> { return rpcServer.isAvailable();});
     }
     
-    @After
-//    @AfterEach
     public void shutdownServer() throws IOException, InterruptedException
     {
         serverService.shutdownNow();
@@ -153,60 +195,39 @@ public class ServerRpcIT
      * @return
      * @throws IOException
      */
-    private String readResponse(DataInputStream in) throws IOException
+    private String readResponse(DataInputStream in)
     {
         await("Waiting for response").forever().until(() -> { return in.available() > Integer.BYTES;});
-        int responseSize = in.readInt();
-        byte[] bytesRead = new byte[responseSize];
-        int totalRead = 0;
-        int bodyRead = 0;
-        while((bodyRead = in.read(bytesRead, bodyRead, responseSize - bodyRead)) > 0)
+        int responseSize;
+        try
         {
-            // We don't want to potentially head into a further message.
-            totalRead += bodyRead;
-            if(totalRead == responseSize)
+            responseSize = in.readInt();
+            byte[] bytesRead = new byte[responseSize];
+            int totalRead = 0;
+            int bodyRead = 0;
+            while((bodyRead = in.read(bytesRead, bodyRead, responseSize - bodyRead)) > 0)
             {
-                break;
+                // We don't want to potentially head into a further message.
+                totalRead += bodyRead;
+                if(totalRead == responseSize)
+                {
+                    break;
+                }
+                // else there is more to read
             }
-            // else there is more to read
+            
+            Input kin = new Input(bytesRead);
+            String result = kryo.readObject(kin, String.class);
+            
+            return result;
         }
-        
-        Input kin = new Input(bytesRead);
-        String result = kryo.readObject(kin, String.class);
-        
-        return result;
+        catch (IOException e)
+        {
+            fail(e.toString());
+            return null;
+        }
     }
 
-    @Test
-    public void testRpcRequests() throws UnknownHostException, IOException, InterruptedException, ExecutionException
-    {
-        Socket testSocket = new Socket("localhost", 12509);
-        DataInputStream in = new DataInputStream(testSocket.getInputStream());
-        DataOutputStream out = new DataOutputStream(testSocket.getOutputStream());
-        
-        // Spin up a thread to check the response in parallel. This is probably what would happen in a client.
-        Future<?> rspReadJob = Executors.newSingleThreadExecutor().submit(() -> {
-            try
-            {
-                assertThat(readResponse(in), is("callMeString"));
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-        });
-        
-        RpcRequest request = new RpcRequest(0, "callMeString");
-        
-        Output kryoSocketOut = new Output(out);
-        writeKryoWithHeader(kryoSocketOut, request).flush();
-        
-        rspReadJob.get();
-        
-        kryoSocketOut.close();
-        testSocket.close();
-    }
-    
     Output writeKryoWithHeader(Output kryoOut, Object request) throws IOException
     {
         try(ByteArrayOutputStream bos = new ByteArrayOutputStream();
