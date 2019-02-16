@@ -25,6 +25,7 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.awaitility.Awaitility.await;
+import static org.awaitility.Duration.TEN_SECONDS;
 
 @RunWith(OleasterRunner.class)
 public class IntegerServerIT
@@ -41,7 +42,7 @@ public class IntegerServerIT
         beforeEach(() -> {
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
-            await().until(() -> { return integerMessageServer.isAvailable();});
+            await().atMost(TEN_SECONDS).until(() -> { return integerMessageServer.isAvailable();});
             testSocket = new Socket("localhost", 12509);
             socketIn = new DataInputStream(testSocket.getInputStream());
             socketOut = new DataOutputStream(testSocket.getOutputStream());
