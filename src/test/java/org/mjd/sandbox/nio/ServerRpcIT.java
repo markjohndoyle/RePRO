@@ -20,9 +20,9 @@ import com.esotericsoftware.kryo.io.Output;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.awaitility.Duration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.RpcRequestMessage;
@@ -49,7 +49,7 @@ public class ServerRpcIT
     
     private final FakeRpcTarget rpcTarget = new FakeRpcTarget();
     
-    @Before
+    @BeforeEach
     public void startServer()
     {
         kryo.register(RpcRequest.class);
@@ -89,6 +89,10 @@ public class ServerRpcIT
                     {
                         String requestedMethodCall = request.getMethod();
                         result = MethodUtils.invokeMethod(rpcTarget, requestedMethodCall);
+                        if(result == null)
+                        {
+                            return Optional.empty();
+                        }
                     }
                     catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException e)
                     {
@@ -133,7 +137,7 @@ public class ServerRpcIT
         }
     }
     
-    @After
+    @AfterEach
     public void shutdownServer() throws IOException, InterruptedException
     {
         serverService.shutdownNow();
@@ -179,7 +183,7 @@ public class ServerRpcIT
     }
 
     @Test
-    public void test() throws UnknownHostException, IOException, InterruptedException, ExecutionException
+    public void testRpcRequests() throws UnknownHostException, IOException, InterruptedException, ExecutionException
     {
         Socket testSocket = new Socket("localhost", 12509);
         DataInputStream in = new DataInputStream(testSocket.getInputStream());

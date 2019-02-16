@@ -13,9 +13,9 @@ import java.util.concurrent.Executors;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.awaitility.Duration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mjd.sandbox.nio.message.IntMessage;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
@@ -33,7 +33,7 @@ public class ServerIT
     
     private static final String TEST_RSP_MSG  = "FakeResult from call message: "; 
     
-    @Before
+    @BeforeEach
     public void startServer()
     {
         try
@@ -84,7 +84,7 @@ public class ServerIT
         }
     }
     
-    @After
+    @AfterEach
     public void shutdownServer() throws IOException, InterruptedException
     {
         serverService.shutdownNow();
