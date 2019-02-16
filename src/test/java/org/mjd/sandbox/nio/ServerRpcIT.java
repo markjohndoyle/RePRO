@@ -8,6 +8,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,7 +33,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class ServerObjectMessageIT
+public class ServerRpcIT
 {
     private final ExecutorService serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
     
@@ -80,7 +81,7 @@ public class ServerObjectMessageIT
             // Add echo handler
             rpcServer.addHandler(new RespondingHandler<RpcRequest>() {
                 @Override 
-                public ByteBuffer execute(Message<RpcRequest> message) {
+                public Optional<ByteBuffer> execute(Message<RpcRequest> message) {
                     byte[] msgBytes;
                     Object result;
                     RpcRequest request = message.getValue();
@@ -102,7 +103,14 @@ public class ServerObjectMessageIT
                         e.printStackTrace();
                         msgBytes = new byte[] {0x00};
                     }
-                    return (ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip();
+                    return Optional.of((ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip());
+                }
+
+                @Override
+                public int execute(Message<RpcRequest> message, ByteBuffer writeBuffer)
+                {
+                    // TODO Auto-generated method stub
+                    return 0;
                 }
             });
 

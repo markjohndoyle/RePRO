@@ -1,6 +1,7 @@
 package org.mjd.sandbox.nio.writers;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * Writes stuff and tracks whether it has finished.
@@ -12,4 +13,6 @@ public interface Writer
     void write() throws IOException;
 
     boolean complete();
+
+    void write(ByteBuffer writeBuffer);
 }

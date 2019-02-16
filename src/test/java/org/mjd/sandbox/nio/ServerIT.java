@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,10 +49,19 @@ public class ServerIT
             // Add echo handler
             integerMessageServer.addHandler(new RespondingHandler<Integer>() {
                 @Override 
-                public ByteBuffer execute(Message<Integer> message) { 
+                public Optional<ByteBuffer> execute(Message<Integer> message) { 
                     String rsp = TEST_RSP_MSG + message.getValue();
                     byte[] msgBytes = rsp.getBytes();
-                    return (ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip();
+                    return Optional.of((ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip());
+                }
+
+                @Override
+                public int execute(Message<Integer> message, ByteBuffer writeBuffer)
+                {
+                    String rsp = TEST_RSP_MSG + message.getValue();
+                    byte[] msgBytes = rsp.getBytes();
+                    writeBuffer.put(msgBytes).flip();
+                    return msgBytes.length;
                 }
             });
 

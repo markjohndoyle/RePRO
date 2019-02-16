@@ -1,6 +1,7 @@
 package org.mjd.sandbox.nio;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import org.mjd.sandbox.nio.message.Message;
 
@@ -23,5 +24,14 @@ public interface RespondingHandler<MsgType>
      * @param message
      * @return
      */
-    ByteBuffer execute(Message<MsgType> message);
+    Optional<ByteBuffer> execute(Message<MsgType> message);
+
+    /**
+     * writes the result into the given buffer rather than returning it.
+     * returns the number of bytes written to the target buffer.
+     * @param message
+     * @param writeBuffer
+     * @return
+     */
+    int execute(Message<MsgType> message, ByteBuffer writeBuffer);
 }

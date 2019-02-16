@@ -41,15 +41,24 @@ public final class RequestReader<T> implements MessageReader<T>
     }
 
     @Override
-    public void read(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws IOException, MessageCreationException
+    public void read(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws MessageCreationException
     {
         ByteBuffer[] buffers = {headerBuffer, bodyBuffer};
         // read the bytes from the buffer
         long totalBytesReadThisCall = 0;
         long bytesRead;
-        while((bytesRead = channel.read(buffers)) > 0)
+        try
         {
-            totalBytesReadThisCall += bytesRead;
+            while((bytesRead = channel.read(buffers)) > 0)
+            {
+                totalBytesReadThisCall += bytesRead;
+            }
+        }
+        catch (IOException e)
+        {
+            LOG.trace("Client channel disconnected in read. Ending stream.");
+            endOfStream = true;
+            return;
         }
         
         if(totalBytesReadThisCall > 0)

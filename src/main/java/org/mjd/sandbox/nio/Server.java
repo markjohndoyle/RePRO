@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
-import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -13,9 +13,12 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
+import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
+import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler.InvalidKeyHandlerException;
+import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.sandbox.nio.readers.MessageReader;
@@ -38,7 +41,7 @@ public final class Server<MsgType>
     
     private final Selector selector = Selector.open();
 
-    private final AtomicLong conId = new AtomicLong(0);
+    private long conId;
     
     private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
     private final Map<Channel, Writer> responseWriters = new HashMap<>();
@@ -50,10 +53,26 @@ public final class Server<MsgType>
     private MessageFactory<MsgType> messageFactory;
 
     private RespondingHandler<MsgType> handler;
+
+    private InvalidKeyHandler validityHandler;
     
+    /**
+     * Starts a single threaded non-blocking {@link Server} in a connected state.
+     * 
+     * The server is not started and will not accept connections until you call {@link #start()}
+     * 
+     * @param messageFactory
+     * @throws IOException
+     */
     public Server(MessageFactory<MsgType> messageFactory) throws IOException
     {
+        this(messageFactory, new KeyChannelCloser());
+    }
+    
+    public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler) throws IOException
+    {
         this.messageFactory = messageFactory;
+        this.validityHandler = invalidKeyHandler;
         headerBuffer = ByteBuffer.allocate(messageFactory.getHeaderSize());
         serverChannel = ServerSocketChannel.open();
         serverChannel.bind(new InetSocketAddress(12509));
@@ -61,6 +80,13 @@ public final class Server<MsgType>
         serverChannel.register(selector, OP_ACCEPT, "The Director");
     }
     
+    /**
+     * Starts the listen loop with a blocking selector.
+     * Each key is handled in a non-blocking loop before returning to the selector. 
+     * 
+     * @throws IOException
+     * @throws MessageCreationException
+     */
     public void start() throws IOException, MessageCreationException
     {
         LOG.info("Server starting..");
@@ -86,6 +112,11 @@ public final class Server<MsgType>
         return !serverChannel.isOpen() && !selector.isOpen();
     }
     
+    public void shutDown() throws IOException
+    {
+        selector.close();
+    }
+    
     private void handleReadyKeys(Iterator<SelectionKey> iter) throws IOException, MessageCreationException
     {
         while (iter.hasNext()) 
@@ -93,45 +124,35 @@ public final class Server<MsgType>
             SelectionKey key = iter.next();
             if(!key.isValid())
             {
-                LOG.trace("Invalid key {} closing channel", key.attachment());
-                key.channel().close();
-                iter.remove();
+                try
+                {
+                    validityHandler.handle(key);
+                    iter.remove();
+                }
+                catch (InvalidKeyHandlerException e)
+                {
+                    LOG.error("Error handling invalid key {}. Key will be removed regardless. Error {}", 
+                              key.attachment(), e);
+                }
                 continue;
             }
             // serverChannel
             if(key.isAcceptable())
             {
-                SelectableChannel socketChannel = key.channel();
-                LOG.trace("{} is acceptable, a client is connecting.", key.attachment());
-                SocketChannel clientChannel = serverChannel.accept();
-                LOG.trace("Socket accepted {}", socketChannel);
-                clientChannel.configureBlocking(false);
-                clientChannel.register(selector, OP_READ, "client " + conId.incrementAndGet());
+                handleAccept(key);
             }
             // clients SocketChannels
             if(key.isReadable())
             {
-                MessageReader<MsgType> reader = Maps.getOrCreateFrom(readers, key.channel(), () -> {
-                    return RequestReader.from(key, messageFactory);
-                });
-
-                clearReadBuffers();
                 try
                 {
-                    reader.read(headerBuffer, bodyBuffer);
+                    handleReadable(key);
                 }
-                catch (ClosedByInterruptException e)
+                catch(MessageCreationException ex)
                 {
-                    LOG.trace("{} client was closed within read. We'll just skip it.", key.attachment());
+                    LOG.warn("Error creating message for data sent by client " + key.attachment(), ex);
                     continue;
                 }
-                if(reader.isEndOfStream())
-                {
-                    LOG.trace("{} end of stream.", key.attachment());
-                    readers.remove(key.channel());
-                    cancelClient(key);
-                }
-                handleCompleteMsg(reader, key);
             }
             // client response, triggered by read.
             if(key.isValid() && key.isWritable())
@@ -139,7 +160,7 @@ public final class Server<MsgType>
                 Writer responseWriter = responseWriters.get(key.channel());
                 if(responseWriter != null)
                 {
-                    writeBuffer.clear();
+//                    writeBuffer.clear();
                     responseWriter.write();
                     // If the writer is complete we're done. Otherwise we'll leave the key interested in write
                     if(responseWriter.complete())
@@ -152,23 +173,62 @@ public final class Server<MsgType>
             iter.remove();
         }
     }
+
+    private void handleReadable(SelectionKey key) throws MessageCreationException
+    {
+        MessageReader<MsgType> reader = Maps.getOrCreateFrom(readers, key.channel(), () -> {
+            return RequestReader.from(key, messageFactory);
+        });
+
+        clearReadBuffers();
+        reader.read(headerBuffer, bodyBuffer);
+        if(reader.isEndOfStream())
+        {
+            handleEndOfStream(key);
+        }
+        if(reader.messageComplete())
+        {
+            handleCompleteMsg(reader, key);
+        }
+    }
+
+    private void handleEndOfStream(SelectionKey key)
+    {
+        LOG.trace("{} end of stream.", key.attachment());
+        readers.remove(key.channel());
+        cancelClient(key);
+    }
+
+    private void handleAccept(SelectionKey key) throws IOException, ClosedChannelException
+    {
+        SelectableChannel socketChannel = key.channel();
+        LOG.trace("{} is acceptable, a client is connecting.", key.attachment());
+        SocketChannel clientChannel = serverChannel.accept();
+        LOG.trace("Socket accepted {}", socketChannel);
+        clientChannel.configureBlocking(false);
+        clientChannel.register(selector, OP_READ, "client " + (conId++));
+    }
     
     private void handleCompleteMsg(MessageReader<MsgType> reader, SelectionKey key)
     {
-        if(reader.messageComplete())
+        if(key.isValid())
         {
-            if(key.isValid())
+            if(handler == null)
             {
-                if(handler == null)
-                {
-                    LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
-                    return;
-                }
-                ByteBuffer result = handler.execute(reader.getMessage().get());
-                responseWriters.put(key.channel(), new ByteBufferWriter((SocketChannel) key.channel(), result));
-                key.interestOps(key.interestOps() | OP_WRITE);
-                readers.remove(key.channel());
+                LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
+                return;
             }
+            writeBuffer.clear();
+            
+//            int size = handler.execute(reader.getMessage().get(), writeBuffer);
+//            responseWriters.put(key.channel(), new ByteBufferWriter((SocketChannel) key.channel(), size));
+            Optional<ByteBuffer> resultToWrite = handler.execute(reader.getMessage().get());
+            if(resultToWrite.isPresent())
+            {
+                responseWriters.put(key.channel(), new ByteBufferWriter((SocketChannel) key.channel(), resultToWrite.get()));
+                key.interestOps(key.interestOps() | OP_WRITE);
+            }
+            readers.remove(key.channel());
         }
     }
 
@@ -178,9 +238,17 @@ public final class Server<MsgType>
         bodyBuffer.clear();
     }
 
-    private void cancelClient(SelectionKey key) throws IOException
+    private void cancelClient(SelectionKey key)
     {
         key.cancel();
-        key.channel().close();
+        try
+        {
+            key.channel().close();
+        }
+        catch (IOException e)
+        {
+            LOG.warn("Exception closing channel of cancelled client {}. The key has been canceelled so the " +
+                     "Server won't interact with it anymore regardless.", key.attachment());
+        }
     }
 }
