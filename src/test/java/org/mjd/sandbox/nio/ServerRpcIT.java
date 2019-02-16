@@ -20,9 +20,9 @@ import com.esotericsoftware.kryo.io.Output;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.awaitility.Duration;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.RpcRequestMessage;
@@ -49,95 +49,90 @@ public class ServerRpcIT
     
     private final FakeRpcTarget rpcTarget = new FakeRpcTarget();
     
-    @BeforeEach
+    @Before
+//    @BeforeEach
     public void startServer()
     {
         kryo.register(RpcRequest.class);
         
-        try
+        rpcServer = new Server<>(new MessageFactory<RpcRequest>()
         {
-            rpcServer = new Server<>(new MessageFactory<RpcRequest>()
-            {
-                @Override 
-                public int getHeaderSize() { return Integer.BYTES; }
-                
-                /**
-                 * Expects a Kryo object with a marshalled RpcRequest
-                 */
-                @Override 
-                public Message<RpcRequest> create(byte[] bytesRead) throws MessageCreationException {
-                    try {
-                        kryo.register(RpcRequest.class);
-                        Input in = new Input(bytesRead);
-                        RpcRequest request = kryo.readObject(in, RpcRequest.class);
-                        return new RpcRequestMessage(request);
-                    }
-                    catch (IOException e) {
-                        throw new MessageCreationException(e);
-                    }
-                }
-            });
+            @Override 
+            public int getHeaderSize() { return Integer.BYTES; }
             
-            // Add echo handler
-            rpcServer.addHandler(new RespondingHandler<RpcRequest>() {
-                @Override 
-                public Optional<ByteBuffer> execute(Message<RpcRequest> message) {
-                    byte[] msgBytes;
-                    Object result;
-                    RpcRequest request = message.getValue();
-                    try
-                    {
-                        String requestedMethodCall = request.getMethod();
-                        result = MethodUtils.invokeMethod(rpcTarget, requestedMethodCall);
-                        if(result == null)
-                        {
-                            return Optional.empty();
-                        }
-                    }
-                    catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException e)
-                    {
-                        result = new String("Error executing method: " + request.getMethod() + " due to " + e);
-                    }
-                    try
-                    {
-                        msgBytes = objectToKryoBytes(result);
-                    }
-                    catch (IOException e)
-                    {
-                        e.printStackTrace();
-                        msgBytes = new byte[] {0x00};
-                    }
-                    return Optional.of((ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip());
+            /**
+             * Expects a Kryo object with a marshalled RpcRequest
+             */
+            @Override 
+            public Message<RpcRequest> create(byte[] bytesRead) throws MessageCreationException {
+                try {
+                    kryo.register(RpcRequest.class);
+                    Input in = new Input(bytesRead);
+                    RpcRequest request = kryo.readObject(in, RpcRequest.class);
+                    return new RpcRequestMessage(request);
                 }
-
-                @Override
-                public int execute(Message<RpcRequest> message, ByteBuffer writeBuffer)
-                {
-                    // TODO Auto-generated method stub
-                    return 0;
+                catch (IOException e) {
+                    throw new MessageCreationException(e);
                 }
-            });
-
-            serverService.submit(() -> {
+            }
+        });
+        
+        // Add echo handler
+        rpcServer.addHandler(new RespondingHandler<RpcRequest>() {
+            @Override 
+            public Optional<ByteBuffer> execute(Message<RpcRequest> message) {
+                byte[] msgBytes;
+                Object result;
+                RpcRequest request = message.getValue();
                 try
                 {
-                    rpcServer.start();
+                    String requestedMethodCall = request.getMethod();
+                    result = MethodUtils.invokeMethod(rpcTarget, requestedMethodCall);
+                    if(result == null)
+                    {
+                        return Optional.empty();
+                    }
                 }
-                catch (IOException | MessageCreationException e)
+                catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException e)
                 {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    result = new String("Error executing method: " + request.getMethod() + " due to " + e);
                 }
-            });
-        }
-        catch (IOException e)
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+                try
+                {
+                    msgBytes = objectToKryoBytes(result);
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                    msgBytes = new byte[] {0x00};
+                }
+                return Optional.of((ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip());
+            }
+
+            @Override
+            public int execute(Message<RpcRequest> message, ByteBuffer writeBuffer)
+            {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+        });
+
+        serverService.submit(() -> {
+            try
+            {
+                rpcServer.start();
+            }
+            catch (IOException | MessageCreationException e)
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        });
+        await().until(() -> { return rpcServer.isAvailable();});
     }
     
-    @AfterEach
+    @After
+//    @AfterEach
     public void shutdownServer() throws IOException, InterruptedException
     {
         serverService.shutdownNow();

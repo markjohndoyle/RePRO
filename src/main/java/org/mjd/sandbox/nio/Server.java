@@ -37,9 +37,9 @@ public final class Server<MsgType>
 {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     
-    private final ServerSocketChannel serverChannel;
+    private ServerSocketChannel serverChannel;
     
-    private final Selector selector = Selector.open();
+    private Selector selector;
 
     private long conId;
     
@@ -57,27 +57,23 @@ public final class Server<MsgType>
     private InvalidKeyHandler validityHandler;
     
     /**
-     * Starts a single threaded non-blocking {@link Server} in a connected state.
+     * Creates a fully initialised single threaded non-blocking {@link Server}.
      * 
      * The server is not started and will not accept connections until you call {@link #start()}
      * 
      * @param messageFactory
      * @throws IOException
      */
-    public Server(MessageFactory<MsgType> messageFactory) throws IOException
+    public Server(MessageFactory<MsgType> messageFactory)
     {
         this(messageFactory, new KeyChannelCloser());
     }
     
-    public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler) throws IOException
+    public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler)
     {
         this.messageFactory = messageFactory;
         this.validityHandler = invalidKeyHandler;
         headerBuffer = ByteBuffer.allocate(messageFactory.getHeaderSize());
-        serverChannel = ServerSocketChannel.open();
-        serverChannel.bind(new InetSocketAddress(12509));
-        serverChannel.configureBlocking(false);
-        serverChannel.register(selector, OP_ACCEPT, "The Director");
     }
     
     /**
@@ -90,6 +86,11 @@ public final class Server<MsgType>
     public void start() throws IOException, MessageCreationException
     {
         LOG.info("Server starting..");
+        selector = Selector.open();
+        serverChannel = ServerSocketChannel.open();
+        serverChannel.bind(new InetSocketAddress(12509));
+        serverChannel.configureBlocking(false);
+        serverChannel.register(selector, OP_ACCEPT, "The Director");
         while(!Thread.interrupted())
         {
             selector.select();
@@ -107,9 +108,14 @@ public final class Server<MsgType>
         return this;
     }
     
+    public boolean isAvailable()
+    {
+        return serverChannel.isOpen() && selector.isOpen();
+    }
+    
     public boolean isShutdown()
     {
-        return !serverChannel.isOpen() && !selector.isOpen();
+        return !isAvailable();
     }
     
     public void shutDown() throws IOException
