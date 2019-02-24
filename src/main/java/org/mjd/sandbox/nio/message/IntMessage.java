@@ -8,13 +8,13 @@ public final class IntMessage implements Message<Integer>
 {
     private final int value;
     private final byte[] bytes;
-    
+
     public IntMessage(int value)
     {
         this.value = value;
         bytes = ByteBuffer.allocate(size()).putInt(value).array();
     }
-    
+
     /* (non-Javadoc)
      * @see org.mjd.sandbox.nio.Message#getValue()
      */
@@ -23,7 +23,7 @@ public final class IntMessage implements Message<Integer>
     {
         return value;
     }
-    
+
     /* (non-Javadoc)
      * @see org.mjd.sandbox.nio.Message#size()
      */
@@ -41,7 +41,7 @@ public final class IntMessage implements Message<Integer>
     {
         return bytes;
     }
-    
+
     public static Message<Integer> from(byte[] message)
     {
         return new IntMessage(Ints.fromByteArray(message));

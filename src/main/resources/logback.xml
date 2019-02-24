@@ -7,9 +7,33 @@
       <pattern>%highlight(%-7([%level])) %highlight(%d{HH:mm:ss.SSS}) %highlight([%thread]) %cyan(%logger{36}) - %msg%n</pattern>
     </encoder>
   </appender>
+  
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>integration-test.log</file>
+    <append>false</append>
+    <immediateFlush>false</immediateFlush>
+    <encoder>
+      <pattern>%-4relative [%-5level] [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
+  <appender name="ServerRpcITFile" class="ch.qos.logback.core.FileAppender">
+    <file>ServerRpcITFile.log</file>
+    <append>false</append>
+    <immediateFlush>true</immediateFlush>
+    <encoder>
+      <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
 
-  <root level="trace">
-    <appender-ref ref="STDOUT" />
+  <root level="off">
+    <!-- <appender-ref ref="STDOUT" /> -->
+    <appender-ref ref="FILE" />
   </root>
+  
+  <logger name="org.mjd.sandbox.nio.ServerRpcHighChurnIT" level="off">
+    <appender-ref ref="ServerRpcITFile"/>
+  </logger>
 
 </configuration>

@@ -12,7 +12,7 @@ public interface Writer
 {
     void write() throws IOException;
 
-    boolean complete();
+    boolean isComplete();
 
     void write(ByteBuffer writeBuffer);
 }

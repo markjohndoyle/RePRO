@@ -1,7 +1,5 @@
 package org.mjd.sandbox.nio.message.factory;
 
-import java.io.IOException;
-
 import org.mjd.sandbox.nio.message.Message;
 
 /**
@@ -11,9 +9,9 @@ import org.mjd.sandbox.nio.message.Message;
  */
 public interface MessageFactory<T>
 {
-    public class MessageCreationException extends Exception
+    public class MessageCreationException extends RuntimeException
     {
-        public MessageCreationException(IOException e)
+        public MessageCreationException(Throwable e)
         {
             super(e);
         }

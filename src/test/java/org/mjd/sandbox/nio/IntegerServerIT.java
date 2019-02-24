@@ -6,11 +6,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.awaitility.Duration;
@@ -36,7 +34,7 @@ public class IntegerServerIT
     private DataInputStream socketIn;
     private DataOutputStream socketOut;
     private Server<Integer> integerMessageServer;
-    
+
     // TEST BLOCK
     {
         beforeEach(() -> {
@@ -47,13 +45,13 @@ public class IntegerServerIT
             socketIn = new DataInputStream(testSocket.getInputStream());
             socketOut = new DataOutputStream(testSocket.getOutputStream());
         });
-        
+
         afterEach(()-> {
             socketOut.close();
             testSocket.close();
-            shutdownServer(); 
+            shutdownServer();
         });
-        
+
         describe("When a valid request is sent to the server", () -> {
             it("should respond with the expected message as defined by this test servers handler", () -> {
                final int requestMsg = 5;
@@ -62,7 +60,7 @@ public class IntegerServerIT
                socketOut.flush();
                expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
            });
-           
+
            describe("in multiple writes", () -> {
                it("should respond with the expected message as defined by this test servers handler", () -> {
                    final int requestMsg = 10;
@@ -75,7 +73,7 @@ public class IntegerServerIT
                    }
                    expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
                });
-               
+
                describe("and the client overflows, i.e., writes too many bytes", () -> {
                    it("should respond with the expected message as defined by this test servers handler", () -> {
                        final int requestMsg = 234;
@@ -90,29 +88,29 @@ public class IntegerServerIT
                        }
                        // write the rest plus overflow
                        socketOut.write(new byte[]{testValueBuffer.get(3), 0x0F, 0x0F, 0x0F, 0x0F, 0x0F});
-                       
+
                        expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
                    });
                });
            });
         });
     }
-    
-    
+
+
     public void startServer()
     {
         integerMessageServer = new Server<>(new MessageFactory<Integer>()
         {
             @Override public int getHeaderSize() { return Integer.BYTES; }
-            @Override public Message<Integer> create(byte[] bytesRead) { 
-                return new IntMessage(Ints.fromByteArray(bytesRead)); 
+            @Override public Message<Integer> create(byte[] bytesRead) {
+                return IntMessage.from(bytesRead);
             }
         });
 
         // Add echo handler
         integerMessageServer.addHandler(new RespondingHandler<Integer>() {
-            @Override 
-            public Optional<ByteBuffer> execute(Message<Integer> message) { 
+            @Override
+            public Optional<ByteBuffer> execute(Message<Integer> message) {
                 String rsp = TEST_RSP_MSG + message.getValue();
                 byte[] msgBytes = rsp.getBytes();
                 return Optional.of((ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip());
@@ -128,26 +126,24 @@ public class IntegerServerIT
             }
         });
 
-        serverService.submit(new Callable<Void>() { 
-            @Override public Void call() throws Exception { integerMessageServer.start(); return null; } 
-        });
+        serverService.submit(() -> { integerMessageServer.start(); return null; });
     }
-    
-    public void shutdownServer() throws IOException, InterruptedException
+
+    public void shutdownServer()
     {
         serverService.shutdownNow();
         await().until(() -> { return integerMessageServer.isShutdown();});
         await().until(() -> { return serverService.isTerminated();});
     }
-    
+
     /**
      * Response is as follows:
-     * 
+     *
      *   ---------------------------------
      *  | header [1Byte] | body [n Bytes] |
      *  |   msgSize      |      msg       |
      *   ---------------------------------
-     *   
+     *
      * @param in
      * @return
      * @throws IOException
