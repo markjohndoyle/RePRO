@@ -5,7 +5,7 @@ import java.io.Serializable;
 public final class RpcRequest implements Serializable
 {
     private static final long serialVersionUID = 1L;
-    private String id;
+    private long id;
     private String method;
 //    private ArrayList<Object> args;
 
@@ -21,16 +21,16 @@ public final class RpcRequest implements Serializable
 //        this.method = method;
 //    }
 
-    public RpcRequest(String id, String method)
+    public RpcRequest(long id, String method)
     {
         this.id = id;
         this.method = method;
     }
 
-    public String getId() { return id;}
+    public long getId() { return id;}
     public String getMethod() { return method;}
 
-    public void setId(String id)
+    public void setId(long id)
     {
         this.id = id;
     }

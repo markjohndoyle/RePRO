@@ -14,8 +14,8 @@ public class RpcRequestMessage implements Message<RpcRequest>
     {
         this.request = request;
         convertToByteStream(request);
-    }   
-    
+    }
+
     private static void convertToByteStream(RpcRequest request) throws IOException
     {
         try(ByteArrayOutputStream bos = new ByteArrayOutputStream())
@@ -25,7 +25,7 @@ public class RpcRequestMessage implements Message<RpcRequest>
             ByteBuffer.wrap(bos.toByteArray());
         }
     }
-    
+
     @Override
     public RpcRequest getValue()
     {

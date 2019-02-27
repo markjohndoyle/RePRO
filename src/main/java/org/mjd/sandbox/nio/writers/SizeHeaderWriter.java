@@ -10,12 +10,12 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Writes a ByteBuffer to a SocketChannel.
+ * Writes a ByteBuffer to a SocketChannel and adds a header
  *
  */
-public final class ByteBufferWriter implements Writer
+public final class SizeHeaderWriter implements Writer
 {
-    private static final Logger LOG = LoggerFactory.getLogger(ByteBufferWriter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SizeHeaderWriter.class);
 
     private static final int HEADER_LENGTH = Integer.BYTES;
     private ByteBuffer buffer;
@@ -25,34 +25,15 @@ public final class ByteBufferWriter implements Writer
     private int expectedWrite = HEADER_LENGTH;
     private Object id;
 
-    public ByteBufferWriter(Object id, WritableByteChannel channel, ByteBuffer bufferToWrite)
+    public SizeHeaderWriter(Object id, WritableByteChannel channel, ByteBuffer bufferToWrite)
     {
         this.id = id;
         this.channel = channel;
         this.buffer = bufferToWrite;
         bodySize = buffer.limit();
+        LOG.trace("[{}] Body is {}", id, bodySize);
         expectedWrite = bodySize + HEADER_LENGTH;
         LOG.trace("[{}] Writer created for response; expected write is '{}' bytes", id, expectedWrite);
-    }
-
-    public ByteBufferWriter(Object id, WritableByteChannel channel, int size)
-    {
-        this.id = id;
-        this.channel = channel;
-        bodySize = size;
-        expectedWrite = bodySize + HEADER_LENGTH;
-        LOG.trace("[{}] Writer created for response; expected write is '{}' bytes", id, expectedWrite);
-    }
-
-    /**
-     * Creates a ByteByfferWrited
-     * @param key
-     * @param bufferToWrite
-     * @return
-     */
-    public static ByteBufferWriter from(Object id, SelectionKey key, ByteBuffer bufferToWrite)
-    {
-        return new ByteBufferWriter(id, (WritableByteChannel) key.channel(), bufferToWrite);
     }
 
     @Override
@@ -79,19 +60,6 @@ public final class ByteBufferWriter implements Writer
     }
 
     @Override
-    public void write(ByteBuffer writeBuffer)
-    {
-//        if (bytesWritten < HEADER_LENGTH)
-//        {
-//            bytesWritten += channel.write((ByteBuffer) ByteBuffer.allocate(Integer.BYTES).putInt(bodySize).flip());
-//        }
-//        else
-//        {
-//            bytesWritten += channel.write(writeBuffer);
-//        }
-    }
-
-    @Override
     public boolean isComplete()
     {
         if(bytesWritten > expectedWrite)
@@ -101,8 +69,8 @@ public final class ByteBufferWriter implements Writer
         return bytesWritten == expectedWrite;
     }
 
-    public static ByteBufferWriter from(SelectionKey key, ByteBuffer bufferToWrite)
+    public static SizeHeaderWriter from(SelectionKey key, ByteBuffer bufferToWrite)
     {
-        return new ByteBufferWriter(key.attachment(), (WritableByteChannel) key.channel(), bufferToWrite);
+        return new SizeHeaderWriter(key.attachment(), (WritableByteChannel) key.channel(), bufferToWrite);
     }
 }

@@ -8,8 +8,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -17,11 +19,12 @@ import java.util.Set;
 import com.google.common.base.Joiner;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
+import org.mjd.sandbox.nio.handlers.response.ResponseHandler;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.sandbox.nio.readers.MessageReader;
 import org.mjd.sandbox.nio.readers.RequestReader;
-import org.mjd.sandbox.nio.writers.ByteBufferWriter;
+import org.mjd.sandbox.nio.writers.SizeHeaderWriter;
 import org.mjd.sandbox.nio.writers.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,8 +59,10 @@ public final class Server<MsgType> {
 	private ByteBuffer unread;
 
 	private MessageFactory<MsgType> messageFactory;
-	private RespondingMessageHandler<MsgType> handler;
 	private InvalidKeyHandler validityHandler;
+
+	private RespondingMessageHandler<MsgType> handler;
+	private List<ResponseHandler<MsgType>> responseHandlers = new ArrayList<>();
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
@@ -95,6 +100,11 @@ public final class Server<MsgType> {
 	 */
 	public Server<MsgType> addHandler(RespondingMessageHandler<MsgType> handler) {
 		this.handler = handler;
+		return this;
+	}
+
+	public Server<MsgType> addHandler(ResponseHandler<MsgType> handler) {
+		this.responseHandlers.add(handler);
 		return this;
 	}
 
@@ -206,17 +216,6 @@ public final class Server<MsgType> {
 		LOG.trace("Socket accepted for client {}", conId);
 	}
 
-	private void closeDownServer() {
-		LOG.info("Server shutting down...");
-		try {
-			selector.close();
-			serverChannel.close();
-		}
-		catch (IOException e) {
-			LOG.error("Error shutting down server: {}. We're going anyway ¯\\_(ツ)_/¯ ", e.toString());
-		}
-	}
-
 	private void readChannelFor(SelectionKey key) throws MessageCreationException, IOException {
 		MessageReader<MsgType> reader = findInMap(readers, key.channel()).or(() -> RequestReader.from(key, messageFactory));
 		clearReadBuffers();
@@ -256,10 +255,16 @@ public final class Server<MsgType> {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
-
+		// TODO tidy this up, combine these handlers or something
 		Optional<ByteBuffer> resultToWrite = handler.execute(reader.getMessage().get());
 		if (resultToWrite.isPresent()) {
-			responseWriters.put(key.channel(), ByteBufferWriter.from(key, resultToWrite.get()));
+			ByteBuffer resultReadToRead = (ByteBuffer) resultToWrite.get().flip();
+			for(ResponseHandler<MsgType> responseHandler : responseHandlers) {
+				LOG.trace("Buffer post execution handler pre post processing handler {}", resultReadToRead);
+				resultReadToRead = (ByteBuffer) responseHandler.execute(reader.getMessage().get().getValue(), resultReadToRead).flip();
+			}
+			LOG.trace("Buffer post handlers pre write {}", resultReadToRead);
+			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, resultReadToRead));
 			key.interestOps(key.interestOps() | OP_WRITE);
 		}
 		readers.remove(key.channel());
@@ -280,6 +285,17 @@ public final class Server<MsgType> {
 		}
 		catch (IOException e) {
 			LOG.warn("Exception closing channel of cancelled client {}. Key is already invalid", key.attachment());
+		}
+	}
+
+	private void closeDownServer() {
+		LOG.info("Server shutting down...");
+		try {
+			selector.close();
+			serverChannel.close();
+		}
+		catch (IOException e) {
+			LOG.error("Error shutting down server: {}. We're going anyway ¯\\_(ツ)_/¯ ", e.toString());
 		}
 	}
 }

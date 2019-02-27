@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import com.google.common.primitives.Ints;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.readers.header.IntHeaderReader;
 
 import static com.mscharhag.oleaster.matcher.Matchers.expect;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;

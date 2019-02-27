@@ -7,7 +7,7 @@ import org.mjd.sandbox.nio.message.Message;
 
 /**
  * Handlers determine how messages sent to the server are handler, that is, executed.
- * 
+ *
  * Essentially, this is what happens server side when a message is received. You provide this when
  * setting up the server.
  *
@@ -16,22 +16,13 @@ import org.mjd.sandbox.nio.message.Message;
 public interface RespondingMessageHandler<MsgType>
 {
     /**
-     * Do your stuff, whatever that may be. 
+     * Do your stuff, whatever that may be.
      * You'll get a message of type MsgType which is what the client sent to you. Do with that what you
      * will and then return something to write back!
-     * 
-     * ByteBuffer returned must be readable, that is, flipped! 
+     *
+     * ByteBuffer returned must be readable, that is, flipped!
      * @param message
      * @return
      */
     Optional<ByteBuffer> execute(Message<MsgType> message);
-
-    /**
-     * writes the result into the given buffer rather than returning it.
-     * returns the number of bytes written to the target buffer.
-     * @param message
-     * @param writeBuffer
-     * @return
-     */
-    int execute(Message<MsgType> message, ByteBuffer writeBuffer);
 }

@@ -116,23 +116,11 @@ public class IntegerServerIT
         });
 
         // Add echo handler
-        integerMessageServer.addHandler(new RespondingMessageHandler<Integer>() {
-            @Override
-            public Optional<ByteBuffer> execute(Message<Integer> message) {
-                String rsp = TEST_RSP_MSG + message.getValue();
-                byte[] msgBytes = rsp.getBytes();
-                return Optional.of((ByteBuffer)ByteBuffer.allocate(msgBytes.length).put(msgBytes).flip());
-            }
-
-            @Override
-            public int execute(Message<Integer> message, ByteBuffer writeBuffer)
-            {
-                String rsp = TEST_RSP_MSG + message.getValue();
-                byte[] msgBytes = rsp.getBytes();
-                writeBuffer.put(msgBytes).flip();
-                return msgBytes.length;
-            }
-        });
+        integerMessageServer.addHandler((RespondingMessageHandler<Integer>) message -> {
+		    String rsp = TEST_RSP_MSG + message.getValue();
+		    byte[] msgBytes = rsp.getBytes();
+		    return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
+		});
 
         serverService.submit(() -> { integerMessageServer.start(); return null; });
     }
