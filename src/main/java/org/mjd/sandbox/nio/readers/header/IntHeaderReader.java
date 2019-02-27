@@ -19,6 +19,7 @@ public final class IntHeaderReader implements HeaderReader<Integer>
     {
     	this("Unknown client", size);
     }
+
     public IntHeaderReader(String id, int size)
     {
     	this.id = id;
@@ -36,23 +37,26 @@ public final class IntHeaderReader implements HeaderReader<Integer>
         // if we didn't read enough
         if(buffer.remaining() < headerSize)
         {
-            if(headerBuffer == null)
-            {
-            	LOG.trace("[{}] Partial header received, creating partial header buffer cache", id);
-                headerBuffer = ByteBuffer.allocate(headerSize);
-            }
-            // The buffer contains part of the header, it could be any part
-            LOG.trace("[{}] HeaderBuffer for partials state {} pre copy", id, headerBuffer);
-        	headerBuffer.put(buffer);
-            LOG.trace("[{}] HeaderBuffer for partials state {} post copy", id, headerBuffer);
+        	if(buffer.remaining() > 0)
+        	{
+	            if(headerBuffer == null)
+	            {
+	            	LOG.trace("[{}] Partial header received, creating partial header buffer cache", id);
+	                headerBuffer = ByteBuffer.allocate(headerSize);
+	            }
+	            // The buffer contains part of the header, it could be any part
+	            LOG.trace("[{}] HeaderBuffer for partials state {} pre copy", id, headerBuffer);
+	        	headerBuffer.put(buffer);
+	            LOG.trace("[{}] HeaderBuffer for partials state {} post copy", id, headerBuffer);
 
-            // we didn't read enough for a complete header, but it was the final piece, the header is now complete
-            if(!headerBuffer.hasRemaining())
-            {
-                // We completed this time
-                LOG.trace("[{}] Header completed over multiple reads.", id);
-                headerValue = ((ByteBuffer)headerBuffer.flip()).getInt();
-            }
+	            // we didn't read enough for a complete header, but it was the final piece, the header is now complete
+	            if(!headerBuffer.hasRemaining())
+	            {
+	                // We completed this time
+	                LOG.trace("[{}] Header completed over multiple reads.", id);
+	                headerValue = ((ByteBuffer)headerBuffer.flip()).getInt();
+	            }
+        	}
         }
         // we read the entire header
         else
@@ -63,15 +67,6 @@ public final class IntHeaderReader implements HeaderReader<Integer>
             headerBuffer = null;
         }
     }
-
-    private int calcHowMuchToRead(ByteBuffer buffer) {
-    	if(headerBuffer != null)
-    	{
-    		// We have a partial read in progress
-    		return Math.min(buffer.remaining(), remaining());
-    	}
-    	return Math.min(buffer.remaining(), headerSize);
-	}
 
 	@Override
     public void readHeader(String id, ByteBuffer headerBuffer, int offset)
@@ -89,17 +84,27 @@ public final class IntHeaderReader implements HeaderReader<Integer>
     @Override
     public int getValue()
     {
+    	if(headerValue == -1)
+    	{
+    		throw new IllegalStateException("IntHeaderReader.get() cannot be called before it is complete.");
+    	}
         return headerValue;
     }
 
     @Override
     public int remaining()
     {
-    	LOG.trace("[{}] HASH: {}", id, hashCode());
+    	// We haven't read any partial header data
         if(headerBuffer == null)
         {
-        	LOG.trace("[{}] Header buffer is null, we must have all {} bytes of the message remaining", id, headerSize);
-            return headerSize;
+        	// and the header was never read in one single read
+        	if(headerValue == -1)
+        	{
+        		return headerSize;
+        	}
+        	// we havent read part of the header and the value is complete so we must have 0 remaining
+        	// The data arrived in one read.
+			return 0;
         }
         LOG.trace("[{}] Partial header buffer in play, state is {}", id, headerBuffer);
         return headerBuffer.remaining();

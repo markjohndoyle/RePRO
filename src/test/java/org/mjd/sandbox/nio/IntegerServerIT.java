@@ -50,6 +50,8 @@ public class IntegerServerIT
             socketOut.close();
             testSocket.close();
             shutdownServer();
+            await().atMost(Duration.TEN_SECONDS).until(() -> { return integerMessageServer.isShutdown();});
+            await().atMost(Duration.TEN_SECONDS).until(() -> { return serverService.isTerminated();});
         });
 
         describe("When a valid request is sent to the server", () -> {
@@ -87,7 +89,9 @@ public class IntegerServerIT
                            socketOut.flush();
                        }
                        // write the rest plus overflow
-                       socketOut.write(new byte[]{testValueBuffer.get(3), 0x0F, 0x0F, 0x0F, 0x0F, 0x0F});
+                       socketOut.write(new byte[]{testValueBuffer.get(3), 0x01, 0x0A, 0x07, 0x03, 0x00,
+                    		   											  0x0F, 0x0F, 0x0F, 0x0F, 0x0F});
+                       socketOut.flush();
 
                        expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
                    });
@@ -105,10 +109,14 @@ public class IntegerServerIT
             @Override public Message<Integer> create(byte[] bytesRead) {
                 return IntMessage.from(bytesRead);
             }
+			@Override
+			public Message<Integer> create(ByteBuffer wrap) {
+				return new IntMessage(wrap.getInt());
+			}
         });
 
         // Add echo handler
-        integerMessageServer.addHandler(new RespondingHandler<Integer>() {
+        integerMessageServer.addHandler(new RespondingMessageHandler<Integer>() {
             @Override
             public Optional<ByteBuffer> execute(Message<Integer> message) {
                 String rsp = TEST_RSP_MSG + message.getValue();

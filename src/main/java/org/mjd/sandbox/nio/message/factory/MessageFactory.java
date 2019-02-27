@@ -1,5 +1,7 @@
 package org.mjd.sandbox.nio.message.factory;
 
+import java.nio.ByteBuffer;
+
 import org.mjd.sandbox.nio.message.Message;
 
 /**
@@ -22,4 +24,6 @@ public interface MessageFactory<T>
     Message<T> create(byte[] bytesRead) throws MessageCreationException;
 
     int getHeaderSize();
+
+	Message<T> create(ByteBuffer wrap);
 }

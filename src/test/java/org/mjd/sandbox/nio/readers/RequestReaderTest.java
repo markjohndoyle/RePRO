@@ -45,6 +45,8 @@ public final class RequestReaderTest
     final Message<Integer> expectedMsg = new IntMessage(17369615);
     final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg.getValue());
     final List<Byte> bodyValueList = Bytes.asList(bodyValueBytes);
+    private ByteBuffer remaining;
+    private List<Byte> bodyWithNextHeader;
 
     // NOTES: The HeaderReader of this Request reader should really be mocked out. It's currently
     // hardcoded to an IntHeaderReader which is what this test works with.
@@ -55,7 +57,7 @@ public final class RequestReaderTest
             MockitoAnnotations.initMocks(this);
             when(mockFactory.getHeaderSize()).thenReturn(Integer.BYTES);
             when(mockFactory.create(bodyValueBytes)).thenReturn(expectedMsg);
-            readerUnderTest =  new RequestReader<>("test", mockChannel, mockFactory);
+            readerUnderTest =  new RequestReader<>("unittest", mockChannel, mockFactory);
             headerBuffer = ByteBuffer.allocate(Integer.BYTES);
             bodyBuffer = ByteBuffer.allocate(1024);
         });
@@ -229,12 +231,12 @@ public final class RequestReaderTest
                 });
             });
 
-            describe("receives a complete header and body, and the next message header in ONE read ", () ->{
+            describe("receives a complete header and body, and the next message HEADER in ONE read ", () -> {
                 beforeEach(() -> {
-                    List<Byte> bodyWithNextMsg = new ArrayList<>(bodyValueList);
-                    bodyWithNextMsg.addAll(headerValueList);
-                    addHeaderAndBdoyBytesToChannel(headerValueList, bodyWithNextMsg);
-                    readerUnderTest.read(headerBuffer, bodyBuffer);
+                	bodyWithNextHeader = new ArrayList<>(bodyValueList);
+                    bodyWithNextHeader.addAll(headerValueList);
+                    addHeaderAndBodyBytesToChannel(headerValueList, bodyWithNextHeader);
+                    remaining = readerUnderTest.read(headerBuffer, bodyBuffer);
                 });
                 it("should be complete", () -> {
                     expect(readerUnderTest.messageComplete()).toBeTrue();
@@ -246,11 +248,15 @@ public final class RequestReaderTest
                     expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
                     expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
                 });
+                it("should return the following message in a ByteBuffer", () -> {
+                	expect(remaining).toBeNotNull();
+                	expect(remaining).toEqual(ByteBuffer.wrap(headerValueArray));
+                });
             });
 
             describe("receives a complete header but not all of the body in ONE read ", () ->{
                 beforeEach(() -> {
-                    addHeaderAndBdoyBytesToChannel(headerValueList, bodyValueList.subList(0, bodyValueList.size() - 1));
+                    addHeaderAndBodyBytesToChannel(headerValueList, bodyValueList.subList(0, bodyValueList.size() - 1));
                     readerUnderTest.read(headerBuffer, bodyBuffer);
                 });
                 it("should not be complete", () -> {
@@ -267,7 +273,7 @@ public final class RequestReaderTest
     } // END TEST INSTANCE BLOCK
 
 
-    private OngoingStubbing<Long> addHeaderAndBdoyBytesToChannel(List<Byte> header, List<Byte> body) throws IOException
+    private OngoingStubbing<Long> addHeaderAndBodyBytesToChannel(List<Byte> header, List<Byte> body) throws IOException
     {
         clearReadBuffers();
         return when(mockChannel.read(any(ByteBuffer[].class)))
@@ -306,8 +312,8 @@ public final class RequestReaderTest
         when(mockChannel.read(any(ByteBuffer[].class))).thenReturn(endOfStream());
     }
 
-    private long noMoreData() { return 0L; }
-    private long endOfStream() { return -1L; }
+    private static long noMoreData() { return 0L; }
+    private static long endOfStream() { return -1L; }
 
     /** Would happen before each call to read */
     private void clearReadBuffers()

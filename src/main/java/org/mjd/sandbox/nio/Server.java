@@ -56,7 +56,7 @@ public final class Server<MsgType> {
 	private ByteBuffer unread;
 
 	private MessageFactory<MsgType> messageFactory;
-	private RespondingHandler<MsgType> handler;
+	private RespondingMessageHandler<MsgType> handler;
 	private InvalidKeyHandler validityHandler;
 
 	/**
@@ -88,7 +88,12 @@ public final class Server<MsgType> {
 		closeDownServer();
 	}
 
-	public Server<MsgType> addHandler(RespondingHandler<MsgType> handler) {
+	/**
+	 * TODO Support multiple handlers using chain of command pattern
+	 * @param handler
+	 * @return
+	 */
+	public Server<MsgType> addHandler(RespondingMessageHandler<MsgType> handler) {
 		this.handler = handler;
 		return this;
 	}
@@ -217,15 +222,18 @@ public final class Server<MsgType> {
 		clearReadBuffers();
 		unread = reader.read(headerBuffer, bodyBuffer);
 		processMessageReaderResults(key, reader);
-//		clearReadBuffers();
-//		while (unread != null) {
+		clearReadBuffers();
+		int count = 0;
+		while (unread.hasRemaining()) {
 //			// TODO early draft, probably full of bugs. Needs testing
 //			// reader has finished but there are further messages in the buffer so we
 //			// replace the reader with a new one
-//			readers.put(key.channel(), RequestReader.from(key, messageFactory));
-//			unread = reader.read(headerBuffer, bodyBuffer);
-//			processMessageReaderResults(key, reader);
-//		}
+			readers.put(key.channel(), RequestReader.from(key, messageFactory));
+			unread = reader.read(headerBuffer, bodyBuffer);
+			processMessageReaderResults(key, reader);
+			clearReadBuffers();
+			System.err.println(count++ + " - looping on extra message bytes: " + unread);
+		}
 	}
 
 	private void processMessageReaderResults(SelectionKey key, MessageReader<MsgType> reader) {

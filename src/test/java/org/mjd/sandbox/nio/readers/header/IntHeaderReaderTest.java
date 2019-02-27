@@ -1,4 +1,4 @@
-package org.mjd.sandbox.nio.readers;
+package org.mjd.sandbox.nio.readers.header;
 
 import java.nio.ByteBuffer;
 
@@ -37,62 +37,81 @@ public final class IntHeaderReaderTest
             restOfItBuffer = ByteBuffer.wrap(fullFiveHeader, fullFiveHeader.length - 1, 1);
         });
 
+        describe("when the size passed to an IntHeaderReader is not " + Integer.BYTES, () -> {
+        	it("should throw an exception", () -> {
+        		expect(() -> new IntHeaderReader(39472)).toThrow(IllegalArgumentException.class);
+        	});
+        });
 
         describe("when the header data", () -> {
             describe("arrives in", ()-> {
-                describe("one write, that is, all at once", ()-> {
+                describe("one single read, that is, all at once", ()-> {
+                	beforeEach(() -> {
+                		readerUnderTest.readHeader("unit test", completeBuffer);
+                	});
                     it("should read the correct header value", ()->{
-                        readerUnderTest.readHeader("unit test", completeBuffer);
                         expect(readerUnderTest.isComplete()).toBeTrue();
-                        expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
+                    });
+                    it("should have 0 bytes remaining", () -> {
+                    	expect(readerUnderTest.remaining()).toEqual(0);
+                    });
+                    it("should have the correct value", () -> {
+                    	expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
                     });
                 });
                 describe("two single bytes and the rest does not arrive", () -> {
-                   it("should not be complete", () -> {
-                       readerUnderTest.readHeader("twoSingleTest", ByteBuffer.wrap(fullFiveHeader, 0, 1));
-                       readerUnderTest.readHeader("twoSingleTest", ByteBuffer.wrap(fullFiveHeader, 1, 1));
-                       expect(readerUnderTest.isComplete()).toBeFalse();
-                   });
+                	beforeEach(() -> {
+                		readerUnderTest.readHeader("twoSingleTest", ByteBuffer.wrap(fullFiveHeader, 0, 1));
+                		readerUnderTest.readHeader("twoSingleTest", ByteBuffer.wrap(fullFiveHeader, 1, 1));
+                	});
+                	it("should not be complete", () -> {
+                		expect(readerUnderTest.isComplete()).toBeFalse();
+                	});
+                	it("should have two bytes remaining", () -> {
+                		expect(readerUnderTest.remaining()).toEqual(2);
+                	});
+                	it("should throw an exception for any attempt to get the value", () -> {
+                		expect(() -> readerUnderTest.getValue()).toThrow(IllegalStateException.class);
+                	});
                 });
                 describe("single bytes", () -> {
+                	beforeEach(() -> {
+                		readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 0, 1));
+                		readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 1, 1));
+                		readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 2, 1));
+                		readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 3, 1));
+                	});
                     it("should complete", () -> {
-                        readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 0, 1));
-                        readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 1, 1));
-                        readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 2, 1));
-                        readerUnderTest.readHeader("allSingleTest", ByteBuffer.wrap(fullFiveHeader, 3, 1));
                         expect(readerUnderTest.isComplete()).toBeTrue();
+                    });
+                    it("should have zero bytes remaining", () -> {
+                    	expect(readerUnderTest.remaining()).toEqual(0);
+                    });
+                    it("should have the correct value", () -> {
+                    	expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
                     });
                 });
                 describe("two parts", ()-> {
-//                	describe("followed by the the rest of the header and the entier body", () -> {
-//                		it("should read the correct header value", () -> {
-//                			System.err.println(Arrays.toString(partBuffer.array()));
-//                			ByteBuffer restOfIt = ByteBuffer.allocate(8)
-//                									.put(restOfItBuffer)
-//                									.putInt(0).put((byte) 0x01);
-//                			System.err.println(Arrays.toString(partBuffer.array()));
-//                			System.err.println(Arrays.toString(restOfIt.array()));
-//                			readerUnderTest.readHeader("unit test", partBuffer);
-//                			expect(readerUnderTest.isComplete()).toBeFalse();
-//                			readerUnderTest.readHeader("unit test", (ByteBuffer) restOfIt.flip());
-//                			expect(readerUnderTest.isComplete()).toBeTrue();
-//                			expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
-//                		});
-//                	});
-                    describe("where the last byte arrives last", ()-> {
-                        it("should read the correct header value", () -> {
-                            readerUnderTest.readHeader("unit test", partBuffer);
-                            expect(readerUnderTest.isComplete()).toBeFalse();
-                            readerUnderTest.readHeader("unit test", restOfItBuffer);
-                            expect(readerUnderTest.isComplete()).toBeTrue();
-                            expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
-                        });
-                        it("should show 1 remaining after the first 3 bytes arrive", () -> {
-                            readerUnderTest.readHeader("unit test", partBuffer);
-                            expect(readerUnderTest.isComplete()).toBeFalse();
-                            expect(readerUnderTest.remaining()).toEqual(1);
-                        });
-                    });
+                	describe("with 3 bytes arriving first", ()-> {
+	                	beforeEach(() -> {
+	                		readerUnderTest.readHeader("unit test", partBuffer);
+	                	});
+	                    describe("and then finally the last byte", ()-> {
+	                    	beforeEach(() -> {
+	                    		expect(readerUnderTest.isComplete()).toBeFalse();
+	                    	});
+	                        it("should read the correct header value", () -> {
+	                            readerUnderTest.readHeader("unit test", restOfItBuffer);
+	                            expect(readerUnderTest.isComplete()).toBeTrue();
+	                            expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
+	                        });
+	                        it("should show 1 remaining after the first 3 bytes arrive", () -> {
+	                            readerUnderTest.readHeader("unit test", partBuffer);
+	                            expect(readerUnderTest.isComplete()).toBeFalse();
+	                            expect(readerUnderTest.remaining()).toEqual(1);
+	                        });
+	                    });
+                	});
                     describe("where the last byte arrives first", ()-> {
                         it("should read the correct header value", () -> {
                             ByteBuffer firstByte = ByteBuffer.wrap(fullFiveHeader, 0, 1);
@@ -149,12 +168,21 @@ public final class IntHeaderReaderTest
                 });
             });
             describe("does not arrive", ()-> {
+            	beforeEach(() -> {
+            		ByteBuffer emptyBuffer = ByteBuffer.wrap(new byte[0]);
+            		readerUnderTest.readHeader("unit test", emptyBuffer);
+            	});
                 it("should not complete", ()->{
-                    ByteBuffer emptyBuffer = ByteBuffer.wrap(new byte[0]);
-                    readerUnderTest.readHeader("unit test", emptyBuffer);
                     expect(readerUnderTest.isComplete()).toBeFalse();
                 });
+                it("should have 4 bytes remaining", ()->{
+                	expect(readerUnderTest.remaining()).toEqual(Integer.BYTES);
+                });
+                it("should throw an exception for any attempt to get the value", () -> {
+            		expect(() -> readerUnderTest.getValue()).toThrow(IllegalStateException.class);
+            	});
             });
+
         }); // end when header data... suite
     }
 
