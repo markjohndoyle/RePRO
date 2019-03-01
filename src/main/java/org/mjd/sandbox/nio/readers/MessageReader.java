@@ -9,12 +9,15 @@ import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationExcepti
 
 public interface MessageReader<T>
 {
-    ByteBuffer read(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws MessageCreationException, IOException;
+    ByteBuffer[] read(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws MessageCreationException, IOException;
+
+    ByteBuffer[] readPreloaded(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws IOException;
 
     Optional<Message<T>> getMessage();
 
     boolean messageComplete();
 
     boolean isEndOfStream();
+
 
 }

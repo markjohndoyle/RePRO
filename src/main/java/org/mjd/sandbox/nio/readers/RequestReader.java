@@ -48,7 +48,7 @@ public final class RequestReader<T> implements MessageReader<T>
     }
 
     @Override
-    public ByteBuffer read(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws MessageCreationException, IOException
+    public ByteBuffer[] read(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws MessageCreationException, IOException
     {
     	LOG.trace("[{}] ------------NEW READ------------------", id);
         prereadCheck();
@@ -58,7 +58,7 @@ public final class RequestReader<T> implements MessageReader<T>
         LOG.trace("[{}] bodybuffer state before send to read: {} ", id, bodyBuffer);//, Arrays.toString(bodyBuffer.array()));
         long totalBytesReadThisCall = readFromChannel(vectoredBuffers);
         if(vectoredIO) {
-            LOG.trace("[{}] Buffer states post read -> head:{} body:{}", id, Arrays.toString(headerBuffer.array()), Arrays.toString(bodyBuffer.array()));
+            LOG.trace("[{}] Buffer states post read -> head:{} body:{}", id, Arrays.toString(headerBuffer.array()));//, Arrays.toString(bodyBuffer.array()));
         }
         else {
             LOG.trace("[{}] Buffer states post read -> body:{}", id, bodyBuffer);
@@ -67,95 +67,36 @@ public final class RequestReader<T> implements MessageReader<T>
 		if (totalBytesReadThisCall == -1) {
 			LOG.debug("[{}] ENDOFSTREAM for '{}'. Message complete: {}", id, id, messageComplete());
 			endOfStream = true;
-			return ByteBuffer.allocate(0);
+			return new ByteBuffer[] {ByteBuffer.allocate(0), ByteBuffer.allocate(0)};
 		}
 
-		ByteBuffer remaining = ByteBuffer.allocate(0);
-		if (totalBytesReadThisCall > 0) {
-			int headerProcessedThisRead = headerReader.remaining();
-			if (!headerReader.isComplete()) {
-				readHeader(headerBuffer, totalBytesReadThisCall);
-			}
-
-			// Maybe it's complete now? check again
-			if (headerReader.isComplete()) {
-				bodyReader.setBodySize(headerReader.getValue());
-				remaining = readBody(bodyBuffer, totalBytesReadThisCall, headerProcessedThisRead);
-			}
-		}
+		ByteBuffer[] remaining = decodeData(headerBuffer, bodyBuffer, totalBytesReadThisCall);
         LOG.trace("[{}] ------------END READ------------------", id);
         return remaining;
     }
 
-	private ByteBuffer readBody(ByteBuffer bodyBuffer, long totalBytesReadThisCall, int headerProcessedThisRead) {
-		ByteBuffer remainingData = bodyReader.read((ByteBuffer) bodyBuffer.flip());
-		if(bodyReader.isComplete())
-		{
-			message = bodyReader.getMessage();
-		}
-		return remainingData;
+	@Override
+	public ByteBuffer[] readPreloaded(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws IOException {
+		LOG.trace("[{}] ------------NEW PRELOADED READ------------------", id);
+        prereadCheck();
+
+//        ByteBuffer[] vectoredBuffers = setupVectoredBuffers(headerBuffer, bodyBuffer);
+        LOG.trace("[{}] headerbuffer state before send to read: {}  {}", id, headerBuffer, Arrays.toString(headerBuffer.array()));
+        LOG.trace("[{}] bodybuffer state before send to read: {} ", id, bodyBuffer);//, Arrays.toString(bodyBuffer.array()));
+        vectoredIO = true;
+		int totalBytesReadThisCall = headerBuffer.position() + bodyBuffer.position();
+        ByteBuffer[] remaining = decodeData(headerBuffer, bodyBuffer, totalBytesReadThisCall);
+        LOG.trace("[{}] ------------END PRELOADED READ------------------", id);
+		return remaining;
 	}
 
-	private void readHeader(ByteBuffer headerBuffer, long totalBytesReadThisCall) {
-	    LOG.trace("[{}] headerbuff state before send to Header reader: {} Contents: {}", id, headerBuffer, Arrays.toString(headerBuffer.array()));
-	    // Header is at 0 - 3, that is, we have started a partial read.  We need to reposition the buffer
-	    // for reading so the header reader gets the correct dats
-	    // for partial reads we read into the buffer at the expected offset. We had to do this so the
-	    // message body didn't leak into the end of the header buffer in a vectored read.
-	    if(headerReader.remaining() < headerSize)
+	private void prereadCheck() throws IOException
+	{
+	    if(endOfStream)
 	    {
-	        int inThisBuffer = Math.min(headerReader.remaining(), Math.toIntExact(totalBytesReadThisCall));
-	        LOG.trace("{} header remaining is not equal to {} header size. " +
-	                  "Reseting to mark and moving limit back to {} before passing to header reader." +
-	                  "There are {} bytes of header in this buffer",
-	                  headerReader.remaining(), headerSize, headerBuffer.position() + inThisBuffer, inThisBuffer);
-	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.reset().limit(headerBuffer.position() + inThisBuffer));
+	        throw new IOException("Cannot read because this reader encloses a channel that as previously sent " +
+	                              "end of stream");
 	    }
-	    else
-	    {
-	    	// We've not read any header data previously therefore we should read the header buffer from
-	    	// position 0
-	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.flip());
-	    }
-
-	    // after header reader has processes the latest data.
-	    if(headerReader.isComplete())
-	    {
-	        bodySize = headerReader.getValue();
-	        LOG.trace("[{}] Header read complete! Message body size is {}", id, bodySize);
-		}
-	}
-
-    /**
-     * Reads from the {@link #channel} into the buffer array.
-     *
-     * @param vectoredBuffers
-     * @return
-     */
-	private long readFromChannel(ByteBuffer[] vectoredBuffers) {
-		long totalBytesReadThisCall = 0;
-		try
-        {
-			LOG.trace("[{}] Reading from channel <--[=====--]. Vectoring is {}, Using {} buffer(s)", id, vectoredIO, vectoredBuffers.length);
-        	long bytesRead;
-            while((bytesRead = channel.read(vectoredBuffers)) > 0)
-            {
-                LOG.trace("[{}] Read {} bytes from channel", id, bytesRead);
-                totalBytesReadThisCall += bytesRead;
-            }
-            if(bytesRead == -1)
-            {
-            	return -1;
-            }
-            LOG.trace("[{}] Read {} bytes from channel until no more data, ie. last bytes read was {}", id, totalBytesReadThisCall, bytesRead);
-        }
-        catch (IOException e)
-        {
-            LOG.trace("[{}] Client channel disconnected in read. Ending stream.", id);
-            endOfStream = true;
-            return -1L;
-        }
-		return totalBytesReadThisCall;
 	}
 
 	/**
@@ -182,8 +123,8 @@ public final class RequestReader<T> implements MessageReader<T>
 	 * @param bodyBuffer
 	 * @return
 	 */
-    private ByteBuffer[] setupVectoredBuffers(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) {
-    	ByteBuffer[] vectoredBuffers;
+	private ByteBuffer[] setupVectoredBuffers(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) {
+		ByteBuffer[] vectoredBuffers;
 		if(!headerReader.isComplete()) {
 			// we don't have the header yet but we MAY have part of it
 			// Set the headerBuffer position to the position it would be at and mark it for later
@@ -196,23 +137,121 @@ public final class RequestReader<T> implements MessageReader<T>
 			LOG.trace("[{}] partial header in vectored read - remaining bytes is {} of {}; setting position and marking to {}", id, headerReader.remaining(), headerSize, headerSize - headerReader.remaining());
 			vectoredBuffers = new ByteBuffer[]{headerBuffer, bodyBuffer};
 			vectoredIO = true;
-        }
-        else {
-        	LOG.trace("[{}] Header already complete on a previous read, using body buffer alone for further reads", id);
-        	vectoredBuffers = new ByteBuffer[]{bodyBuffer};
-        	vectoredIO = false;
-        }
+	    }
+	    else {
+	    	LOG.trace("[{}] Header already complete on a previous read, using body buffer alone for further reads", id);
+	    	vectoredBuffers = new ByteBuffer[]{bodyBuffer};
+	    	vectoredIO = false;
+	    }
 		return vectoredBuffers;
-    }
+	}
 
-	private void prereadCheck() throws IOException
-    {
-        if(endOfStream)
-        {
-            throw new IOException("Cannot read because this reader encloses a channel that as previously sent " +
-                                  "end of stream");
-        }
-    }
+	/**
+	 * Reads from the {@link #channel} into the buffer array.
+	 *
+	 * @param vectoredBuffers
+	 * @return
+	 */
+	private long readFromChannel(ByteBuffer[] vectoredBuffers) {
+		long totalBytesReadThisCall = 0;
+		try
+	    {
+			LOG.trace("[{}] Reading from channel <--[=====--]. Vectoring is {}, Using {} buffer(s)", id, vectoredIO, vectoredBuffers.length);
+	    	long bytesRead;
+	        while((bytesRead = channel.read(vectoredBuffers)) > 0)
+	        {
+	            LOG.trace("[{}] Read {} bytes from channel", id, bytesRead);
+	            totalBytesReadThisCall += bytesRead;
+	        }
+	        if(bytesRead == -1)
+	        {
+	        	return -1;
+	        }
+	        LOG.trace("[{}] Read {} bytes from channel until no more data, ie. last bytes read was {}", id, totalBytesReadThisCall, bytesRead);
+	    }
+	    catch (IOException e)
+	    {
+	        LOG.trace("[{}] Client channel disconnected in read. Ending stream.", id);
+	        endOfStream = true;
+	        return -1L;
+	    }
+		return totalBytesReadThisCall;
+	}
+
+	private ByteBuffer[] decodeData(ByteBuffer headerBuffer, ByteBuffer bodyBuffer, long totalBytesReadThisCall) {
+		ByteBuffer remaining = ByteBuffer.allocate(0);
+		if (totalBytesReadThisCall > 0) {
+//			int headerProcessedThisRead = headerReader.remaining();
+			if (!headerReader.isComplete()) {
+				readHeader(headerBuffer, totalBytesReadThisCall);
+			}
+
+			// Maybe it's complete now? check again
+			if (headerReader.isComplete()) {
+				bodyReader.setBodySize(headerReader.getValue());
+				remaining = readBody(bodyBuffer);
+			}
+		}
+
+		// TODO Buffer compacting can leave old data
+		if(remaining.hasRemaining())
+		{
+			int lim = remaining.limit();
+			remaining.position(0).limit(headerSize);
+			ByteBuffer remainingHeader = ByteBuffer.allocate(headerSize).put(remaining);
+			remaining.limit(lim);
+			remaining.compact().position(remaining.limit());
+			remaining.limit(remaining.limit() - headerSize);
+			return new ByteBuffer[] {remainingHeader, remaining};
+		}
+		return new ByteBuffer[] {remaining, remaining};
+	}
+
+	private ByteBuffer readBody(ByteBuffer bodyBuffer) {
+		ByteBuffer remainingData;
+//		if(flippedBuffers) {
+//			remainingData = bodyReader.read(bodyBuffer);
+//		}
+//		else {
+			remainingData = bodyReader.read((ByteBuffer) bodyBuffer.flip());
+//		}
+		if(bodyReader.isComplete())
+		{
+			message = bodyReader.getMessage();
+		}
+		return remainingData;
+	}
+
+	private void readHeader(ByteBuffer headerBuffer, long totalBytesReadThisCall) {
+	    LOG.trace("[{}] headerbuff state before send to Header reader: {} Contents: {}", id, headerBuffer, Arrays.toString(headerBuffer.array()));
+	    // Header is at 0 - 3, that is, we have started a partial read.  We need to reposition the buffer
+	    // for reading so the header reader gets the correct dats
+	    // for partial reads we read into the buffer at the expected offset. We had to do this so the
+	    // message body didn't leak into the end of the header buffer in a vectored read.
+	    if(headerReader.remaining() < headerSize)
+	    {
+	        int inThisBuffer = Math.min(headerReader.remaining(), Math.toIntExact(totalBytesReadThisCall));
+	        LOG.trace("{} header remaining is not equal to {} header size. " +
+	                  "Reseting to mark and moving limit back to {} before passing to header reader." +
+	                  "There are {} bytes of header in this buffer",
+	                  headerReader.remaining(), headerSize, headerBuffer.position() + inThisBuffer, inThisBuffer);
+	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.reset().limit(headerBuffer.position() + inThisBuffer));
+	    }
+	    else
+	    {
+	    	// We've not read any header data previously therefore we should read the header buffer from
+	    	// position 0
+	    	LOG.trace("[{}] Not read any header before this read cycle", id);
+	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.flip());
+	    }
+
+	    // after header reader has processes the latest data.
+	    if(headerReader.isComplete())
+	    {
+	        bodySize = headerReader.getValue();
+	        LOG.trace("[{}] Header read complete! Message body size is {}", id, bodySize);
+		}
+	}
 
     @Override
     public Optional<Message<T>> getMessage()

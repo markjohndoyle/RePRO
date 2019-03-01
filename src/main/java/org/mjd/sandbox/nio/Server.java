@@ -9,6 +9,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -17,6 +18,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.response.ResponseHandler;
@@ -52,11 +55,12 @@ public final class Server<MsgType> {
 	private long conId;
 
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
-	private final Map<Channel, Writer> responseWriters = new HashMap<>();
+//	private final Map<Channel, Writer> responseWriters = new HashMap<>();
+	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(1024);
 	private final ByteBuffer headerBuffer;
-	private ByteBuffer unread;
+	private ByteBuffer[] unread;
 
 	private MessageFactory<MsgType> messageFactory;
 	private InvalidKeyHandler validityHandler;
@@ -179,17 +183,28 @@ public final class Server<MsgType> {
 			}
 			// client response, triggered by read.
 			if (key.isValid() && key.isWritable()) {
-				Writer responseWriter = responseWriters.get(key.channel());
-				responseWriter.write();
-				if (responseWriter.isComplete()) {
+//				Writer responseWriter = responseWriters.get(key.channel());
+				List<Writer> rspWriters = responseWriters.get(key.channel());
+				LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
+				Iterator<Writer> it = rspWriters.iterator();
+				while(it.hasNext()) {
+					Writer responseWriter = it.next();
+					responseWriter.writeComplete();
+//					if (responseWriter.isCompleteSizeHeaderWriter()) {
+//					key.interestOps(OP_READ);
+//					responseWriters.remove(key.channel(), responseWriter);
+//					LOG.trace("Writer {} is complete. Reset to read ops only. There are {} write jobs remaining.",
+//							key.attachment(), responseWriters.size());
+//					}
+//					else {
+//						LOG.trace("Writer for {} did not complete in one write", key.attachment());
+//					}
+				}
+				rspWriters.clear();
+//				if(rspWriters.isEmpty()) {
+					LOG.trace("Response writers for {} are complete, resetting to ead ops only", key.attachment());
 					key.interestOps(OP_READ);
-					responseWriters.remove(key.channel());
-					LOG.trace("Writer {} is complete. Rest to read ops only. There are {} write jobs remaining.",
-							key.attachment(), responseWriters.size());
-				}
-				else {
-					LOG.trace("Writer for {} did not complete in one write", key.attachment());
-				}
+//				}
 			}
 			iter.remove();
 		}
@@ -223,15 +238,24 @@ public final class Server<MsgType> {
 		processMessageReaderResults(key, reader);
 		clearReadBuffers();
 		int count = 0;
-		while (unread.hasRemaining()) {
+		while (unread[0].capacity() > 0) {
+			ByteBuffer unreadHeader = unread[0];
+			ByteBuffer unreadBody = unread[1];
+			LOG.trace("Remaining mode loop iteration: {} H:{} B:{} Bmeta:{}", count++, Arrays.toString(unreadHeader.array()), Arrays.toString(unreadBody.array()), unreadBody);
 //			// TODO early draft, probably full of bugs. Needs testing
 //			// reader has finished but there are further messages in the buffer so we
 //			// replace the reader with a new one
-			readers.put(key.channel(), RequestReader.from(key, messageFactory));
-			unread = reader.read(headerBuffer, bodyBuffer);
-			processMessageReaderResults(key, reader);
+			RequestReader<MsgType> followReader = RequestReader.from(key, messageFactory);
+//			ByteBuffer followingHeaderBuffer = (ByteBuffer) unread.duplicate().position(Integer.BYTES).limit(Integer.BYTES);
+			// ^ this will be flipped so we position it at the limit
+//			LOG.trace("#### HEADER {} {}", followingHeaderBuffer, Arrays.toString(followingHeaderBuffer.array()));
+//			ByteBuffer followingBodyBuffer = (ByteBuffer) ((ByteBuffer) unread.position(Integer.BYTES)).compact().flip();
+//			LOG.trace("#### BODY {} {}", followingBodyBuffer, Arrays.toString(followingBodyBuffer.array()));
+//			unread = followReader.readPreloaded(followingHeaderBuffer, followingBodyBuffer);
+			unread = followReader.readPreloaded(unreadHeader, unreadBody);
+			// TODO ISSUES HERE
+			processMessageReaderResults(key, followReader);
 			clearReadBuffers();
-			System.err.println(count++ + " - looping on extra message bytes: " + unread);
 		}
 	}
 
@@ -255,12 +279,14 @@ public final class Server<MsgType> {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
+		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
 		// TODO tidy this up, combine these handlers or something
 		Optional<ByteBuffer> resultToWrite = handler.execute(reader.getMessage().get());
 		if (resultToWrite.isPresent()) {
 			ByteBuffer resultReadToRead = (ByteBuffer) resultToWrite.get().flip();
 			for(ResponseHandler<MsgType> responseHandler : responseHandlers) {
 				LOG.trace("Buffer post execution handler pre post processing handler {}", resultReadToRead);
+				LOG.debug("Passing message value '{}' to handler", reader.getMessage().get().getValue());
 				resultReadToRead = (ByteBuffer) responseHandler.execute(reader.getMessage().get().getValue(), resultReadToRead).flip();
 			}
 			LOG.trace("Buffer post handlers pre write {}", resultReadToRead);

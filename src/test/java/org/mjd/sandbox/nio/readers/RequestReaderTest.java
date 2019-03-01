@@ -45,7 +45,7 @@ public final class RequestReaderTest
     final Message<Integer> expectedMsg = new IntMessage(17369615);
     final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg.getValue());
     final List<Byte> bodyValueList = Bytes.asList(bodyValueBytes);
-    private ByteBuffer remaining;
+    private ByteBuffer[] remaining;
     private List<Byte> bodyWithNextHeader;
 
     // NOTES: The HeaderReader of this Request reader should really be mocked out. It's currently
@@ -250,8 +250,33 @@ public final class RequestReaderTest
                 });
                 it("should return the following message in a ByteBuffer", () -> {
                 	expect(remaining).toBeNotNull();
-                	expect(remaining).toEqual(ByteBuffer.wrap(headerValueArray));
+                	expect(remaining[0]).toEqual(ByteBuffer.allocate(headerValueArray.length).put(headerValueArray));
                 });
+            });
+
+            describe("receives a complete header and body, and the next complete message in ONE read ", () -> {
+            	beforeEach(() -> {
+            		bodyWithNextHeader = new ArrayList<>(bodyValueList);
+            		bodyWithNextHeader.addAll(headerValueList);
+            		bodyWithNextHeader.addAll(bodyValueList);
+            		addHeaderAndBodyBytesToChannel(headerValueList, bodyWithNextHeader);
+            		remaining = readerUnderTest.read(headerBuffer, bodyBuffer);
+            	});
+            	it("should be complete", () -> {
+            		expect(readerUnderTest.messageComplete()).toBeTrue();
+            	});
+            	it("should not detect end of stream", () -> {
+            		expect(readerUnderTest.isEndOfStream()).toBeFalse();
+            	});
+            	it("should produce the correct message, i.e., an integer of value 17369615", () -> {
+            		expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
+            		expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
+            	});
+            	it("should return the following message in in a header and body ByteBuffer", () -> {
+            		expect(remaining).toBeNotNull();
+            		expect(remaining[0]).toEqual(ByteBuffer.allocate(headerValueArray.length).put(headerValueArray));
+            		expect(remaining[1]).toEqual(ByteBuffer.allocate(bodyValueBytes.length).put(bodyValueBytes));
+            	});
             });
 
             describe("receives a complete header but not all of the body in ONE read ", () ->{

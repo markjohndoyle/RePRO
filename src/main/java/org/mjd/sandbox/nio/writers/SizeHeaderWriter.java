@@ -24,6 +24,7 @@ public final class SizeHeaderWriter implements Writer
     private int bodySize;
     private int expectedWrite = HEADER_LENGTH;
     private Object id;
+    private ByteBuffer headerBuffer = ByteBuffer.allocate(Integer.BYTES);
 
     public SizeHeaderWriter(Object id, WritableByteChannel channel, ByteBuffer bufferToWrite)
     {
@@ -33,6 +34,7 @@ public final class SizeHeaderWriter implements Writer
         bodySize = buffer.limit();
         LOG.trace("[{}] Body is {}", id, bodySize);
         expectedWrite = bodySize + HEADER_LENGTH;
+        headerBuffer.putInt(bodySize).flip();
         LOG.trace("[{}] Writer created for response; expected write is '{}' bytes", id, expectedWrite);
     }
 
@@ -57,6 +59,25 @@ public final class SizeHeaderWriter implements Writer
         {
             LOG.error("[{}] Error writing {}", id, buffer, e);
         }
+    }
+
+    // This can block the server if it cannot write.
+    @Override
+    public void writeComplete() {
+    	LOG.trace("[{}] Writing...", id);
+    	try {
+    		while(headerBuffer.hasRemaining()) {
+    			bytesWritten += channel.write(headerBuffer);
+    			LOG.trace("Writing header {}, total written {}", headerBuffer, bytesWritten);
+    		}
+    		while(buffer.hasRemaining()) {
+    			bytesWritten += channel.write(buffer);
+    			LOG.trace("Writing body {}, total written (inc header) {}", buffer, bytesWritten);
+    		}
+    	}
+    	catch(IOException e) {
+    		LOG.error("[{}] Error writing {}", id, buffer, e);
+    	}
     }
 
     @Override

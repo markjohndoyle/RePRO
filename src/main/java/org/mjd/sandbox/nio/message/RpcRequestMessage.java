@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 
 public class RpcRequestMessage implements Message<RpcRequest>
 {
-    private RpcRequest request;
+    private final RpcRequest request;
     private ByteBuffer byteBuffer;
 
     public RpcRequestMessage(RpcRequest request) throws IOException
@@ -43,5 +43,11 @@ public class RpcRequestMessage implements Message<RpcRequest>
     {
         return byteBuffer.array();
     }
+
+	@Override
+	public String toString() {
+		return "RpcRequestMessage [request=" + request + ", byteBuffer=" + byteBuffer + "]";
+	}
+
 
 }

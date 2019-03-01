@@ -109,10 +109,6 @@ public class IntegerServerIT
             @Override public Message<Integer> create(byte[] bytesRead) {
                 return IntMessage.from(bytesRead);
             }
-			@Override
-			public Message<Integer> create(ByteBuffer wrap) {
-				return new IntMessage(wrap.getInt());
-			}
         });
 
         // Add echo handler

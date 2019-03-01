@@ -11,6 +11,9 @@ public interface Writer
 {
     void write() throws IOException;
 
+    void writeComplete() throws IOException;
+
     boolean isComplete();
+
 
 }

@@ -28,12 +28,12 @@
   
 
   <root level="off">
-    <!-- <appender-ref ref="STDOUT" /> -->
-    <appender-ref ref="FILE" />
+    <appender-ref ref="STDOUT" />
+    <!-- <appender-ref ref="FILE" /> -->
   </root>
   
-  <logger name="org.mjd.sandbox.nio.ServerRpcHighChurnIT" level="off">
+  <!-- <logger name="org.mjd.sandbox.nio.ServerRpcHighChurnIT" level="trace">
     <appender-ref ref="ServerRpcITFile"/>
-  </logger>
+  </logger> -->
 
 </configuration>
