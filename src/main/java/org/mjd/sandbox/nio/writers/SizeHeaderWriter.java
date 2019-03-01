@@ -10,8 +10,21 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Writes a ByteBuffer to a SocketChannel and adds a header
+ * Writes a ByteBuffer to a SocketChannel with a prepended {@link Integer} header whose value
+ * describes the length of the bytebuffer written.
+ * </p>
+ * Given a 21 byte buffer to write to the channel, this {@link Writer} will add a 4 byte header with the
+ * value 21 in. </br>
+ * Visually:
+ * <pre>
+ * +---------+ +--------------------------------+
+ * |         | |                                |
+ * |   21    | |  21 byte buffer to write       |
+ * |         | |                                |
+ * +---------+ +--------------------------------+
+ * </pre>
  *
+ * The write is capable of writing over multple calls if required.
  */
 public final class SizeHeaderWriter implements Writer
 {
@@ -63,7 +76,7 @@ public final class SizeHeaderWriter implements Writer
 
     // This can block the server if it cannot write.
     @Override
-    public void writeComplete() {
+    public void writeCompleteBuffer() {
     	LOG.trace("[{}] Writing...", id);
     	try {
     		while(headerBuffer.hasRemaining()) {

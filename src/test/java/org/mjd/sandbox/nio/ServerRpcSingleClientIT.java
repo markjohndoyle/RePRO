@@ -140,7 +140,7 @@ public class ServerRpcSingleClientIT
 
         // Add RPC to rpcTarget handler
         // The handler is what the server will do with your messages.
-        rpcServer.addHandler((RespondingMessageHandler<RpcRequest>) message -> {
+        rpcServer.addHandler((MessageHandler<RpcRequest>) message -> {
 		    byte[] msgBytes;
 		    Object result;
 		    RpcRequest request = message.getValue();

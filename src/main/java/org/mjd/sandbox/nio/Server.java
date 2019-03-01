@@ -22,7 +22,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
-import org.mjd.sandbox.nio.handlers.response.ResponseHandler;
+import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.sandbox.nio.readers.MessageReader;
@@ -55,7 +55,6 @@ public final class Server<MsgType> {
 	private long conId;
 
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
-//	private final Map<Channel, Writer> responseWriters = new HashMap<>();
 	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(1024);
@@ -65,8 +64,8 @@ public final class Server<MsgType> {
 	private MessageFactory<MsgType> messageFactory;
 	private InvalidKeyHandler validityHandler;
 
-	private RespondingMessageHandler<MsgType> handler;
-	private List<ResponseHandler<MsgType>> responseHandlers = new ArrayList<>();
+	private MessageHandler<MsgType> msgHandler;
+	private List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
@@ -98,17 +97,28 @@ public final class Server<MsgType> {
 	}
 
 	/**
-	 * TODO Support multiple handlers using chain of command pattern
-	 * @param handler
-	 * @return
-	 */
-	public Server<MsgType> addHandler(RespondingMessageHandler<MsgType> handler) {
-		this.handler = handler;
+	 * Sets the {@link MessageHandler} this server will use to handle decoded messages.
+	 *
+	 * @param handler the {@link MessageHandler} this server should use to handle decoded messages
+	 *
+	 * @return This {@link Server} instance. Useful for chaining.
+	 *
+	 * @notThreadSafe
+     */
+	public Server<MsgType> addHandler(MessageHandler<MsgType> handler) {
+		this.msgHandler = handler;
 		return this;
 	}
 
-	public Server<MsgType> addHandler(ResponseHandler<MsgType> handler) {
-		this.responseHandlers.add(handler);
+	/**
+	 *
+	 * @param handler
+	 * @return
+	 *
+	 * @notThreadSafe
+	 */
+	public Server<MsgType> addHandler(ResponseRefiner<MsgType> handler) {
+		this.responseRefiners.add(handler);
 		return this;
 	}
 
@@ -183,28 +193,15 @@ public final class Server<MsgType> {
 			}
 			// client response, triggered by read.
 			if (key.isValid() && key.isWritable()) {
-//				Writer responseWriter = responseWriters.get(key.channel());
 				List<Writer> rspWriters = responseWriters.get(key.channel());
 				LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
 				Iterator<Writer> it = rspWriters.iterator();
 				while(it.hasNext()) {
-					Writer responseWriter = it.next();
-					responseWriter.writeComplete();
-//					if (responseWriter.isCompleteSizeHeaderWriter()) {
-//					key.interestOps(OP_READ);
-//					responseWriters.remove(key.channel(), responseWriter);
-//					LOG.trace("Writer {} is complete. Reset to read ops only. There are {} write jobs remaining.",
-//							key.attachment(), responseWriters.size());
-//					}
-//					else {
-//						LOG.trace("Writer for {} did not complete in one write", key.attachment());
-//					}
+					it.next().writeCompleteBuffer();
 				}
 				rspWriters.clear();
-//				if(rspWriters.isEmpty()) {
-					LOG.trace("Response writers for {} are complete, resetting to ead ops only", key.attachment());
-					key.interestOps(OP_READ);
-//				}
+				LOG.trace("Response writers for {} are complete, resetting to ead ops only", key.attachment());
+				key.interestOps(OP_READ);
 			}
 			iter.remove();
 		}
@@ -238,22 +235,13 @@ public final class Server<MsgType> {
 		processMessageReaderResults(key, reader);
 		clearReadBuffers();
 		int count = 0;
+		// TODO One Key/Channel pait can hog the server here.
 		while (unread[0].capacity() > 0) {
 			ByteBuffer unreadHeader = unread[0];
 			ByteBuffer unreadBody = unread[1];
 			LOG.trace("Remaining mode loop iteration: {} H:{} B:{} Bmeta:{}", count++, Arrays.toString(unreadHeader.array()), Arrays.toString(unreadBody.array()), unreadBody);
-//			// TODO early draft, probably full of bugs. Needs testing
-//			// reader has finished but there are further messages in the buffer so we
-//			// replace the reader with a new one
 			RequestReader<MsgType> followReader = RequestReader.from(key, messageFactory);
-//			ByteBuffer followingHeaderBuffer = (ByteBuffer) unread.duplicate().position(Integer.BYTES).limit(Integer.BYTES);
-			// ^ this will be flipped so we position it at the limit
-//			LOG.trace("#### HEADER {} {}", followingHeaderBuffer, Arrays.toString(followingHeaderBuffer.array()));
-//			ByteBuffer followingBodyBuffer = (ByteBuffer) ((ByteBuffer) unread.position(Integer.BYTES)).compact().flip();
-//			LOG.trace("#### BODY {} {}", followingBodyBuffer, Arrays.toString(followingBodyBuffer.array()));
-//			unread = followReader.readPreloaded(followingHeaderBuffer, followingBodyBuffer);
 			unread = followReader.readPreloaded(unreadHeader, unreadBody);
-			// TODO ISSUES HERE
 			processMessageReaderResults(key, followReader);
 			clearReadBuffers();
 		}
@@ -275,27 +263,33 @@ public final class Server<MsgType> {
 	}
 
 	private void handleCompleteMsg(MessageReader<MsgType> reader, SelectionKey key) {
-		if (handler == null) {
+		if (msgHandler == null) {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
 		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
-		// TODO tidy this up, combine these handlers or something
-		Optional<ByteBuffer> resultToWrite = handler.execute(reader.getMessage().get());
+		Optional<ByteBuffer> resultToWrite = msgHandler.execute(reader.getMessage().get());
 		if (resultToWrite.isPresent()) {
-			ByteBuffer resultReadToRead = (ByteBuffer) resultToWrite.get().flip();
-			for(ResponseHandler<MsgType> responseHandler : responseHandlers) {
-				LOG.trace("Buffer post execution handler pre post processing handler {}", resultReadToRead);
-				LOG.debug("Passing message value '{}' to handler", reader.getMessage().get().getValue());
-				resultReadToRead = (ByteBuffer) responseHandler.execute(reader.getMessage().get().getValue(), resultReadToRead).flip();
-			}
-			LOG.trace("Buffer post handlers pre write {}", resultReadToRead);
-			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, resultReadToRead));
+			ByteBuffer bufferToWriteBack = refineResponse(reader, resultToWrite);
+			LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
+			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
 			key.interestOps(key.interestOps() | OP_WRITE);
 		}
 		readers.remove(key.channel());
-		LOG.trace("[{}] Reader is complete, removed it reader jobs. There are {} read jobs remaining. {}", key.attachment(),
-				readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));
+		LOG.trace("[{}] Reader is complete, removed it from reader jobs. " +
+				  "There are {} read jobs remaining. {}", key.attachment(),
+				  readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));
+	}
+
+	private ByteBuffer refineResponse(MessageReader<MsgType> reader, Optional<ByteBuffer> resultToWrite) {
+		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.get().flip();
+		for(ResponseRefiner<MsgType> responseHandler : responseRefiners) {
+			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
+			LOG.debug("Passing message value '{}' to response refiner", reader.getMessage().get().getValue());
+			refinedBuffer = responseHandler.execute(reader.getMessage().get().getValue(), refinedBuffer);
+			refinedBuffer.flip();
+		}
+		return refinedBuffer;
 	}
 
 	private void clearReadBuffers() {

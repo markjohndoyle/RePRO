@@ -13,7 +13,7 @@ import org.mjd.sandbox.nio.message.Message;
  *
  * @param <MsgType>
  */
-public interface RespondingMessageHandler<MsgType>
+public interface MessageHandler<MsgType>
 {
     /**
      * Do your stuff, whatever that may be.

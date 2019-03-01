@@ -112,7 +112,7 @@ public class IntegerServerIT
         });
 
         // Add echo handler
-        integerMessageServer.addHandler((RespondingMessageHandler<Integer>) message -> {
+        integerMessageServer.addHandler((MessageHandler<Integer>) message -> {
 		    String rsp = TEST_RSP_MSG + message.getValue();
 		    byte[] msgBytes = rsp.getBytes();
 		    return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
