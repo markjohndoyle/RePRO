@@ -6,12 +6,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
@@ -38,6 +35,7 @@ import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.RpcRequestMessage;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
+import org.mjd.sandbox.nio.support.FakeRpcTarget;
 import org.mjd.sandbox.nio.support.KryoRpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,26 +68,6 @@ public class ServerRpcHighChurnIT
             return kryo;
         }
     };
-
-    /**
-     * Fake target for RPC calls. A server will have direct access to something like this
-     * when it's setup.
-     */
-    public static final class FakeRpcTarget
-    {
-        public static final Map<String, Object> requestResponses = new HashMap<>();
-
-		public void callMeVoid() { }
-        public String callMeString() { return "callMeString"; }
-        public String genString() { return "generated string"; }
-        public String whatIsTheString() { return "it's this string..."; }
-
-        public FakeRpcTarget() {
-			requestResponses.put("callMeString", "callMeString");
-			requestResponses.put("genString", "generated string");
-			requestResponses.put("whatIsTheString", "it's this string...");
-		}
-    }
 
     private FakeRpcTarget rpcTarget;
 
@@ -266,7 +244,6 @@ public class ServerRpcHighChurnIT
 		private static final Logger LOG = LoggerFactory.getLogger(RpcClientRequestJob.class);
 		private final Pool<Kryo> kryos;
 
-		private final Map<Method, Object> requestResponses = new HashMap<>();
 		private AtomicLong reqId;
 
 		public RpcClientRequestJob(Pool<Kryo> kryos, AtomicLong reqId) throws Exception {
@@ -300,8 +277,8 @@ public class ServerRpcHighChurnIT
 		private Pair<Long, Object> makeRpcCall(Kryo kryo, Socket clientSocket) throws IOException {
 			DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 			// RpcRequest request = new RpcRequest(Integer.toString(id), "callMeString");
-			final int methodIndex = new Random().nextInt(FakeRpcTarget.requestResponses.size());
-			Entry<String, Object> call = FakeRpcTarget.requestResponses.entrySet().stream().skip(methodIndex).findFirst().get();
+			final int methodIndex = new Random().nextInt(FakeRpcTarget.methodNamesAndReturnValues.size());
+			Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex).findFirst().get();
 			final long id = reqId.getAndIncrement();
 			Pair<Long, Object> request = Pair.of(id, call.getValue());
 			LOG.trace("Making request to {}", call.getKey()	);
@@ -311,17 +288,17 @@ public class ServerRpcHighChurnIT
 		}
 
 		private final class ReadResponse implements Callable<Pair<Long, String>> {
-			private final Kryo rrKryo;
+			private final Kryo readRespKryo;
 			private final DataInputStream in;
 
 			public ReadResponse(Kryo kryo, DataInputStream in) {
-				this.rrKryo = kryo;
+				this.readRespKryo = kryo;
 				this.in = in;
 			}
 
 			@Override
 			public Pair<Long, String> call() throws Exception {
-				return readResponse(rrKryo, in);
+				return readResponse(readRespKryo, in);
 			}
 		}
 

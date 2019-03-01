@@ -7,7 +7,6 @@ public interface HeaderReader<T>
 
 	/**
 	 * Buffer must be ready for reading, that is, flipped to read mode
-	 * @param headerBuffer
 	 */
 	void readHeader(String id, ByteBuffer headerBuffer);
 
@@ -15,8 +14,10 @@ public interface HeaderReader<T>
 	void readHeader(String id, ByteBuffer headerBuffer, int offset);
 
 	/**
-	 * if complete this implies {@link #remaining()} is 0. Implementations are required to enforce this.
-	 * @return
+	 * if complete this implies {@link #remaining()} is 0. Implementations are
+	 * required to enforce this.
+	 *
+	 * @return true if this {@link HeaderReader} has read the complete header
 	 */
     boolean isComplete();
 

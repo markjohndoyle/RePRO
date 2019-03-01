@@ -7,10 +7,14 @@ import org.mjd.sandbox.nio.readers.RequestReaderTest;
 import org.mjd.sandbox.nio.readers.body.SingleMessageBodyReaderTest;
 import org.mjd.sandbox.nio.readers.header.IntHeaderReaderTest;
 
+/**
+ * Runs all unit tests. Integration tests are ignored.
+ *
+ */
 @RunWith(Suite.class)
 @SuiteClasses({IntHeaderReaderTest.class,
 			   RequestReaderTest.class,
 			   SingleMessageBodyReaderTest.class})
-public class AllUnitTests {
-
+public final class AllUnitTests {
+	// nothing to do, all annotations.
 }

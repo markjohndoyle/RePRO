@@ -82,7 +82,7 @@ public class ServerRpcSingleClientIT
             shutdownServer();
         });
 
-        describe("When a client sends multiple kryo RPC request/reply RpcRequests asynchronously", () -> {
+        describe("When a client sends multiple consecutive kryo RPC request/reply RpcRequests asynchronously", () -> {
         	beforeEach(() -> {
         		clientSocket.connect(new InetSocketAddress("localhost", 12509), 512000);
         		await().atMost(TEN_SECONDS.multiply(12)).until(() -> clientSocket.isConnected());
