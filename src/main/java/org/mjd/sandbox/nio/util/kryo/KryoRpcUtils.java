@@ -1,4 +1,4 @@
-package org.mjd.sandbox.nio.support;
+package org.mjd.sandbox.nio.util.kryo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -13,7 +13,8 @@ public final class KryoRpcUtils {
 
 	public synchronized static DataOutputStream
 	writeKryoWithHeader(Kryo kryo, DataOutputStream clientOut, Object request) throws IOException {
-		try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); Output kryoByteArrayOut = new Output(bos)) {
+		try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			 Output kryoByteArrayOut = new Output(bos)) {
 			kryo.writeObject(kryoByteArrayOut, request);
 			kryoByteArrayOut.flush();
 			bos.flush();
@@ -23,6 +24,17 @@ public final class KryoRpcUtils {
 			clientOut.write(outputStream.toByteArray());
 			return clientOut;
 		}
+	}
+
+	public static byte[] objectToKryoBytes(Kryo kryo, Object obj) throws IOException
+	{
+	    try(ByteArrayOutputStream bos = new ByteArrayOutputStream();
+	        Output kryoByteArrayOut = new Output(bos))
+	    {
+	        kryo.writeObject(kryoByteArrayOut, obj);
+	        kryoByteArrayOut.flush();
+	        return bos.toByteArray();
+	    }
 	}
 
 }

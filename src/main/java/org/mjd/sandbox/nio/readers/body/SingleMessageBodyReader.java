@@ -89,7 +89,7 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
 	 *
 	 *  Case B:
 	 *  +-+-+-+-+-+-+-+-+
-	 *  |a|a|b|b| | | | | a are message bytes we've previously read, in this cas we only care about bytes b
+	 *  |a|a|b|b| | | | | a are message bytes we've previously read, in this case we only care about bytes b
 	 *  +-+-+-+-+-+-+-+-+
 	 * </pre>
 	 *

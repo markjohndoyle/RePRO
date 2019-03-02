@@ -9,7 +9,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +21,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
@@ -57,9 +57,8 @@ public final class Server<MsgType> {
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
 	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
-	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(1024);
+	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
 	private final ByteBuffer headerBuffer;
-	private ByteBuffer[] unread;
 
 	private MessageFactory<MsgType> messageFactory;
 	private InvalidKeyHandler validityHandler;
@@ -229,22 +228,38 @@ public final class Server<MsgType> {
 	}
 
 	private void readChannelFor(SelectionKey key) throws MessageCreationException, IOException {
+		clearReadBuffers();
 		MessageReader<MsgType> reader = findInMap(readers, key.channel()).or(() -> RequestReader.from(key, messageFactory));
-		clearReadBuffers();
-		unread = reader.read(headerBuffer, bodyBuffer);
+		ByteBuffer[] unread = reader.read(headerBuffer, bodyBuffer);
 		processMessageReaderResults(key, reader);
-		clearReadBuffers();
-		int count = 0;
-		// TODO One Key/Channel pait can hog the server here.
-		while (unread[0].capacity() > 0) {
-			ByteBuffer unreadHeader = unread[0];
-			ByteBuffer unreadBody = unread[1];
-			LOG.trace("Remaining mode loop iteration: {} H:{} B:{} Bmeta:{}", count++, Arrays.toString(unreadHeader.array()), Arrays.toString(unreadBody.array()), unreadBody);
-			RequestReader<MsgType> followReader = RequestReader.from(key, messageFactory);
-			unread = followReader.readPreloaded(unreadHeader, unreadBody);
-			processMessageReaderResults(key, followReader);
-			clearReadBuffers();
+
+		// TODO One Key/Channel pair can hog the server here.
+		while (thereIsUnreadData(unread)) {
+			unread = readUnreadData(key, unread);
 		}
+	}
+
+	private ByteBuffer[] readUnreadData(SelectionKey key, ByteBuffer[] unread) throws IOException {
+		ByteBuffer unreadHeader = unread[0];
+		ByteBuffer unreadBody = unread[1];
+//			LOG.trace("Unread data loop iteration: {} H:{} B:{} Bmeta:{}", count++, Arrays.toString(unreadHeader.array()), Arrays.toString(unreadBody.array()), unreadBody);
+		RequestReader<MsgType> followReader = RequestReader.from(key, messageFactory);
+		ByteBuffer[] nextUnread = followReader.readPreloaded(unreadHeader, unreadBody);
+		processMessageReaderResults(key, followReader);
+		if(!followReader.messageComplete()) {
+			readers.put(key.channel(), followReader);
+		}
+		return nextUnread;
+	}
+
+	/**
+	 * If the unread header buffer has data then a reader returned unread data.
+	 * @param unread the header body {@link ByteBuffer} array.
+	 *
+	 * @return true if there is unread data.
+	 */
+	private static boolean thereIsUnreadData(ByteBuffer[] unread) {
+		return unread[0].capacity() > 0;
 	}
 
 	private void processMessageReaderResults(SelectionKey key, MessageReader<MsgType> reader) {

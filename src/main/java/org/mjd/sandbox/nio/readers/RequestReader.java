@@ -181,7 +181,6 @@ public final class RequestReader<T> implements MessageReader<T>
 	private ByteBuffer[] decodeData(ByteBuffer headerBuffer, ByteBuffer bodyBuffer, long totalBytesReadThisCall) {
 		ByteBuffer remaining = ByteBuffer.allocate(0);
 		if (totalBytesReadThisCall > 0) {
-//			int headerProcessedThisRead = headerReader.remaining();
 			if (!headerReader.isComplete()) {
 				readHeader(headerBuffer, totalBytesReadThisCall);
 			}
@@ -194,27 +193,21 @@ public final class RequestReader<T> implements MessageReader<T>
 		}
 
 		// TODO Buffer compacting can leave old data
-		if(remaining.hasRemaining())
-		{
+		if(remaining.hasRemaining()) {
 			int lim = remaining.limit();
-			remaining.position(0).limit(headerSize);
+			remaining.position(0).limit(Math.min(headerSize, remaining.limit()));
 			ByteBuffer remainingHeader = ByteBuffer.allocate(headerSize).put(remaining);
 			remaining.limit(lim);
 			remaining.compact().position(remaining.limit());
-			remaining.limit(remaining.limit() - headerSize);
+//			remaining.limit(remaining.limit() - headerSize);
+			remaining.limit(remaining.limit() - Math.min(headerSize, remaining.limit()));
 			return new ByteBuffer[] {remainingHeader, remaining};
 		}
 		return new ByteBuffer[] {remaining, remaining};
 	}
 
 	private ByteBuffer readBody(ByteBuffer bodyBuffer) {
-		ByteBuffer remainingData;
-//		if(flippedBuffers) {
-//			remainingData = bodyReader.read(bodyBuffer);
-//		}
-//		else {
-			remainingData = bodyReader.read((ByteBuffer) bodyBuffer.flip());
-//		}
+		ByteBuffer remainingData = bodyReader.read((ByteBuffer) bodyBuffer.flip());
 		if(bodyReader.isComplete())
 		{
 			message = bodyReader.getMessage();

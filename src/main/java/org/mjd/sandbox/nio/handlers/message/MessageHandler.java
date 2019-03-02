@@ -1,4 +1,4 @@
-package org.mjd.sandbox.nio;
+package org.mjd.sandbox.nio.handlers.message;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -13,8 +13,16 @@ import org.mjd.sandbox.nio.message.Message;
  *
  * @param <MsgType>
  */
-public interface MessageHandler<MsgType>
-{
+public interface MessageHandler<MsgType> {
+
+	public static final class HandlerException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
+		public HandlerException(String message, Throwable cause) {
+			super(message, cause);
+		}
+	}
+
     /**
      * Do your stuff, whatever that may be.
      * You'll get a message of type MsgType which is what the client sent to you. Do with that what you

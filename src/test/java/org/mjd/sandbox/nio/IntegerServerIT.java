@@ -13,6 +13,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.awaitility.Duration;
 import org.junit.runner.RunWith;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.message.IntMessage;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;

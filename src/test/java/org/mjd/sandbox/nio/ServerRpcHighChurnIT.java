@@ -31,12 +31,15 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.awaitility.Duration;
 import org.junit.runner.RunWith;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.RpcRequestMessage;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
-import org.mjd.sandbox.nio.support.KryoRpcUtils;
+import org.mjd.sandbox.nio.util.ArgumentValues;
+import org.mjd.sandbox.nio.util.ArgumentValues.ArgumentValuePair;
+import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +68,8 @@ public class ServerRpcHighChurnIT
         protected Kryo create () {
             Kryo kryo = new Kryo();
             kryo.register(RpcRequest.class);
+            kryo.register(ArgumentValues.class);
+            kryo.register(ArgumentValuePair.class);
             return kryo;
         }
     };
@@ -192,6 +197,8 @@ public class ServerRpcHighChurnIT
 	    public RpcRequestMsgFactory()
 	    {
 	        kryo.register(RpcRequest.class);
+	        kryo.register(ArgumentValues.class);
+            kryo.register(ArgumentValuePair.class);
 	    }
 
 	    @Override

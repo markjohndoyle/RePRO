@@ -15,6 +15,7 @@ public final class FakeRpcTarget
     public String callMeString() { return "callMeString"; }
     public String genString() { return "generated string"; }
     public String whatIsTheString() { return "it's this string..."; }
+    public String hackTheGibson(int password) { return "password sent: " + password; }
 
     public FakeRpcTarget() {
 		methodNamesAndReturnValues.put("callMeString", "callMeString");
