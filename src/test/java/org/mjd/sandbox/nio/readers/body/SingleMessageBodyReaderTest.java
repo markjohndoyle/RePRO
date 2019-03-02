@@ -35,7 +35,7 @@ public final class SingleMessageBodyReaderTest {
 	{
 		beforeEach(() -> {
 			MockitoAnnotations.initMocks(this);
-			when(mockMessageFactory.create(aryEq(TEST_MSG_VAL_BYTES))).thenReturn(testMessage);
+			when(mockMessageFactory.createMessage(aryEq(TEST_MSG_VAL_BYTES))).thenReturn(testMessage);
 			readerUnderTest = new SingleMessageBodyReader<>("unittest", mockMessageFactory);
 			readerUnderTest.setBodySize(TEST_MSG_VAL_BYTES.length);
 			testMsgValBytes = ByteBuffer.wrap(TEST_MSG_VAL_BYTES);

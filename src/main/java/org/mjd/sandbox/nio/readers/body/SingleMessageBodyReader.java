@@ -48,7 +48,7 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
 		    if(totalBodyRead == bodySize)
 		    {
 		        LOG.trace("[{}] Total read {}/{} of message size. Creating message.", id, totalBodyRead, bodySize);
-		        message = msgFactory.create(bytesReadFromChannel);
+		        message = msgFactory.createMessage(bytesReadFromChannel);
 		        return;
 		    }
 	        LOG.trace("[{}] Not read the entire body yet. Read {} of {}", id, totalBodyRead, bodySize);

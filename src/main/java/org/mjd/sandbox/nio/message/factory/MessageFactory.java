@@ -19,7 +19,7 @@ public interface MessageFactory<T>
         private static final long serialVersionUID = 1L;
     }
 
-    Message<T> create(byte[] bytesRead) throws MessageCreationException;
+    Message<T> createMessage(byte[] bytesRead) throws MessageCreationException;
 
     int getHeaderSize();
 

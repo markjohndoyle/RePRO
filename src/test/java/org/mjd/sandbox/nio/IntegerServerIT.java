@@ -107,7 +107,7 @@ public class IntegerServerIT
         integerMessageServer = new Server<>(new MessageFactory<Integer>()
         {
             @Override public int getHeaderSize() { return Integer.BYTES; }
-            @Override public Message<Integer> create(byte[] bytesRead) {
+            @Override public Message<Integer> createMessage(byte[] bytesRead) {
                 return IntMessage.from(bytesRead);
             }
         });

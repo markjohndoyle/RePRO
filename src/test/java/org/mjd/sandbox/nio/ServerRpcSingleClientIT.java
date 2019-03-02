@@ -23,8 +23,8 @@ import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
 import org.mjd.sandbox.nio.util.ArgumentValues;
-import org.mjd.sandbox.nio.util.ArgumentValues.ArgumentValuePair;
 import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
+import org.mjd.sandbox.nio.util.kryo.RpcRequestKryoPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,22 +48,14 @@ public class ServerRpcSingleClientIT
     private FakeRpcTarget rpcTarget;
     private Socket clientSocket;
     private AtomicLong reqId;
-
-    private Pool<Kryo> kryos = new Pool<Kryo>(true, false, 10000) {
-        @Override
-        protected Kryo create () {
-            Kryo kryo = new Kryo();
-            kryo.register(RpcRequest.class);
-            kryo.register(ArgumentValues.class);
-            kryo.register(ArgumentValuePair.class);
-            return kryo;
-        }
-    };
+    private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 10000);
+    private RpcRequestInvoker rpcInvoker;
 
 	// TEST BLOCK
     {
         before(()->{
         	rpcTarget = new FakeRpcTarget();
+        	rpcInvoker = new RpcRequestInvoker(kryos.obtain(), rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
         });
@@ -171,7 +163,7 @@ public class ServerRpcSingleClientIT
     {
         rpcServer = new Server<>(new KryoRpcRequestMsgFactory());
 
-        rpcServer.addHandler(new RpcRequestInvoker(kryos.obtain(), rpcTarget))
+        rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 
         serverService.submit(() -> rpcServer.start());

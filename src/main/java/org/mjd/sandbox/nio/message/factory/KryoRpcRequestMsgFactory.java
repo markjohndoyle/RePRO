@@ -33,7 +33,7 @@ public final class KryoRpcRequestMsgFactory implements MessageFactory<RpcRequest
 	 * Expects a Kryo object with a marshalled RpcRequest
 	 */
 	@Override
-	public Message<RpcRequest> create(byte[] bytesRead) {
+	public Message<RpcRequest> createMessage(byte[] bytesRead) {
 		try {
 			return new RpcRequestMessage(readBytesWithKryo(kryo, bytesRead));
 		}

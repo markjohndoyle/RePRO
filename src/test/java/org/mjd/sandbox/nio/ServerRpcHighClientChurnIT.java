@@ -1,13 +1,11 @@
 package org.mjd.sandbox.nio;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -20,7 +18,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -37,6 +34,7 @@ import org.mjd.sandbox.nio.support.FakeRpcTarget;
 import org.mjd.sandbox.nio.util.ArgumentValues;
 import org.mjd.sandbox.nio.util.ArgumentValues.ArgumentValuePair;
 import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
+import org.mjd.sandbox.nio.util.kryo.RpcRequestKryoPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,33 +49,22 @@ import static org.hamcrest.Matchers.is;
 import static org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.prepend;
 
 @RunWith(OleasterRunner.class)
-public class ServerRpcHighChurnIT
-{
-    private static final Logger LOG = LoggerFactory.getLogger(ServerRpcHighChurnIT.class);
+public class ServerRpcHighClientChurnIT {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ServerRpcHighClientChurnIT.class);
     private ExecutorService serverService;
-
     private Server<RpcRequest> rpcServer;
-
     private static AtomicLong reqId = new AtomicLong();
-
-    private final Pool<Kryo> kryos = new Pool<Kryo>(true, false, 2000) {
-        @Override
-        protected Kryo create () {
-            Kryo kryo = new Kryo();
-            kryo.register(RpcRequest.class);
-            kryo.register(ArgumentValues.class);
-            kryo.register(ArgumentValuePair.class);
-            return kryo;
-        }
-    };
-
+    private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 5000);
     private FakeRpcTarget rpcTarget;
+    private RpcRequestInvoker rpcInvoker;
+
 
     // TEST BLOCK
     {
         beforeEach(()->{
         	rpcTarget = new FakeRpcTarget();
+        	rpcInvoker = new RpcRequestInvoker(kryos.obtain(), rpcTarget);
             // pre charge the kryo pool
             for(int i = 0; i < 500; i++)
             {
@@ -112,8 +99,8 @@ public class ServerRpcHighChurnIT
 
     private void startServer()
     {
-        rpcServer = new Server<>(new RpcRequestMsgFactory());
-        rpcServer.addHandler(new RpcRequestInvoker(kryos.obtain(), rpcTarget)).addHandler(prepend::requestId);
+        rpcServer = new Server<>(new RpcRequestMsgFactory()).addHandler(rpcInvoker::handle)
+        		 											.addHandler(prepend::requestId);
 
         serverService.submit(() -> {
             try
@@ -129,17 +116,6 @@ public class ServerRpcHighChurnIT
         });
         await().until(() -> { return rpcServer.isAvailable();});
     }
-
-    private static byte[] objectToKryoBytes(Kryo kryo, Object obj) throws IOException
-	{
-	    try(ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	        Output kryoByteArrayOut = new Output(bos))
-	    {
-	        kryo.writeObject(kryoByteArrayOut, obj);
-	        kryoByteArrayOut.flush();
-	        return bos.toByteArray();
-	    }
-	}
 
 	private void shutdownServer()
     {
@@ -168,7 +144,7 @@ public class ServerRpcHighChurnIT
 	     * Expects a Kryo object with a marshalled RpcRequest
 	     */
 	    @Override
-	    public Message<RpcRequest> create(byte[] bytesRead) throws MessageCreationException {
+	    public Message<RpcRequest> createMessage(byte[] bytesRead) throws MessageCreationException {
 	        try {
 	            kryo.register(RpcRequest.class);
 	            RpcRequest request = readBytesWithKryo(kryo, bytesRead);
@@ -195,15 +171,6 @@ public class ServerRpcHighChurnIT
 	            throw e;
 	        }
 	    }
-
-	    private static RpcRequest readBytesWithKryo(Kryo kryo, ByteBuffer data)
-	    {
-	    	try(Input kryoByteArrayIn = new Input(data.array()))
-	    	{
-	    		RpcRequest req = kryo.readObject(kryoByteArrayIn, RpcRequest.class);
-	    		return req;
-	    	}
-	    }
 	}
 
 	private static final class RpcClientRequestJob implements Callable<Socket>
@@ -211,11 +178,11 @@ public class ServerRpcHighChurnIT
 		private static final Logger LOG = LoggerFactory.getLogger(RpcClientRequestJob.class);
 		private final Pool<Kryo> kryos;
 
-		private AtomicLong reqId;
+		private AtomicLong requestId;
 
 		public RpcClientRequestJob(Pool<Kryo> kryos, AtomicLong reqId) throws Exception {
 			this.kryos = kryos;
-			this.reqId = reqId;
+			this.requestId = reqId;
 		}
 
 		@Override
@@ -246,7 +213,7 @@ public class ServerRpcHighChurnIT
 			// RpcRequest request = new RpcRequest(Integer.toString(id), "callMeString");
 			final int methodIndex = new Random().nextInt(FakeRpcTarget.methodNamesAndReturnValues.size());
 			Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex).findFirst().get();
-			final long id = reqId.getAndIncrement();
+			final long id = requestId.getAndIncrement();
 			Pair<Long, Object> request = Pair.of(id, call.getValue());
 			LOG.trace("Making request to {}", call.getKey()	);
 			RpcRequest rpcRequest = new RpcRequest(request.getLeft(), call.getKey());
@@ -285,7 +252,7 @@ public class ServerRpcHighChurnIT
 		 * @return
 		 * @throws IOException
 		 */
-		private Pair<Long, String> readResponse(Kryo kryo, DataInputStream in) throws IOException {
+		private static Pair<Long, String> readResponse(Kryo kryo, DataInputStream in) throws IOException {
 			int responseSize;
 			long requestId;
 			try {
