@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +37,7 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Duration.TEN_SECONDS;
+import static org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.prepend;
 
 @RunWith(OleasterRunner.class)
 public class ServerRpcSingleClientIT
@@ -99,15 +99,15 @@ public class ServerRpcSingleClientIT
 	        		// Fire off a few method calls with args
 	        		long argCallId = reqId.getAndIncrement();
 	        		calls.put(argCallId, executor.submit(() ->
-	        		makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 543), argCallId)));
+	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 543), argCallId)));
 
 	        		long argCallId2 = reqId.getAndIncrement();
 	        		calls.put(argCallId2, executor.submit(() ->
-	        		makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 999), argCallId2)));
+	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 999), argCallId2)));
 
 	        		long argCallId3 = reqId.getAndIncrement();
 	        		calls.put(argCallId3, executor.submit(() ->
-	        		makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 98995786), argCallId3)));
+	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 98995786), argCallId3)));
 
 	        		DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
 
@@ -123,7 +123,7 @@ public class ServerRpcSingleClientIT
 	        	});
         	});
         	describe("sends a large amount of consecutive kryo RPC request/reply RpcRequests asynchronously", () -> {
-	        	it("many version - it should recieve all of the responses", () -> {
+	        	it("it should recieve all of the responses", () -> {
 	        		final int numCalls = 5000;
 	        		ExecutorService executor = Executors.newFixedThreadPool(50);
 
@@ -152,19 +152,15 @@ public class ServerRpcSingleClientIT
         });
     }
 
-	private RpcRequest makeRpcCall(DataOutputStream clientOut, String methodName, ArgumentValues args, final long id) {
+	private RpcRequest makeRpcCall(DataOutputStream clientOut, String methodName, ArgumentValues args, final long id)
+			throws IOException {
 		Kryo kryo = kryos.obtain();
-		RpcRequest request = new RpcRequest(id, methodName, args);
 		try {
+			RpcRequest request = new RpcRequest(id, methodName, args);
 			LOG.debug("Preparing to call request {}", id);
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, request).flush();
 			LOG.trace("Request {} written to server from client", request);
 			return request;
-		}
-		catch (IOException e) {
-			LOG.error(e.toString());
-			e.printStackTrace();
-			return RpcRequest.ERROR;
 		}
 		finally {
 			kryos.free(kryo);
@@ -176,9 +172,7 @@ public class ServerRpcSingleClientIT
         rpcServer = new Server<>(new KryoRpcRequestMsgFactory());
 
         rpcServer.addHandler(new RpcRequestInvoker(kryos.obtain(), rpcTarget))
-        		 .addHandler((rpcRequest, writeBuffer) -> ByteBuffer.allocate(Long.BYTES + writeBuffer.capacity())
-				  										            .putLong(rpcRequest.getId())
-				  										            .put(writeBuffer));
+        		 .addHandler(prepend::requestId);
 
         serverService.submit(() -> rpcServer.start());
 
@@ -187,7 +181,7 @@ public class ServerRpcSingleClientIT
 
 	private void shutdownServer()
     {
-        LOG.debug("Test is shutting down server....");
+        LOG.info("Test is shutting down server....");
         serverService.shutdownNow();
         await().atMost(Duration.TEN_SECONDS).until(() -> { return rpcServer.isShutdown();});
         await().atMost(Duration.TEN_SECONDS).until(() -> { return serverService.isTerminated();});

@@ -5,12 +5,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -27,11 +25,10 @@ import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.awaitility.Duration;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.handlers.message.MessageHandler;
+import org.mjd.sandbox.nio.handlers.message.RpcRequestInvoker;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.RpcRequestMessage;
@@ -51,6 +48,7 @@ import static org.awaitility.Awaitility.await;
 import static org.awaitility.Duration.ONE_MINUTE;
 import static org.awaitility.Duration.TEN_SECONDS;
 import static org.hamcrest.Matchers.is;
+import static org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.prepend;
 
 @RunWith(OleasterRunner.class)
 public class ServerRpcHighChurnIT
@@ -115,45 +113,7 @@ public class ServerRpcHighChurnIT
     private void startServer()
     {
         rpcServer = new Server<>(new RpcRequestMsgFactory());
-
-        // Add RPC to rpcTarget handler
-        // The handler is what the server will do with your messages.
-        rpcServer.addHandler((MessageHandler<RpcRequest>) message -> {
-		    byte[] msgBytes;
-		    Object result;
-		    RpcRequest request = message.getValue();
-		    Kryo kryo = kryos.obtain();
-		    try
-		    {
-		        String requestedMethodCall = request.getMethod();
-		        result = MethodUtils.invokeMethod(rpcTarget, requestedMethodCall);
-		        if(result == null)
-		        {
-		            return Optional.empty();
-		        }
-		    }
-		    catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException e1)
-		    {
-		        result = new String("Error executing method: " + request.getMethod() + " due to " + e1);
-		    }
-		    try
-		    {
-		        msgBytes = objectToKryoBytes(kryo, result);
-		    }
-		    catch (IOException e2)
-		    {
-		        e2.printStackTrace();
-		        msgBytes = new byte[] {0x00};
-		    }
-		    finally
-		    {
-		    	kryos.free(kryo);
-		    }
-		    return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
-		}).addHandler((rpcRequest, writeBuffer) ->
-						ByteBuffer.allocate(Long.BYTES + writeBuffer.capacity())
-				  										.putLong(rpcRequest.getId())
-				  										.put(writeBuffer));
+        rpcServer.addHandler(new RpcRequestInvoker(kryos.obtain(), rpcTarget)).addHandler(prepend::requestId);
 
         serverService.submit(() -> {
             try
