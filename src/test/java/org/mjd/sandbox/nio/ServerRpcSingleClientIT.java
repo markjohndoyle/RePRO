@@ -11,7 +11,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
@@ -38,7 +37,11 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Duration.TEN_SECONDS;
 import static org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.prepend;
+import static org.mjd.sandbox.nio.support.ResponseReader.readResponse;
 
+/**
+ * RPC integration test using a single client that makes multiple asynchronous calls.
+ */
 @RunWith(OleasterRunner.class)
 public class ServerRpcSingleClientIT
 {
@@ -178,57 +181,6 @@ public class ServerRpcSingleClientIT
         await().atMost(Duration.TEN_SECONDS).until(() -> { return rpcServer.isShutdown();});
         await().atMost(Duration.TEN_SECONDS).until(() -> { return serverService.isTerminated();});
     }
-
-	/**
-	 * Response is as follows:
-	 *
-	 * <pre>
-	 *   ---------------------------------
-	 *  | header [1Byte] | body [n Bytes] |
-	 *  |   msgSize      |      msg       |
-	 *   ---------------------------------
-	 * </pre>
-	 *
-	 * @param kryo
-	 *
-	 * @param in
-	 * @return
-	 * @throws IOException
-	 */
-	private static Pair<Long, String> readResponse(Kryo kryo, DataInputStream in) throws IOException {
-		int responseSize;
-		long requestId;
-		int messageSizeAfterId;
-		try {
-			responseSize = in.readInt();
-			requestId = in.readLong();
-			messageSizeAfterId = responseSize - Long.BYTES;
-			LOG.trace("Response size is {} and request ID is {}. Message size (after ID) is {}", responseSize, requestId, messageSizeAfterId);
-		}
-		catch (IOException e) {
-			LOG.error("Error reading header client-side due to {}", e.toString());
-			e.printStackTrace();
-			throw e;
-		}
-		byte[] bytesRead = new byte[messageSizeAfterId];
-		int bodyRead = 0;
-		LOG.trace("Reading response of size: {}", messageSizeAfterId);
-		try {
-			while ((bodyRead = in.read(bytesRead, bodyRead, messageSizeAfterId - bodyRead)) > 0) {
-				// Just keep reading
-			}
-		}
-		catch (IOException e) {
-			LOG.error("Error reading body client-side");
-			e.printStackTrace();
-			throw e;
-		}
-		try (Input kin = new Input(bytesRead)) {
-			LOG.trace("Deserialising repsonse message to String via kryo");
-			String result = kryo.readObject(kin, String.class);
-			return Pair.of(requestId, result);
-		}
-	}
 
 }
 

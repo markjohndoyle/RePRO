@@ -57,12 +57,6 @@ public final class RequestReader<T> implements MessageReader<T>
         LOG.trace("[{}] headerbuffer state before send to read: {}  {}", id, headerBuffer, Arrays.toString(headerBuffer.array()));
         LOG.trace("[{}] bodybuffer state before send to read: {} ", id, bodyBuffer);//, Arrays.toString(bodyBuffer.array()));
         long totalBytesReadThisCall = readFromChannel(vectoredBuffers);
-        if(vectoredIO) {
-            LOG.trace("[{}] Buffer states post read -> head:{} body:{}", id, Arrays.toString(headerBuffer.array()));//, Arrays.toString(bodyBuffer.array()));
-        }
-        else {
-            LOG.trace("[{}] Buffer states post read -> body:{}", id, bodyBuffer);
-        }
 
 		if (totalBytesReadThisCall == -1) {
 			LOG.debug("[{}] ENDOFSTREAM for '{}'. Message complete: {}", id, id, messageComplete());
@@ -80,7 +74,6 @@ public final class RequestReader<T> implements MessageReader<T>
 		LOG.trace("[{}] ------------NEW PRELOADED READ------------------", id);
         prereadCheck();
 
-//        ByteBuffer[] vectoredBuffers = setupVectoredBuffers(headerBuffer, bodyBuffer);
         LOG.trace("[{}] headerbuffer state before send to read: {}  {}", id, headerBuffer, Arrays.toString(headerBuffer.array()));
         LOG.trace("[{}] bodybuffer state before send to read: {} ", id, bodyBuffer);//, Arrays.toString(bodyBuffer.array()));
         vectoredIO = true;
@@ -90,10 +83,8 @@ public final class RequestReader<T> implements MessageReader<T>
 		return remaining;
 	}
 
-	private void prereadCheck() throws IOException
-	{
-	    if(endOfStream)
-	    {
+	private void prereadCheck() throws IOException {
+	    if(endOfStream) {
 	        throw new IOException("Cannot read because this reader encloses a channel that as previously sent " +
 	                              "end of stream");
 	    }
@@ -192,14 +183,12 @@ public final class RequestReader<T> implements MessageReader<T>
 			}
 		}
 
-		// TODO Buffer compacting can leave old data
 		if(remaining.hasRemaining()) {
 			int lim = remaining.limit();
 			remaining.position(0).limit(Math.min(headerSize, remaining.limit()));
 			ByteBuffer remainingHeader = ByteBuffer.allocate(headerSize).put(remaining);
 			remaining.limit(lim);
 			remaining.compact().position(remaining.limit());
-//			remaining.limit(remaining.limit() - headerSize);
 			remaining.limit(remaining.limit() - Math.min(headerSize, remaining.limit()));
 			return new ByteBuffer[] {remainingHeader, remaining};
 		}
@@ -238,34 +227,28 @@ public final class RequestReader<T> implements MessageReader<T>
 	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.flip());
 	    }
 
-	    // after header reader has processes the latest data.
 	    if(headerReader.isComplete())
 	    {
 	        bodySize = headerReader.getValue();
-	        LOG.trace("[{}] Header read complete! Message body size is {}", id, bodySize);
 		}
 	}
 
     @Override
-    public Optional<Message<T>> getMessage()
-    {
+    public Optional<Message<T>> getMessage() {
         return Optional.ofNullable(message);
     }
 
     @Override
-    public boolean messageComplete()
-    {
+    public boolean messageComplete() {
         return message != null;
     }
 
     @Override
-    public boolean isEndOfStream()
-    {
+    public boolean isEndOfStream() {
         return endOfStream;
     }
 
-    public static <MsgType> RequestReader<MsgType> from(SelectionKey key, MessageFactory<MsgType> messageFactory)
-    {
+    public static <MsgType> RequestReader<MsgType> from(SelectionKey key, MessageFactory<MsgType> messageFactory) {
         return new RequestReader<>((String)key.attachment(), (SocketChannel) key.channel(), messageFactory);
     }
 }

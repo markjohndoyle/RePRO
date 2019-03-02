@@ -1,11 +1,11 @@
 package org.mjd.sandbox.nio;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -17,7 +17,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -26,13 +25,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.awaitility.Duration;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.message.RpcRequestInvoker;
-import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
-import org.mjd.sandbox.nio.message.RpcRequestMessage;
-import org.mjd.sandbox.nio.message.factory.MessageFactory;
+import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
-import org.mjd.sandbox.nio.util.ArgumentValues;
-import org.mjd.sandbox.nio.util.ArgumentValues.ArgumentValuePair;
 import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
 import org.mjd.sandbox.nio.util.kryo.RpcRequestKryoPool;
 import org.slf4j.Logger;
@@ -47,6 +42,7 @@ import static org.awaitility.Duration.ONE_MINUTE;
 import static org.awaitility.Duration.TEN_SECONDS;
 import static org.hamcrest.Matchers.is;
 import static org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.prepend;
+import static org.mjd.sandbox.nio.support.ResponseReader.readResponse;
 
 @RunWith(OleasterRunner.class)
 public class ServerRpcHighClientChurnIT {
@@ -80,7 +76,7 @@ public class ServerRpcHighClientChurnIT {
 
         describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
             it("should reply correctly to all of them", () -> {
-                final int numClients = 10_000;
+                final int numClients = 6_000;
                 ExecutorService executor = Executors.newFixedThreadPool(600);
 
                 BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
@@ -89,9 +85,11 @@ public class ServerRpcHighClientChurnIT {
                     clientJobs.add(executor.submit(new RpcClientRequestJob(kryos, reqId)));
                 }
 
-                for(Future<?> clientJob : clientJobs)
-                {
-                    ((Socket) clientJob.get()).close();
+                Iterator<Future<?>> it = clientJobs.iterator();
+                while(it.hasNext()) {
+                	Future<?> clientJob = it.next();
+                	((Socket) clientJob.get()).close();
+                	it.remove();
                 }
             });
         });
@@ -99,10 +97,10 @@ public class ServerRpcHighClientChurnIT {
 
     private void startServer()
     {
-        rpcServer = new Server<>(new RpcRequestMsgFactory()).addHandler(rpcInvoker::handle)
-        		 											.addHandler(prepend::requestId);
+        rpcServer = new Server<>(new KryoRpcRequestMsgFactory()).addHandler(rpcInvoker::handle)
+        		 												.addHandler(prepend::requestId);
 
-        serverService.submit(() -> {
+        serverService.submit(() ->  {
             try
             {
                 rpcServer.start();
@@ -125,53 +123,6 @@ public class ServerRpcHighClientChurnIT {
         await().atMost(Duration.TEN_SECONDS).until(() -> { return serverService.isTerminated();});
     }
 
-	private static final class RpcRequestMsgFactory implements MessageFactory<RpcRequest>
-	{
-		private static final Logger REQLOG = LoggerFactory.getLogger(RpcRequestMsgFactory.class);
-	    private final Kryo kryo = new Kryo();
-
-	    public RpcRequestMsgFactory()
-	    {
-	        kryo.register(RpcRequest.class);
-	        kryo.register(ArgumentValues.class);
-            kryo.register(ArgumentValuePair.class);
-	    }
-
-	    @Override
-	    public int getHeaderSize() { return Integer.BYTES; }
-
-	    /**
-	     * Expects a Kryo object with a marshalled RpcRequest
-	     */
-	    @Override
-	    public Message<RpcRequest> createMessage(byte[] bytesRead) throws MessageCreationException {
-	        try {
-	            kryo.register(RpcRequest.class);
-	            RpcRequest request = readBytesWithKryo(kryo, bytesRead);
-	            return new RpcRequestMessage(request);
-	        }
-	        catch (IOException | IndexOutOfBoundsException e) {
-	            System.err.println("[" + Thread.currentThread().getName() + "]" + " Kryo: " + kryo + " " + e.toString());
-	            e.printStackTrace();
-	            throw new MessageCreationException(e);
-	        }
-	    }
-
-	    private static RpcRequest readBytesWithKryo(Kryo kryo, byte[] data) throws IOException
-	    {
-	        try(ByteArrayInputStream bin = new ByteArrayInputStream(data);
-	            Input kryoByteArrayIn = new Input(bin))
-	        {
-	            RpcRequest req = kryo.readObject(kryoByteArrayIn, RpcRequest.class);
-	            return req;
-	        }
-	        catch (IOException e)
-	        {
-	            REQLOG.error("Error deserialising response from server", e);
-	            throw e;
-	        }
-	    }
-	}
 
 	private static final class RpcClientRequestJob implements Callable<Socket>
 	{
@@ -233,53 +184,6 @@ public class ServerRpcHighClientChurnIT {
 			@Override
 			public Pair<Long, String> call() throws Exception {
 				return readResponse(readRespKryo, in);
-			}
-		}
-
-		/**
-		 * Response is as follows:
-		 *
-		 * <pre>
-		 *   ---------------------------------
-		 *  | header [1Byte] | body [n Bytes] |
-		 *  |   msgSize      |      msg       |
-		 *   ---------------------------------
-		 * </pre>
-		 *
-		 * @param kryo
-		 *
-		 * @param in
-		 * @return
-		 * @throws IOException
-		 */
-		private static Pair<Long, String> readResponse(Kryo kryo, DataInputStream in) throws IOException {
-			int responseSize;
-			long requestId;
-			try {
-				responseSize = in.readInt();
-				requestId = in.readLong();
-			}
-			catch (IOException e) {
-				LOG.error("Error reading header client-side due to {}", e.toString());
-				e.printStackTrace();
-				throw e;
-			}
-			byte[] bytesRead = new byte[responseSize];
-			int bodyRead = 0;
-			LOG.trace("Reading response of size: {}", responseSize);
-			try {
-				while ((bodyRead = in.read(bytesRead, bodyRead, responseSize - Long.BYTES - bodyRead)) > 0) {
-					// Just keep reading
-				}
-			}
-			catch (IOException e) {
-				LOG.error("Error reading body client-side");
-				e.printStackTrace();
-				throw e;
-			}
-			try (Input kin = new Input(bytesRead)) {
-				String result = kryo.readObject(kin, String.class);
-				return Pair.of(requestId, result);
 			}
 		}
 
