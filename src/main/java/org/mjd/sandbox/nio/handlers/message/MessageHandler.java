@@ -32,5 +32,5 @@ public interface MessageHandler<MsgType> {
      * @param message
      * @return
      */
-    Optional<ByteBuffer> execute(Message<MsgType> message);
+    Optional<ByteBuffer> handle(Message<MsgType> message);
 }

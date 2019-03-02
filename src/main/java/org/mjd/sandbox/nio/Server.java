@@ -283,7 +283,7 @@ public final class Server<MsgType> {
 			return;
 		}
 		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
-		Optional<ByteBuffer> resultToWrite = msgHandler.execute(reader.getMessage().get());
+		Optional<ByteBuffer> resultToWrite = msgHandler.handle(reader.getMessage().get());
 		if (resultToWrite.isPresent()) {
 			ByteBuffer bufferToWriteBack = refineResponse(reader, resultToWrite);
 			LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);

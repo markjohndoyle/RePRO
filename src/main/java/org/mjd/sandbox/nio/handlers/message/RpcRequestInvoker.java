@@ -26,7 +26,7 @@ public final class RpcRequestInvoker implements MessageHandler<RpcRequest> {
 	}
 
 	@Override
-	public Optional<ByteBuffer> execute(Message<RpcRequest> message) {
+	public Optional<ByteBuffer> handle(Message<RpcRequest> message) {
 		byte[] msgBytes;
 		Object result;
 		RpcRequest request = message.getValue();
