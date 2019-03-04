@@ -4,7 +4,7 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <!-- <withJansi>true</withJansi> -->
     <encoder>
-      <pattern>%highlight(%-7([%level])) %highlight(%d{HH:mm:ss.SSS}) %highlight([%thread]) %cyan(%logger{36}) - %msg%n</pattern>
+      <pattern>%highlight(%-8([%level])) %highlight(%d{HH:mm:ss.SSS}) %highlight([%thread]) %cyan(%logger{36}) - %msg%n</pattern>
     </encoder>
   </appender>
   
@@ -20,7 +20,7 @@
   <appender name="ServerRpcITFile" class="ch.qos.logback.core.FileAppender">
     <file>ServerRpcITFile.log</file>
     <append>false</append>
-    <immediateFlush>true</immediateFlush>
+    <!-- <immediateFlush>true</immediateFlush> -->
     <encoder>
       <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
     </encoder>

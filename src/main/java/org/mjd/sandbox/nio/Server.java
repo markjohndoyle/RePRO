@@ -15,14 +15,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
+import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
+import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.sandbox.nio.readers.MessageReader;
@@ -55,6 +68,7 @@ public final class Server<MsgType> {
 	private long conId;
 
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
+	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
@@ -64,8 +78,23 @@ public final class Server<MsgType> {
 	private InvalidKeyHandler validityHandler;
 
 	private MessageHandler<MsgType> msgHandler;
+	private AsyncMessageHandler<MsgType> asyncMsgHandler;
 	private List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
+	private BlockingQueue<AsyncMessageJob> messageJobs = new LinkedBlockingQueue<>();
 
+	private final ExecutorService asyncJobChecker = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+																		.setNameFormat("MsgHandlerChecker").build());
+
+	private final class AsyncMessageJob {
+		final Future<Optional<ByteBuffer>> messageJob;
+		final SelectionKey key;
+		final Message<MsgType> message;
+		AsyncMessageJob(SelectionKey key, Message<MsgType> message, Future<Optional<ByteBuffer>> asyncHandle) {
+			this.messageJob = asyncHandle;
+			this.key = key;
+			this.message= message;
+		}
+	}
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
 	 *
@@ -110,9 +139,18 @@ public final class Server<MsgType> {
 	}
 
 	/**
+	 * @param handler
+	 * @return This {@link Server} instance. Useful for chaining.
+	 */
+	public Server<MsgType> addAsyncHandler(AsyncMessageHandler<MsgType> handler) {
+		this.asyncMsgHandler = handler;
+		return this;
+	}
+
+	/**
 	 *
 	 * @param handler
-	 * @return
+	 * @return This {@link Server} instance. Useful for chaining.
 	 *
 	 * @notThreadSafe
 	 */
@@ -131,6 +169,10 @@ public final class Server<MsgType> {
 		return serverChannel.isOpen() && selector != null && selector.isOpen();
 	}
 
+	/**
+	 * The server is considered shutown if it is not available.
+	 * @return true if this {@link Server} is shutdown
+	 */
 	public boolean isShutdown() {
 		return !isAvailable();
 	}
@@ -152,8 +194,8 @@ public final class Server<MsgType> {
 	private void enterBlockingServerLoop() {
 		try {
 			while (!Thread.interrupted()) {
-				LOG.trace("Server blocking on select");
 				selector.select();
+//				selector.selectNow();
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				handleReadyKeys(selectedKeys.iterator());
 			}
@@ -170,9 +212,53 @@ public final class Server<MsgType> {
 			serverChannel.bind(new InetSocketAddress(12509));
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
+			asyncJobChecker.execute(() -> startAsyncMessageJobHandler());
 		}
 		catch (IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
+		}
+	}
+
+	private void startAsyncMessageJobHandler() {
+		AsyncMessageJob job = null;
+		try {
+			while(!Thread.interrupted()) {
+				LOG.trace("Blocking on message job queue....");
+				job = messageJobs.take();
+				LOG.trace("[{}] Found a job. There are {} remaining.", job.key.attachment(), messageJobs.size());
+				Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
+				LOG.trace("[{}] The job has finished.", job.key.attachment());
+				if(result.isPresent()) {
+					LOG.trace("[{}] Refining response {}.", job.key.attachment(), job.message.getValue());
+					ByteBuffer bufferToWriteBack = refineResponse(job.message.getValue(), result);
+					lock.writeLock().lock();
+					responseWriters.put(job.key.channel(), SizeHeaderWriter.from(job.key, bufferToWriteBack));
+					job.key.interestOps(job.key.interestOps() | OP_WRITE);
+					LOG.trace("[{}] There are now {} response writers and key {} is OP_WRITE after message {}",
+							job.key.attachment(),
+						responseWriters.get(job.key.channel()).size(), job.key, job.message.getValue());
+					selector.wakeup();
+					lock.writeLock().unlock();
+				}
+			}
+		}
+		catch (TimeoutException e) {
+			try {
+				System.err.println("Waiting for job '" + job.message.getValue() + "' timed out, putting it back on the end of the queue");
+				LOG.debug("Waiting for job '{}' timed out, putting it back on the end of the queue", job.message.getValue());
+				lock.writeLock().lock();
+				messageJobs.put(job);
+			}
+			catch (InterruptedException e1) {
+				Thread.currentThread().interrupt();
+			}
+		}
+		catch (InterruptedException | ExecutionException | CancellationException e) {
+			System.err.println(e.toString());
+			e.printStackTrace();
+		}
+		finally {
+			lock.writeLock().unlock();
 		}
 	}
 
@@ -192,15 +278,21 @@ public final class Server<MsgType> {
 			}
 			// client response, triggered by read.
 			if (key.isValid() && key.isWritable()) {
-				List<Writer> rspWriters = responseWriters.get(key.channel());
-				LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
-				Iterator<Writer> it = rspWriters.iterator();
-				while(it.hasNext()) {
-					it.next().writeCompleteBuffer();
+				try {
+					lock.writeLock().lock();
+					List<Writer> rspWriters = responseWriters.get(key.channel());
+					LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
+					Iterator<Writer> it = rspWriters.iterator();
+					while(it.hasNext()) {
+						it.next().writeCompleteBuffer();
+						it.remove();
+					}
+					LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
+					key.interestOps(OP_READ);
 				}
-				rspWriters.clear();
-				LOG.trace("Response writers for {} are complete, resetting to ead ops only", key.attachment());
-				key.interestOps(OP_READ);
+				finally {
+					lock.writeLock().unlock();
+				}
 			}
 			iter.remove();
 		}
@@ -278,17 +370,37 @@ public final class Server<MsgType> {
 	}
 
 	private void handleCompleteMsg(MessageReader<MsgType> reader, SelectionKey key) {
-		if (msgHandler == null) {
+		if (msgHandler == null && asyncMsgHandler == null) {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
 		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
-		Optional<ByteBuffer> resultToWrite = msgHandler.handle(reader.getMessage().get());
-		if (resultToWrite.isPresent()) {
-			ByteBuffer bufferToWriteBack = refineResponse(reader, resultToWrite);
-			LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
-			key.interestOps(key.interestOps() | OP_WRITE);
+
+		if(asyncMsgHandler != null) {
+			try {
+				LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), reader.getMessage().get());
+				messageJobs.put(new AsyncMessageJob(key, reader.getMessage().get(), asyncMsgHandler.handle(reader.getMessage().get())));
+			}
+			catch (InterruptedException e) {
+				LOG.info("Interrupt when adding async message handling job");
+				// Server will bail out on interrupt.
+				Thread.currentThread().interrupt();
+			}
+		}
+		else if(msgHandler != null) {
+			Optional<ByteBuffer> resultToWrite = msgHandler.handle(reader.getMessage().get());
+			if (resultToWrite.isPresent()) {
+				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite);
+				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
+				try {
+					lock.writeLock().lock();
+					responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
+				}
+				finally {
+					lock.writeLock().unlock();
+				}
+				key.interestOps(key.interestOps() | OP_WRITE);
+			}
 		}
 		readers.remove(key.channel());
 		LOG.trace("[{}] Reader is complete, removed it from reader jobs. " +
@@ -296,12 +408,12 @@ public final class Server<MsgType> {
 				  readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));
 	}
 
-	private ByteBuffer refineResponse(MessageReader<MsgType> reader, Optional<ByteBuffer> resultToWrite) {
+	private ByteBuffer refineResponse(MsgType message, Optional<ByteBuffer> resultToWrite) {
 		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.get().flip();
 		for(ResponseRefiner<MsgType> responseHandler : responseRefiners) {
 			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
-			LOG.debug("Passing message value '{}' to response refiner", reader.getMessage().get().getValue());
-			refinedBuffer = responseHandler.execute(reader.getMessage().get().getValue(), refinedBuffer);
+			LOG.debug("Passing message value '{}' to response refiner", message);
+			refinedBuffer = responseHandler.execute(message, refinedBuffer);
 			refinedBuffer.flip();
 		}
 		return refinedBuffer;

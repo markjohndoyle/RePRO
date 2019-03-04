@@ -45,10 +45,10 @@ public final class SizeHeaderWriter implements Writer
         this.channel = channel;
         this.buffer = bufferToWrite;
         bodySize = buffer.limit();
-        LOG.trace("[{}] Body is {}", id, bodySize);
         expectedWrite = bodySize + HEADER_LENGTH;
         headerBuffer.putInt(bodySize).flip();
-        LOG.trace("[{}] Writer created for response; expected write is '{}' bytes", id, expectedWrite);
+        LOG.trace("[{}] Writer created for response; expected write is '{}' bytes of which {} is the body",
+        		id, expectedWrite, bodySize);
     }
 
     @Override

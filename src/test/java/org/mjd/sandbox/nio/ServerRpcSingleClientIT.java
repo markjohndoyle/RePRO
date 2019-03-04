@@ -17,7 +17,8 @@ import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.awaitility.Duration;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.handlers.message.RpcRequestInvoker;
+import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
+import org.mjd.sandbox.nio.handlers.message.AsyncRpcRequestInvoker;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
@@ -52,13 +53,13 @@ public class ServerRpcSingleClientIT
     private Socket clientSocket;
     private AtomicLong reqId;
     private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 10000);
-    private RpcRequestInvoker rpcInvoker;
+    private AsyncMessageHandler<RpcRequest> rpcInvoker;
 
 	// TEST BLOCK
     {
         before(()->{
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new RpcRequestInvoker(kryos.obtain(), rpcTarget);
+        	rpcInvoker = new AsyncRpcRequestInvoker(kryos.obtain(), rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
         });
@@ -108,11 +109,15 @@ public class ServerRpcSingleClientIT
 
 	        		Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < calls.size(); i++) {
+	        			LOG.debug("Reading response; iteration {} ", i);
 	        			Pair<Long, String> response = readResponse(kryo, dataIn);
 	        			final Long responseId = response.getLeft();
+	        			LOG.debug("Got reponse {}; getting the call with that ID", responseId);
 	        			Future<?> call = calls.get(responseId);
+	        			LOG.debug("Got request from call future...");
 	        			RpcRequest requestMade = (RpcRequest) call.get();
 	        			expect(responseId).toEqual(requestMade.getId());
+	        			LOG.info("Asserted; iteration {} ", i);
 	        		}
 	        		kryos.free(kryo);
 	        	});
@@ -140,6 +145,7 @@ public class ServerRpcSingleClientIT
 	        			Future<?> call = calls.get(responseId);
 	        			RpcRequest requestMade = (RpcRequest) call.get();
 	        			expect(responseId).toEqual(requestMade.getId());
+	        			LOG.info("Asserted {} ", i);
 	        		}
 	        		kryos.free(kryo);
 	        	});
@@ -166,7 +172,7 @@ public class ServerRpcSingleClientIT
     {
         rpcServer = new Server<>(new KryoRpcRequestMsgFactory());
 
-        rpcServer.addHandler(rpcInvoker::handle)
+        rpcServer.addAsyncHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 
         serverService.submit(() -> rpcServer.start());
