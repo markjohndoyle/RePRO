@@ -18,10 +18,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(OleasterRunner.class)
 public class KeyChannelCloserTest {
-	@Mock
-	private SelectionKey mockKey;
-	@Spy
-	private SelectableChannel mockChannel;
+	@Mock private SelectionKey mockKey;
+	@Spy private SelectableChannel mockChannel;
 
 	private KeyChannelCloser handlerUnderTest;
 

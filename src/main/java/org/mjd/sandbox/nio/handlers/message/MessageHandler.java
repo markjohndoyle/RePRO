@@ -1,8 +1,10 @@
 package org.mjd.sandbox.nio.handlers.message;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.util.Optional;
 
+import org.mjd.sandbox.nio.Server;
 import org.mjd.sandbox.nio.message.Message;
 
 /**
@@ -23,6 +25,16 @@ public interface MessageHandler<MsgType> {
 		}
 	}
 
+	public static final class ConnectionContext<MsgType> {
+		public final SelectionKey key;
+		public final Server<MsgType> server;
+
+		public ConnectionContext(Server<MsgType> server, SelectionKey key) {
+			this.server = server;
+			this.key = key;
+		}
+	}
+
     /**
      * Do your stuff, whatever that may be.
      * You'll get a message of type MsgType which is what the client sent to you. Do with that what you
@@ -32,5 +44,5 @@ public interface MessageHandler<MsgType> {
      * @param message
      * @return
      */
-    Optional<ByteBuffer> handle(Message<MsgType> message);
+    Optional<ByteBuffer> handle(ConnectionContext<MsgType> connectionContext, Message<MsgType> message);
 }

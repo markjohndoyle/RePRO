@@ -13,7 +13,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.awaitility.Duration;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.handlers.message.MessageHandler;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.sandbox.nio.message.IntMessage;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
@@ -113,7 +113,7 @@ public class IntegerServerIT
         });
 
         // Add echo handler
-        integerMessageServer.addHandler((MessageHandler<Integer>) message -> {
+        integerMessageServer.addHandler((ConnectionContext<Integer> context, Message<Integer> message) -> {
 		    String rsp = TEST_RSP_MSG + message.getValue();
 		    byte[] msgBytes = rsp.getBytes();
 		    return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));

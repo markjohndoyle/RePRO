@@ -34,6 +34,7 @@ import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
@@ -191,11 +192,32 @@ public final class Server<MsgType> {
 		}
 	}
 
+	public void receive(SelectionKey key,  MsgType subscriptionRequest, Optional<ByteBuffer> notification) {
+		LOG.trace("[{}] Refining notification {}.", key.attachment(), notification);
+		ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification);
+		lock.writeLock().lock();
+		if(key.isValid()) {
+			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
+			key.interestOps(key.interestOps() | OP_WRITE);
+			LOG.trace("[{}] There are now {} response writers and key {} is OP_WRITE after notification {}",
+					key.attachment(), responseWriters.get(key.channel()).size(), key, subscriptionRequest);
+			selector.wakeup();
+		}
+		else {
+			LOG.trace("[{}] Invalid key sent a notifification from subscription request {}. It will be ignored",
+					key.attachment(), subscriptionRequest);
+		}
+		lock.writeLock().unlock();
+	}
+
 	private void enterBlockingServerLoop() {
 		try {
 			while (!Thread.interrupted()) {
+				//if(busyLoop( { TODO
 				selector.select();
-//				selector.selectNow();
+//				else {
+//					selector.selectNow();
+//				}
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				handleReadyKeys(selectedKeys.iterator());
 			}
@@ -235,8 +257,8 @@ public final class Server<MsgType> {
 					responseWriters.put(job.key.channel(), SizeHeaderWriter.from(job.key, bufferToWriteBack));
 					job.key.interestOps(job.key.interestOps() | OP_WRITE);
 					LOG.trace("[{}] There are now {} response writers and key {} is OP_WRITE after message {}",
-							job.key.attachment(),
-						responseWriters.get(job.key.channel()).size(), job.key, job.message.getValue());
+							  job.key.attachment(), responseWriters.get(job.key.channel()).size(),
+							  job.key, job.message.getValue());
 					selector.wakeup();
 					lock.writeLock().unlock();
 				}
@@ -388,7 +410,7 @@ public final class Server<MsgType> {
 			}
 		}
 		else if(msgHandler != null) {
-			Optional<ByteBuffer> resultToWrite = msgHandler.handle(reader.getMessage().get());
+			Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), reader.getMessage().get());
 			if (resultToWrite.isPresent()) {
 				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite);
 				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
@@ -401,6 +423,10 @@ public final class Server<MsgType> {
 				}
 				key.interestOps(key.interestOps() | OP_WRITE);
 			}
+			else {
+				LOG.trace("No result, must be void call");
+			}
+
 		}
 		readers.remove(key.channel());
 		LOG.trace("[{}] Reader is complete, removed it from reader jobs. " +

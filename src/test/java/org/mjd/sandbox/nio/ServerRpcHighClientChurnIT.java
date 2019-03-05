@@ -58,7 +58,8 @@ public class ServerRpcHighClientChurnIT {
 
     // TEST BLOCK
     {
-        beforeEach(()->{
+        beforeEach(() -> {
+        	System.out.println("BEFORE EACH");
         	rpcTarget = new FakeRpcTarget();
         	rpcInvoker = new RpcRequestInvoker(kryos.obtain(), rpcTarget);
             // pre charge the kryo pool
@@ -68,6 +69,7 @@ public class ServerRpcHighClientChurnIT {
             }
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
+            System.out.println("BEFORE EACH FINISHED");
         });
 
         afterEach(() -> {
@@ -76,8 +78,8 @@ public class ServerRpcHighClientChurnIT {
 
         describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
             it("should reply correctly to all of them", () -> {
-                final int numClients = 60_000;
-                ExecutorService executor = Executors.newFixedThreadPool(600);
+                final int numClients = 6_000;
+                ExecutorService executor = Executors.newFixedThreadPool(200);
 
                 BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
                 for(int i = 0; i < numClients; i++)
