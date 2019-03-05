@@ -39,14 +39,12 @@ public final class FakeRpcTarget implements AutoCloseable
 
     @SubscriptionRegistrar
 	public void subscribe(Subscriber sub) {
-    	System.err.println("Adding sub " + sub);
     	subs.add(sub);
     }
 
     private void generateNotifications() {
     	while(true) {
 	    	for(Subscriber sub :subs) {
-	    		System.err.println("GOT A SUB " + sub + "- NOTFIYING");
 	    		sub.receive("Things just seem so much better in theory than in practice..." + random.nextLong());
 	    	}
 	    	try {

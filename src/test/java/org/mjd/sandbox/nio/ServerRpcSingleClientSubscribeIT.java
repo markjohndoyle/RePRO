@@ -32,7 +32,6 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.afterEach;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
-import static com.mscharhag.oleaster.runner.StaticRunnerSupport.xit;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Duration.TEN_SECONDS;
 import static org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.prepend;

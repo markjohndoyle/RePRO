@@ -59,7 +59,6 @@ public class ServerRpcHighClientChurnIT {
     // TEST BLOCK
     {
         beforeEach(() -> {
-        	System.out.println("BEFORE EACH");
         	rpcTarget = new FakeRpcTarget();
         	rpcInvoker = new RpcRequestInvoker(kryos.obtain(), rpcTarget);
             // pre charge the kryo pool
@@ -69,7 +68,6 @@ public class ServerRpcHighClientChurnIT {
             }
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
-            System.out.println("BEFORE EACH FINISHED");
         });
 
         afterEach(() -> {
