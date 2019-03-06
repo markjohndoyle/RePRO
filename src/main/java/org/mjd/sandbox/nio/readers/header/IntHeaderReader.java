@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public final class IntHeaderReader implements HeaderReader
+public final class IntHeaderReader implements HeaderReader<Integer>
 {
     private static final Logger LOG = LoggerFactory.getLogger(IntHeaderReader.class);
 
@@ -21,7 +21,7 @@ public final class IntHeaderReader implements HeaderReader
     }
 
     @Override
-    public void readHeader(String id, ByteBuffer buffer)
+    public void readHeader(ByteBuffer buffer)
     {
         LOG.trace("[{}] Reading header from {} with {} remaining ", id, buffer, buffer.remaining());
         // if we didn't read enough
@@ -59,10 +59,10 @@ public final class IntHeaderReader implements HeaderReader
     }
 
 	@Override
-    public void readHeader(String id, ByteBuffer headerBuffer, int offset)
+    public void readHeader(ByteBuffer headerBuffer, int offset)
     {
         LOG.trace("[{}] Reading header from {} at offset {}", id, headerBuffer, offset);
-        readHeader(id, (ByteBuffer) headerBuffer.position(offset));
+        readHeader((ByteBuffer) headerBuffer.position(offset));
     }
 
     @Override
@@ -72,7 +72,7 @@ public final class IntHeaderReader implements HeaderReader
     }
 
     @Override
-    public int getValue()
+    public Integer getValue()
     {
     	if(headerValue == -1)
     	{

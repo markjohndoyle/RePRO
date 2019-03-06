@@ -27,7 +27,7 @@ public final class RequestReader<T> implements MessageReader<T>
 
     private final int headerSize;
     private boolean vectoredIO;
-    private HeaderReader headerReader;
+    private HeaderReader<Integer> headerReader;
 
     private BodyReader<T> bodyReader;
 
@@ -220,14 +220,14 @@ public final class RequestReader<T> implements MessageReader<T>
 	                  "Reseting to mark and moving limit back to {} before passing to header reader." +
 	                  "There are {} bytes of header in this buffer",
 	                  headerReader.remaining(), headerSize, headerBuffer.position() + inThisBuffer, inThisBuffer);
-	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.reset().limit(headerBuffer.position() + inThisBuffer));
+	        headerReader.readHeader((ByteBuffer) headerBuffer.reset().limit(headerBuffer.position() + inThisBuffer));
 	    }
 	    else
 	    {
 	    	// We've not read any header data previously therefore we should read the header buffer from
 	    	// position 0
 	    	LOG.trace("[{}] Not read any header before this read cycle", id);
-	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.flip());
+	        headerReader.readHeader((ByteBuffer) headerBuffer.flip());
 	    }
 	}
 
