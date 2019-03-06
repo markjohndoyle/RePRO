@@ -19,5 +19,5 @@ public interface MessageReader<T>
 
     boolean isEndOfStream();
 
-
+    int getHeaderSize();
 }

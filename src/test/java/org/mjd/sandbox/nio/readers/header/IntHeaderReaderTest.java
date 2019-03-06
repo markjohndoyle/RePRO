@@ -28,18 +28,12 @@ public final class IntHeaderReaderTest
     // TEST BLOCK
     {
         beforeEach(() -> {
-            readerUnderTest = new IntHeaderReader(Integer.BYTES);
+            readerUnderTest = new IntHeaderReader("test");
             fullFiveHeader = Ints.toByteArray(singleFirstByteValue);
             lastThreeByteHeader = Ints.toByteArray(lastThreeByteValue);
             completeBuffer = ByteBuffer.wrap(fullFiveHeader);
             partBuffer = ByteBuffer.wrap(fullFiveHeader, 0, fullFiveHeader.length - 1);
             restOfItBuffer = ByteBuffer.wrap(fullFiveHeader, fullFiveHeader.length - 1, 1);
-        });
-
-        describe("when the size passed to an IntHeaderReader is not " + Integer.BYTES, () -> {
-        	it("should throw an exception", () -> {
-        		expect(() -> new IntHeaderReader(39472)).toThrow(IllegalArgumentException.class);
-        	});
         });
 
         describe("when the header data", () -> {

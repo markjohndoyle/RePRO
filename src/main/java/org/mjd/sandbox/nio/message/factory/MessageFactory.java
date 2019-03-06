@@ -5,7 +5,7 @@ import org.mjd.sandbox.nio.message.Message;
 /**
  * Creates {@link Message} instances of type T from a byte array.
  *
- * @param <T>
+ * @param <T> the type of the Message.
  */
 public interface MessageFactory<T>
 {

@@ -21,29 +21,32 @@ import org.slf4j.LoggerFactory;
 public final class RequestReader<T> implements MessageReader<T>
 {
     private static final Logger LOG = LoggerFactory.getLogger(RequestReader.class);
-    private static final int UNKNOWN = -1;
 
     private final ScatteringByteChannel channel;
     private final String id;
 
     private final int headerSize;
     private boolean vectoredIO;
-    private HeaderReader<Integer> headerReader;
+    private HeaderReader headerReader;
 
     private BodyReader<T> bodyReader;
 
     private Message<T> message = null;
-    private int bodySize = UNKNOWN;
 
     private boolean endOfStream;
 
 
+    /**
+     * @param requestID
+     * @param channel
+     * @param factory
+     */
     public RequestReader(String requestID, ScatteringByteChannel channel, MessageFactory<T> factory)
     {
         this.id = requestID;
         this.channel = channel;
-        headerSize = factory.getHeaderSize();
-        headerReader = new IntHeaderReader(id, headerSize);
+        headerReader = new IntHeaderReader(id);
+        headerSize = headerReader.getSize();
         bodyReader = new SingleMessageBodyReader<>(id, factory);
     }
 
@@ -226,11 +229,6 @@ public final class RequestReader<T> implements MessageReader<T>
 	    	LOG.trace("[{}] Not read any header before this read cycle", id);
 	        headerReader.readHeader(id, (ByteBuffer) headerBuffer.flip());
 	    }
-
-	    if(headerReader.isComplete())
-	    {
-	        bodySize = headerReader.getValue();
-		}
 	}
 
     @Override
@@ -251,4 +249,9 @@ public final class RequestReader<T> implements MessageReader<T>
     public static <MsgType> RequestReader<MsgType> from(SelectionKey key, MessageFactory<MsgType> messageFactory) {
         return new RequestReader<>((String)key.attachment(), (SocketChannel) key.channel(), messageFactory);
     }
+
+	@Override
+	public int getHeaderSize() {
+		return headerSize;
+	}
 }

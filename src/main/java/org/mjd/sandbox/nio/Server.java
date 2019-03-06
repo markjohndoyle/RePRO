@@ -69,7 +69,7 @@ public final class Server<MsgType> {
 	private long conId;
 
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
-	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+	private final ReentrantReadWriteLock responseWritersLock = new ReentrantReadWriteLock();
 	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
@@ -195,7 +195,7 @@ public final class Server<MsgType> {
 	public void receive(SelectionKey key,  MsgType subscriptionRequest, Optional<ByteBuffer> notification) {
 		LOG.trace("[{}] Refining notification {}.", key.attachment(), notification);
 		ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification);
-		lock.writeLock().lock();
+		responseWritersLock.writeLock().lock();
 		if(key.isValid()) {
 			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
 			key.interestOps(key.interestOps() | OP_WRITE);
@@ -207,7 +207,7 @@ public final class Server<MsgType> {
 			LOG.trace("[{}] Invalid key sent a notifification from subscription request {}. It will be ignored",
 					key.attachment(), subscriptionRequest);
 		}
-		lock.writeLock().unlock();
+		responseWritersLock.writeLock().unlock();
 	}
 
 	private void enterBlockingServerLoop() {
@@ -253,14 +253,14 @@ public final class Server<MsgType> {
 				if(result.isPresent()) {
 					LOG.trace("[{}] Refining response {}.", job.key.attachment(), job.message.getValue());
 					ByteBuffer bufferToWriteBack = refineResponse(job.message.getValue(), result);
-					lock.writeLock().lock();
+					responseWritersLock.writeLock().lock();
 					responseWriters.put(job.key.channel(), SizeHeaderWriter.from(job.key, bufferToWriteBack));
 					job.key.interestOps(job.key.interestOps() | OP_WRITE);
 					LOG.trace("[{}] There are now {} response writers and key {} is OP_WRITE after message {}",
 							  job.key.attachment(), responseWriters.get(job.key.channel()).size(),
 							  job.key, job.message.getValue());
 					selector.wakeup();
-					lock.writeLock().unlock();
+					responseWritersLock.writeLock().unlock();
 				}
 			}
 		}
@@ -268,7 +268,7 @@ public final class Server<MsgType> {
 			try {
 				System.err.println("Waiting for job '" + job.message.getValue() + "' timed out, putting it back on the end of the queue");
 				LOG.debug("Waiting for job '{}' timed out, putting it back on the end of the queue", job.message.getValue());
-				lock.writeLock().lock();
+				responseWritersLock.writeLock().lock();
 				messageJobs.put(job);
 			}
 			catch (InterruptedException e1) {
@@ -280,7 +280,7 @@ public final class Server<MsgType> {
 			e.printStackTrace();
 		}
 		finally {
-			lock.writeLock().unlock();
+			responseWritersLock.writeLock().unlock();
 		}
 	}
 
@@ -301,7 +301,7 @@ public final class Server<MsgType> {
 			// client response, triggered by read.
 			if (key.isValid() && key.isWritable()) {
 				try {
-					lock.writeLock().lock();
+					responseWritersLock.writeLock().lock();
 					List<Writer> rspWriters = responseWriters.get(key.channel());
 					LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
 					Iterator<Writer> it = rspWriters.iterator();
@@ -313,7 +313,7 @@ public final class Server<MsgType> {
 					key.interestOps(OP_READ);
 				}
 				finally {
-					lock.writeLock().unlock();
+					responseWritersLock.writeLock().unlock();
 				}
 			}
 			iter.remove();
@@ -415,11 +415,11 @@ public final class Server<MsgType> {
 				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite);
 				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
 				try {
-					lock.writeLock().lock();
+					responseWritersLock.writeLock().lock();
 					responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
 				}
 				finally {
-					lock.writeLock().unlock();
+					responseWritersLock.writeLock().unlock();
 				}
 				key.interestOps(key.interestOps() | OP_WRITE);
 			}

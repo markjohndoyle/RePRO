@@ -6,28 +6,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public final class IntHeaderReader implements HeaderReader<Integer>
+public final class IntHeaderReader implements HeaderReader
 {
     private static final Logger LOG = LoggerFactory.getLogger(IntHeaderReader.class);
 
     private final String id;
-    private final int headerSize;
+    private final int headerSize = Integer.BYTES;
     private int headerValue = -1;
     private ByteBuffer headerBuffer = null;
 
-    public IntHeaderReader(int size)
-    {
-    	this("Unknown client", size);
-    }
-
-    public IntHeaderReader(String id, int size)
+    public IntHeaderReader(String id)
     {
     	this.id = id;
-        if(size != Integer.BYTES)
-        {
-            throw new IllegalArgumentException("Header size must be " + Integer.BYTES + ". It is " + size);
-        }
-        headerSize = size;
     }
 
     @Override
@@ -109,5 +99,10 @@ public final class IntHeaderReader implements HeaderReader<Integer>
         LOG.trace("[{}] Partial header buffer in play, state is {}", id, headerBuffer);
         return headerBuffer.remaining();
     }
+
+	@Override
+	public int getSize() {
+		return headerSize;
+	}
 
 }

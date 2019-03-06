@@ -2,7 +2,7 @@ package org.mjd.sandbox.nio.readers.header;
 
 import java.nio.ByteBuffer;
 
-public interface HeaderReader<T>
+public interface HeaderReader
 {
 
 	/**
@@ -29,5 +29,8 @@ public interface HeaderReader<T>
      * @return how many bytes of the header remain to be read.
      */
     int remaining();
+
+
+	int getSize();
 
 }
