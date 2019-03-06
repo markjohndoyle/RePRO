@@ -14,7 +14,6 @@ import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
-import org.awaitility.Duration;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionInvoker;

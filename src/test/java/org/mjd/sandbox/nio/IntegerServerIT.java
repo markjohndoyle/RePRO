@@ -11,7 +11,6 @@ import java.util.concurrent.Executors;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
-import org.awaitility.Duration;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.sandbox.nio.message.IntMessage;
