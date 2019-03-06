@@ -36,6 +36,12 @@ public final class IntHeaderReaderTest
             restOfItBuffer = ByteBuffer.wrap(fullFiveHeader, fullFiveHeader.length - 1, 1);
         });
 
+        describe("When a client asks the IntHeader reader for the header size", () -> {
+        	it("should return " + Integer.BYTES, () -> {
+        		expect(readerUnderTest.getSize()).toEqual(Integer.BYTES);
+        	});
+        });
+
         describe("when the header data", () -> {
             describe("arrives in", ()-> {
                 describe("one single read, that is, all at once", ()-> {
@@ -160,6 +166,24 @@ public final class IntHeaderReaderTest
                     });
                 });
             });
+            describe("one single read, that is, all at once", ()-> {
+            	describe("but in a ByteBuffer with old data at the beginning", ()-> {
+                	beforeEach(() -> {
+                		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES + completeBuffer.capacity());
+                		buffer.putLong(123456789L).put(completeBuffer);
+                		readerUnderTest.readHeader(buffer, Long.BYTES);
+                	});
+                    it("should read the correct header value", ()->{
+                        expect(readerUnderTest.isComplete()).toBeTrue();
+                    });
+                    it("should have 0 bytes remaining", () -> {
+                    	expect(readerUnderTest.remaining()).toEqual(0);
+                    });
+                    it("should have the correct value", () -> {
+                    	expect(readerUnderTest.getValue()).toEqual(singleFirstByteValue);
+                    });
+            	});
+            });
             describe("does not arrive", ()-> {
             	beforeEach(() -> {
             		ByteBuffer emptyBuffer = ByteBuffer.wrap(new byte[0]);
@@ -174,6 +198,10 @@ public final class IntHeaderReaderTest
                 it("should throw an exception for any attempt to get the value", () -> {
             		expect(() -> readerUnderTest.getValue()).toThrow(IllegalStateException.class);
             	});
+            });
+
+            describe("When an IntHeaderReader is constructed without an ID", () -> {
+            	it("should construct without error", IntHeaderReader::new);
             });
 
         }); // end when header data... suite

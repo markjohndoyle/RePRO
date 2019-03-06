@@ -19,7 +19,8 @@ public interface HeaderReader<T>
 	/**
 	 * Read header bytes from the given {@link ByteBuffer} {@code headerBuffer}. The {@link ByteBuffer} may
 	 * not necessarily contain all the data needed for this {@link HeaderReader} to complete.
-	 * Implementations must take care to satisfy this for non-blocking scenarios.
+	 * Implementations must take care to satisfy this for non-blocking scenarios. The buffer may <b>NOT</b>
+	 * contain extra data, it's limit must be the within or the end of the header data.
 	 * </p>
 	 * The {@code headerBuffer} must be ready for reading, that is, flipped to read mode.
 	 * @param id
@@ -31,6 +32,7 @@ public interface HeaderReader<T>
 	 * Read header bytes from the given {@link ByteBuffer} {@code headerBuffer} startign at {@code offsett}. The
 	 * {@link ByteBuffer} may not necessarily contain all the data needed for this {@link HeaderReader} to complete.
 	 * Implementations must take care to satisfy this for non-blocking scenarios.
+	 * The buffer may <b>NOT</b> contain extra data, it's limit must be the within or the end of the header data.
 	 * </p>
 	 * The {@code headerBuffer} must be ready for reading, that is, flipped to read mode.
 	 *
@@ -43,30 +45,29 @@ public interface HeaderReader<T>
 	void readHeader(ByteBuffer headerBuffer, int offset);
 
 	/**
-	 * if complete this implies {@link #remaining()} is 0. Implementations are
-	 * required to enforce this.
+	 * if complete this implies {@link #remaining()} is 0. Implementations are required to enforce this.
 	 *
 	 * @return true if this {@link HeaderReader} has read the complete header
 	 */
     boolean isComplete();
 
 
-    /**
-     * @return the decoded header value.
-     */
+	/**
+	 * @return the decoded header value.
+	 */
     T getValue();
 
-    /**
-     * If remaining is < the header size this implies tha header reader is not yet complete.
-     *
-     * @return how many bytes of the header remain to be read.
-     */
+	/**
+	 * If remaining is < the header size this implies tha header reader is not yet complete.
+	 *
+	 * @return how many bytes of the header remain to be read.
+	 */
     int remaining();
 
 
 	/**
-	 * @return the size in bytes of the header. This is the total number of bytes the {@link HeaderReader} needs
-	 * to decode the header value.
+	 * @return the size in bytes of the header. This is the total number of bytes the {@link HeaderReader} needs to decode
+	 *         the header value.
 	 */
 	int getSize();
 
