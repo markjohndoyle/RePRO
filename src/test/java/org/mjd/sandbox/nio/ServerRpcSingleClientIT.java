@@ -18,6 +18,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.AsyncRpcRequestInvoker;
+import org.mjd.sandbox.nio.handlers.message.ReflectionInvoker;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
@@ -58,7 +59,7 @@ public class ServerRpcSingleClientIT
     {
         before(()->{
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new AsyncRpcRequestInvoker(kryos.obtain(), rpcTarget);
+        	rpcInvoker = new AsyncRpcRequestInvoker(kryos.obtain(), new ReflectionInvoker(rpcTarget));
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
         });
