@@ -11,12 +11,12 @@ public interface MessageFactory<T>
 {
     public class MessageCreationException extends RuntimeException
     {
+    	private static final long serialVersionUID = 1L;
         public MessageCreationException(Throwable e)
         {
             super(e);
         }
 
-        private static final long serialVersionUID = 1L;
     }
 
     Message<T> createMessage(byte[] bytesRead) throws MessageCreationException;

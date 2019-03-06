@@ -7,13 +7,11 @@ public interface InvalidKeyHandler
 {
     public static final class InvalidKeyHandlerException extends RuntimeException
     {
+    	private static final long serialVersionUID = 1L;
         public InvalidKeyHandlerException(String msg, IOException e)
         {
             super(msg, e);
         }
-
-        private static final long serialVersionUID = 1L;
-
     }
 
     void handle(SelectionKey key) throws InvalidKeyHandlerException;

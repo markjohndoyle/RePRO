@@ -87,9 +87,9 @@ public final class Server<MsgType> {
 																		.setNameFormat("MsgHandlerChecker").build());
 
 	private final class AsyncMessageJob {
-		final Future<Optional<ByteBuffer>> messageJob;
-		final SelectionKey key;
-		final Message<MsgType> message;
+		public final Future<Optional<ByteBuffer>> messageJob;
+		public final SelectionKey key;
+		public final Message<MsgType> message;
 		AsyncMessageJob(SelectionKey key, Message<MsgType> message, Future<Optional<ByteBuffer>> asyncHandle) {
 			this.messageJob = asyncHandle;
 			this.key = key;
@@ -356,7 +356,6 @@ public final class Server<MsgType> {
 	private ByteBuffer[] readUnreadData(SelectionKey key, ByteBuffer[] unread) throws IOException {
 		ByteBuffer unreadHeader = unread[0];
 		ByteBuffer unreadBody = unread[1];
-//			LOG.trace("Unread data loop iteration: {} H:{} B:{} Bmeta:{}", count++, Arrays.toString(unreadHeader.array()), Arrays.toString(unreadBody.array()), unreadBody);
 		RequestReader<MsgType> followReader = RequestReader.from(key, messageFactory);
 		ByteBuffer[] nextUnread = followReader.readPreloaded(unreadHeader, unreadBody);
 		processMessageReaderResults(key, followReader);

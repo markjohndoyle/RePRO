@@ -30,6 +30,10 @@ import org.slf4j.LoggerFactory;
 @DefaultSerializer(ArgumentValueSerialiser.class)
 public final class ArgumentValues implements Iterable<ArgumentValuePair>, Serializable {
 	private static final long serialVersionUID = 1L;
+	private static final Logger LOG = LoggerFactory.getLogger(ArgumentValues.class);
+
+	private final Map<Class<?>, Set<ArgumentValuePair>> internalStore = new ConcurrentHashMap<>();
+	private int highestIndex = -1;
 
 	@DefaultSerializer(ImmutableClassSerialiser.class)
 	public static final class ArgumentValuePair implements Comparable<ArgumentValuePair>, Serializable {
@@ -89,12 +93,6 @@ public final class ArgumentValues implements Iterable<ArgumentValuePair>, Serial
 		}
 
 	}
-
-	private final static Logger LOG = LoggerFactory.getLogger(ArgumentValues.class);
-
-	private final Map<Class<?>, Set<ArgumentValuePair>> internalStore = new ConcurrentHashMap<>();
-
-	private int highestIndex = -1;
 
 	public <T> Optional<T> get(Class<T> type, String argumentName) {
 		Set<ArgumentValuePair> argValues = findValidInternalStore(type);
@@ -297,5 +295,5 @@ public final class ArgumentValues implements Iterable<ArgumentValuePair>, Serial
 	private static <V> Pair<String, V> pair(String name, V value) {
 		return Pair.of(name, value);
 	}
-
 }
+

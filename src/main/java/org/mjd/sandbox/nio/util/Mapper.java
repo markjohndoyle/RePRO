@@ -19,7 +19,7 @@ public abstract class Mapper<K, V> {
 
 	public abstract boolean found();
 
-	public static class Found<K, V> extends Mapper<K, V> {
+	public static final class Found<K, V> extends Mapper<K, V> {
 		V value;
 
 		public Found(V found) {
@@ -42,9 +42,9 @@ public abstract class Mapper<K, V> {
 		}
 	}
 
-	public static class NotFound<K, V> extends Mapper<K, V> {
-		Map<K, V> map;
-		K key;
+	public static final class NotFound<K, V> extends Mapper<K, V> {
+		private final Map<K, V> map;
+		private final K key;
 		public NotFound(Map<K, V> map, K key) {
 			this.map = map;
 			this.key = key;
