@@ -31,7 +31,7 @@ public final class FakeRpcTarget implements AutoCloseable
 		generator.execute(this::generateNotifications);
 	}
 
-    public void callMeVoid() { }
+    public void callMeVoid() { /* Intentionall empty, test support class */ }
     public String callMeString() { return "callMeString"; }
     public String genString() { return "generated string"; }
     public String whatIsTheString() { return "it's this string..."; }

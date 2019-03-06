@@ -20,7 +20,7 @@ public abstract class Mapper<K, V> {
 	public abstract boolean found();
 
 	public static final class Found<K, V> extends Mapper<K, V> {
-		V value;
+		private final V value;
 
 		public Found(V found) {
 			value = found;

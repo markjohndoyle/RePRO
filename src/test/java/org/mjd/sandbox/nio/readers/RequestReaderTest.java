@@ -42,9 +42,9 @@ public final class RequestReaderTest
     private List<Byte> headerValueList = Bytes.asList(headerValueArray);
 
     private ByteBuffer bodyBuffer;
-    final Message<Integer> expectedMsg = new IntMessage(17369615);
-    final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg.getValue());
-    final List<Byte> bodyValueList = Bytes.asList(bodyValueBytes);
+    private final Message<Integer> expectedMsg = new IntMessage(17369615);
+    private final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg.getValue());
+    private final List<Byte> bodyValueList = Bytes.asList(bodyValueBytes);
     private ByteBuffer[] remaining;
     private List<Byte> bodyWithNextHeader;
 

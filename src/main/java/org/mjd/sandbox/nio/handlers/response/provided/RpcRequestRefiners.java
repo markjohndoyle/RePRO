@@ -6,12 +6,11 @@ import org.mjd.sandbox.nio.message.RpcRequest;
 
 public final class RpcRequestRefiners {
 
+	public static final Prepend prepend = new Prepend();
 
 	private RpcRequestRefiners() {
 		// Util/function class
 	}
-
-	public static final Prepend prepend = new Prepend();
 
 	public static final class Prepend {
 		/**
