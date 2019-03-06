@@ -12,54 +12,66 @@ import java.util.concurrent.Executors;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
 
-
 /**
- * Fake target for RPC calls. A server will have direct access to something like this
- * when it's setup.
+ * Fake target for RPC calls. A server will have direct access to something like this when it's setup.
  */
-public final class FakeRpcTarget implements AutoCloseable
-{
-    public static final Map<String, Object> methodNamesAndReturnValues = new HashMap<>();
-    private final ExecutorService generator = Executors.newSingleThreadExecutor();
-    private final List<Subscriber> subs = Collections.synchronizedList(new ArrayList<>());
-    private final Random random = new Random();
+public final class FakeRpcTarget implements AutoCloseable {
+	public static final Map<String, Object> methodNamesAndReturnValues = new HashMap<>();
+	private final ExecutorService generator = Executors.newSingleThreadExecutor();
+	private final List<Subscriber> subs = Collections.synchronizedList(new ArrayList<>());
+	private final Random random = new Random();
 
-    public FakeRpcTarget() {
+	public FakeRpcTarget() {
 		methodNamesAndReturnValues.put("callMeString", "callMeString");
 		methodNamesAndReturnValues.put("genString", "generated string");
 		methodNamesAndReturnValues.put("whatIsTheString", "it's this string...");
 		generator.execute(this::generateNotifications);
 	}
 
-    public void callMeVoid() { /* Intentionall empty, test support class */ }
-    public String callMeString() { return "callMeString"; }
-    public String genString() { return "generated string"; }
-    public String whatIsTheString() { return "it's this string..."; }
-    public String hackTheGibson(int password) { return "password sent: " + password; }
+	public void callMeVoid() {
+		/* Intentionall empty, test support class */ }
 
-    @SubscriptionRegistrar
+	public String callMeString() {
+		return "callMeString";
+	}
+
+	public String genString() {
+		return "generated string";
+	}
+
+	public String whatIsTheString() {
+		return "it's this string...";
+	}
+
+	public String hackTheGibson(int password) {
+		return "password sent: " + password;
+	}
+
+	@SubscriptionRegistrar
 	public void subscribe(Subscriber sub) {
-    	subs.add(sub);
-    }
+		subs.add(sub);
+	}
 
-    private void generateNotifications() {
-    	while(true) {
-	    	for(Subscriber sub :subs) {
-	    		sub.receive("Things just seem so much better in theory than in practice..." + random.nextLong());
-	    	}
-	    	try {
-	    		Thread.sleep(250);
-	    	}
-	    	catch (InterruptedException e) {
-	    		Thread.currentThread().interrupt();
-	    	}
-    	}
-    }
+	private void generateNotifications() {
+		while (true) {
+			for (Subscriber sub : subs) {
+				sub.receive("Things just seem so much better in theory than in practice..." + random.nextLong());
+			}
+			notificationPause();
+		}
+	}
+
+	private static void notificationPause() {
+		try {
+			Thread.sleep(250);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
 
 	@Override
 	public void close() throws Exception {
 		subs.clear();
 	}
 }
-
-

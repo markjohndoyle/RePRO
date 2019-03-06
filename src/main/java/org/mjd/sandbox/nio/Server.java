@@ -213,11 +213,7 @@ public final class Server<MsgType> {
 	private void enterBlockingServerLoop() {
 		try {
 			while (!Thread.interrupted()) {
-				//if(busyLoop( { TODO
 				selector.select();
-//				else {
-//					selector.selectNow();
-//				}
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				handleReadyKeys(selectedKeys.iterator());
 			}
