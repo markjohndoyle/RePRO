@@ -24,7 +24,6 @@ public final class AsyncRpcRequestInvoker implements AsyncMessageHandler<RpcRequ
 	private static final Logger LOG = LoggerFactory.getLogger(AsyncRpcRequestInvoker.class);
 	private final Kryo kryo;
 	private final Object rpcTarget;
-	private SelectableChannel channel;
 	private ExecutorService executor = Executors.newSingleThreadExecutor();
 
 	public AsyncRpcRequestInvoker(Kryo kryo, Object rpcTarget) {

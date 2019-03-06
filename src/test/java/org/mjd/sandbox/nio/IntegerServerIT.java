@@ -51,8 +51,8 @@ public class IntegerServerIT
             socketOut.close();
             testSocket.close();
             shutdownServer();
-            await().atMost(Duration.TEN_SECONDS).until(() -> { return integerMessageServer.isShutdown();});
-            await().atMost(Duration.TEN_SECONDS).until(() -> { return serverService.isTerminated();});
+            await().atMost(TEN_SECONDS).until(() -> { return integerMessageServer.isShutdown();});
+            await().atMost(TEN_SECONDS).until(() -> { return serverService.isTerminated();});
         });
 
         describe("When a valid request is sent to the server", () -> {
@@ -143,7 +143,7 @@ public class IntegerServerIT
      */
     private String serversResponseFrom(DataInputStream in) throws IOException
     {
-        await("Waiting for response").atMost(Duration.TEN_SECONDS).until(() -> { return in.available() > Integer.BYTES;});
+        await("Waiting for response").atMost(TEN_SECONDS).until(() -> { return in.available() > Integer.BYTES;});
         int responseSize = in.readInt();
         byte[] bytesRead = new byte[responseSize];
         int totalRead = 0;

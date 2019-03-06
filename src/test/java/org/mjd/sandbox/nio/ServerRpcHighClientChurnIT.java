@@ -119,8 +119,8 @@ public class ServerRpcHighClientChurnIT {
     {
         LOG.debug("Test is shutting down server....");
         serverService.shutdownNow();
-        await().atMost(Duration.TEN_SECONDS).until(() -> { return rpcServer.isShutdown();});
-        await().atMost(Duration.TEN_SECONDS).until(() -> { return serverService.isTerminated();});
+        await().atMost(TEN_SECONDS).until(() -> { return rpcServer.isShutdown();});
+        await().atMost(TEN_SECONDS).until(() -> { return serverService.isTerminated();});
     }
 
 

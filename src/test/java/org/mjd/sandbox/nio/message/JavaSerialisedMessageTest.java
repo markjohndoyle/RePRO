@@ -9,7 +9,6 @@ import static com.mscharhag.oleaster.matcher.Matchers.expect;
 public class JavaSerialisedMessageTest {
 
 	private static final String TEST_STRING = "LongWayToASmallAngryPlant";
-	private static final byte[] TEST_STRING_BYTES = TEST_STRING.getBytes();
 
 	@Test
 	public void testStringMessage() throws IOException {
