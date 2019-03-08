@@ -75,7 +75,7 @@ public final class SubscriptionInvoker implements MessageHandler<RpcRequest>, Su
 			ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
 			byte[] returnBuffer;
 			try {
-				returnBuffer = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
+				returnBuffer = objectToKryoBytes(kryo, responseMessage);
 				return Optional.of(ByteBuffer.wrap(returnBuffer));
 			}
 			catch (IOException e) {

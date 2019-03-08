@@ -5,7 +5,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -181,8 +180,7 @@ public class IntegerServerIT
 	        if(responseMessage.isError()) {
 	        	return responseMessage.getError().get().toString();
 	        }
-	        final String rspValue = responseMessage.getValue().get();
-			return rspValue.toString();
+	        return responseMessage.getValue().get();
         }
         finally {
 			kryos.free(kryo);
