@@ -3,16 +3,13 @@ package org.mjd.sandbox.nio;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -25,20 +22,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
+import org.mjd.sandbox.nio.handlers.op.ReadOpHandler;
+import org.mjd.sandbox.nio.handlers.op.RootMessageHandler;
 import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
-import org.mjd.sandbox.nio.readers.MessageReader;
-import org.mjd.sandbox.nio.readers.RequestReader;
 import org.mjd.sandbox.nio.writers.SizeHeaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +42,6 @@ import org.slf4j.LoggerFactory;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
-
-import static org.mjd.sandbox.nio.util.Mapper.findInMap;
 
 /**
  * The main server class. This is a non-blocking selectoer based server that
@@ -58,23 +52,15 @@ import static org.mjd.sandbox.nio.util.Mapper.findInMap;
  *
  * @param <MsgType>
  */
-public final class Server<MsgType> {
+public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private long conId;
-
-	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
-
 	private final WriteOpHandler writeOpHandler = new WriteOpHandler();
-
-	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
-	private final ByteBuffer headerBuffer;
-
-	private MessageFactory<MsgType> messageFactory;
+	private final ReadOpHandler<MsgType> readOpHandler;
 	private InvalidKeyHandler validityHandler;
-
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
 	private List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
@@ -83,7 +69,7 @@ public final class Server<MsgType> {
 	private final ExecutorService asyncJobChecker = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
 																		.setNameFormat("MsgHandlerChecker").build());
 
-	private final class AsyncMessageJob {
+	public final class AsyncMessageJob {
 		public final Future<Optional<ByteBuffer>> messageJob;
 		public final SelectionKey key;
 		public final Message<MsgType> message;
@@ -93,6 +79,7 @@ public final class Server<MsgType> {
 			this.message= message;
 		}
 	}
+
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
 	 *
@@ -106,9 +93,8 @@ public final class Server<MsgType> {
 	}
 
 	public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler) {
-		this.messageFactory = messageFactory;
 		this.validityHandler = invalidKeyHandler;
-		headerBuffer = ByteBuffer.allocate(messageFactory.getHeaderSize());
+		readOpHandler = new ReadOpHandler<>(messageFactory, this);
 	}
 
 	/**
@@ -203,6 +189,34 @@ public final class Server<MsgType> {
 		}
 	}
 
+	@Override
+	public void handle(SelectionKey key, Message<MsgType> message) {
+		if (msgHandler == null && asyncMsgHandler == null) {
+			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
+			return;
+		}
+		if(asyncMsgHandler != null) {
+			try {
+				LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
+				messageJobs.put(new AsyncMessageJob(key, message, asyncMsgHandler.handle(message)));
+			}
+			catch (InterruptedException e) {
+				LOG.info("Interrupt when adding async message handling job");
+				// Server will bail out on interrupt.
+				Thread.currentThread().interrupt();
+			}
+		}
+		else if(msgHandler != null) {
+			Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), message);
+			if (resultToWrite.isPresent()) {
+				ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite.get());
+				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
+				writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
+				key.interestOps(key.interestOps() | OP_WRITE);
+			}
+		}
+	}
+
 	private void enterBlockingServerLoop() {
 		try {
 			while (!Thread.interrupted()) {
@@ -276,7 +290,7 @@ public final class Server<MsgType> {
 				acceptClient(key);
 			}
 			if (key.isReadable()) {
-				readChannelFor(key);
+				readOpHandler.handle(key);
 			}
 			// client response, triggered by read.
 			if (key.isValid() && key.isWritable()) {
@@ -307,92 +321,6 @@ public final class Server<MsgType> {
 		LOG.trace("Socket accepted for client {}", conId);
 	}
 
-	private void readChannelFor(SelectionKey key) throws MessageCreationException, IOException {
-		clearReadBuffers();
-		MessageReader<MsgType> reader = findInMap(readers, key.channel()).or(() -> RequestReader.from(key, messageFactory));
-		ByteBuffer[] unread = reader.read(headerBuffer, bodyBuffer);
-		processMessageReaderResults(key, reader);
-
-		// TODO One Key/Channel pair can hog the server here.
-		while (thereIsUnreadData(unread)) {
-			unread = readUnreadData(key, unread);
-		}
-	}
-
-	private ByteBuffer[] readUnreadData(SelectionKey key, ByteBuffer[] unread) throws IOException {
-		ByteBuffer unreadHeader = unread[0];
-		ByteBuffer unreadBody = unread[1];
-		RequestReader<MsgType> followReader = RequestReader.from(key, messageFactory);
-		ByteBuffer[] nextUnread = followReader.readPreloaded(unreadHeader, unreadBody);
-		processMessageReaderResults(key, followReader);
-		if(!followReader.messageComplete()) {
-			readers.put(key.channel(), followReader);
-		}
-		return nextUnread;
-	}
-
-	/**
-	 * If the unread header buffer has data then a reader returned unread data.
-	 * @param unread the header body {@link ByteBuffer} array.
-	 *
-	 * @return true if there is unread data.
-	 */
-	private static boolean thereIsUnreadData(ByteBuffer[] unread) {
-		return unread[0].capacity() > 0;
-	}
-
-	private void processMessageReaderResults(SelectionKey key, MessageReader<MsgType> reader) {
-		if (reader.isEndOfStream()) {
-			handleEndOfStream(key);
-		}
-		else if (reader.messageComplete()) {
-			handleCompleteMsg(reader, key);
-		}
-	}
-
-	private void handleEndOfStream(SelectionKey key) {
-		LOG.debug("{} end of stream.", key.attachment());
-		readers.remove(key.channel());
-		cancelClient(key);
-	}
-
-	private void handleCompleteMsg(MessageReader<MsgType> reader, SelectionKey key) {
-		if (msgHandler == null && asyncMsgHandler == null) {
-			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
-			return;
-		}
-		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
-
-		if(asyncMsgHandler != null) {
-			try {
-				LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), reader.getMessage().get());
-				messageJobs.put(new AsyncMessageJob(key, reader.getMessage().get(), asyncMsgHandler.handle(reader.getMessage().get())));
-			}
-			catch (InterruptedException e) {
-				LOG.info("Interrupt when adding async message handling job");
-				// Server will bail out on interrupt.
-				Thread.currentThread().interrupt();
-			}
-		}
-		else if(msgHandler != null) {
-			Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), reader.getMessage().get());
-			if (resultToWrite.isPresent()) {
-				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite.get());
-				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-				writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
-				key.interestOps(key.interestOps() | OP_WRITE);
-			}
-			else {
-				LOG.trace("No result, must be void call");
-			}
-
-		}
-		readers.remove(key.channel());
-		LOG.trace("[{}] Reader is complete, removed it from reader jobs. " +
-				  "There are {} read jobs remaining. {}", key.attachment(),
-				  readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));
-	}
-
 	private ByteBuffer refineResponse(MsgType message, ByteBuffer resultToWrite) {
 		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.flip();
 		for(ResponseRefiner<MsgType> responseHandler : responseRefiners) {
@@ -402,22 +330,6 @@ public final class Server<MsgType> {
 			refinedBuffer.flip();
 		}
 		return refinedBuffer;
-	}
-
-	private void clearReadBuffers() {
-		headerBuffer.clear();
-		bodyBuffer.clear();
-	}
-
-	private static void cancelClient(SelectionKey key) {
-		try {
-			LOG.debug("Closing channel for client '{}'", key.attachment());
-			key.channel().close();
-			key.cancel(); // necessary?
-		}
-		catch (IOException e) {
-			LOG.warn("Exception closing channel of cancelled client {}. Key is already invalid", key.attachment());
-		}
 	}
 
 	private void closeDownServer() {

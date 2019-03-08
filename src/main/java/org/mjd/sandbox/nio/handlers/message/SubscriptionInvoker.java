@@ -12,7 +12,6 @@ import org.mjd.sandbox.nio.Server;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
-import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

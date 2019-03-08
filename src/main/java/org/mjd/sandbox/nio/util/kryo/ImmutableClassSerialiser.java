@@ -34,8 +34,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
  * @param <T>
  *            the type this {@link Serializer} is serialising
  */
-//Shortening the class name will sacrifice clarity, that is, obfuscate the code.
-@SuppressWarnings("squid:S00101")
 public final class ImmutableClassSerialiser<T> extends Serializer<T>
 {
     /** The type this {@link Serializer} is serialising */
@@ -134,8 +132,6 @@ public final class ImmutableClassSerialiser<T> extends Serializer<T>
      *
      * @return a List of {@link Field} instances for every annotated field of the type we are serialising.
      */
-    // Shortening the method name will sacrifice clarity, that is, obfuscate the code.
-    @SuppressWarnings("squid:S00100")
     private List<Field> getSortedConstructorFields()
     {
         List<Field> serialiseFields = FieldUtils.getFieldsListWithAnnotation(type, SerialiseAsConstructorArg.class);

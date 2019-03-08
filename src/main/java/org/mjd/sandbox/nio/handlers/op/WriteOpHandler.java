@@ -9,13 +9,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-import org.mjd.sandbox.nio.writers.SizeHeaderWriter;
 import org.mjd.sandbox.nio.writers.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
 
 public final class WriteOpHandler implements KeyOpHandler {
 	private static final Logger LOG = LoggerFactory.getLogger(WriteOpHandler.class);
