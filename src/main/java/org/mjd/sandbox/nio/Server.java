@@ -24,18 +24,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
-import org.mjd.sandbox.nio.handlers.op.KeyOpHandler;
 import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
@@ -44,7 +40,6 @@ import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationExcepti
 import org.mjd.sandbox.nio.readers.MessageReader;
 import org.mjd.sandbox.nio.readers.RequestReader;
 import org.mjd.sandbox.nio.writers.SizeHeaderWriter;
-import org.mjd.sandbox.nio.writers.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
