@@ -35,6 +35,8 @@ import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
+import org.mjd.sandbox.nio.handlers.op.KeyOpHandler;
+import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
@@ -69,8 +71,10 @@ public final class Server<MsgType> {
 	private long conId;
 
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
-	private final ReentrantReadWriteLock responseWritersLock = new ReentrantReadWriteLock();
-	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
+
+	private final WriteOpHandler writeOpHandler = new WriteOpHandler();
+//	private final ReentrantReadWriteLock responseWritersLock = new ReentrantReadWriteLock();
+//	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
 	private final ByteBuffer headerBuffer;
@@ -195,19 +199,15 @@ public final class Server<MsgType> {
 	public void receive(SelectionKey key,  MsgType subscriptionRequest, Optional<ByteBuffer> notification) {
 		LOG.trace("[{}] Refining notification {}.", key.attachment(), notification);
 		ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification.get());
-		responseWritersLock.writeLock().lock();
 		if(key.isValid()) {
-			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
+			writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
 			key.interestOps(key.interestOps() | OP_WRITE);
-			LOG.trace("[{}] There are now {} response writers and key {} is OP_WRITE after notification {}",
-					key.attachment(), responseWriters.get(key.channel()).size(), key, subscriptionRequest);
 			selector.wakeup();
 		}
 		else {
 			LOG.trace("[{}] Invalid key sent a notifification from subscription request {}. It will be ignored",
 					key.attachment(), subscriptionRequest);
 		}
-		responseWritersLock.writeLock().unlock();
 	}
 
 	private void enterBlockingServerLoop() {
@@ -249,22 +249,16 @@ public final class Server<MsgType> {
 				if(result.isPresent()) {
 					LOG.trace("[{}] Refining response {}.", job.key.attachment(), job.message.getValue());
 					ByteBuffer bufferToWriteBack = refineResponse(job.message.getValue(), result.get());
-					responseWritersLock.writeLock().lock();
-					responseWriters.put(job.key.channel(), SizeHeaderWriter.from(job.key, bufferToWriteBack));
+
+					writeOpHandler.add(job.key, SizeHeaderWriter.from(job.key, bufferToWriteBack));
 					job.key.interestOps(job.key.interestOps() | OP_WRITE);
-					LOG.trace("[{}] There are now {} response writers and key {} is OP_WRITE after message {}",
-							  job.key.attachment(), responseWriters.get(job.key.channel()).size(),
-							  job.key, job.message.getValue());
 					selector.wakeup();
-					responseWritersLock.writeLock().unlock();
 				}
 			}
 		}
 		catch (TimeoutException e) {
 			try {
-				System.err.println("Waiting for job '" + job.message.getValue() + "' timed out, putting it back on the end of the queue");
 				LOG.debug("Waiting for job '{}' timed out, putting it back on the end of the queue", job.message.getValue());
-				responseWritersLock.writeLock().lock();
 				messageJobs.put(job);
 			}
 			catch (InterruptedException e1) {
@@ -274,9 +268,6 @@ public final class Server<MsgType> {
 		catch (InterruptedException | ExecutionException | CancellationException e) {
 			System.err.println(e.toString());
 			e.printStackTrace();
-		}
-		finally {
-			responseWritersLock.writeLock().unlock();
 		}
 	}
 
@@ -296,21 +287,7 @@ public final class Server<MsgType> {
 			}
 			// client response, triggered by read.
 			if (key.isValid() && key.isWritable()) {
-				try {
-					responseWritersLock.writeLock().lock();
-					List<Writer> rspWriters = responseWriters.get(key.channel());
-					LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
-					Iterator<Writer> it = rspWriters.iterator();
-					while(it.hasNext()) {
-						it.next().writeCompleteBuffer();
-						it.remove();
-					}
-					LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
-					key.interestOps(OP_READ);
-				}
-				finally {
-					responseWritersLock.writeLock().unlock();
-				}
+				writeOpHandler.handle(key);
 			}
 			iter.remove();
 		}
@@ -409,13 +386,7 @@ public final class Server<MsgType> {
 			if (resultToWrite.isPresent()) {
 				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite.get());
 				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-				try {
-					responseWritersLock.writeLock().lock();
-					responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
-				}
-				finally {
-					responseWritersLock.writeLock().unlock();
-				}
+				writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
 				key.interestOps(key.interestOps() | OP_WRITE);
 			}
 			else {
