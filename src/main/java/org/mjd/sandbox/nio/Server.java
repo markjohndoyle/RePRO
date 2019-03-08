@@ -68,8 +68,6 @@ public final class Server<MsgType> {
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
 
 	private final WriteOpHandler writeOpHandler = new WriteOpHandler();
-//	private final ReentrantReadWriteLock responseWritersLock = new ReentrantReadWriteLock();
-//	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
 	private final ByteBuffer headerBuffer;
