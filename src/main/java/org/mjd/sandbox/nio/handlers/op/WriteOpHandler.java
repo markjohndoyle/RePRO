@@ -15,13 +15,12 @@ import org.slf4j.LoggerFactory;
 
 import static java.nio.channels.SelectionKey.OP_READ;
 
-public final class WriteOpHandler implements KeyOpHandler {
+public final class WriteOpHandler {
 	private static final Logger LOG = LoggerFactory.getLogger(WriteOpHandler.class);
 
 	private final ReentrantReadWriteLock responseWritersLock = new ReentrantReadWriteLock();
 	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 
-	@Override
 	public void handle(SelectionKey key) throws IOException {
 		try {
 			responseWritersLock.writeLock().lock();

@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +27,7 @@ import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
+import org.mjd.sandbox.nio.handlers.op.AcceptOpHandler;
 import org.mjd.sandbox.nio.handlers.op.ReadOpHandler;
 import org.mjd.sandbox.nio.handlers.op.RootMessageHandler;
 import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
@@ -60,6 +60,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private long conId;
 	private final WriteOpHandler writeOpHandler = new WriteOpHandler();
 	private final ReadOpHandler<MsgType> readOpHandler;
+	private final AcceptOpHandler acceptOpHandler = new AcceptOpHandler();
 	private InvalidKeyHandler validityHandler;
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
@@ -94,7 +95,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler) {
 		this.validityHandler = invalidKeyHandler;
-		readOpHandler = new ReadOpHandler<>(messageFactory, this);
+		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
 	}
 
 	/**
@@ -287,7 +288,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 				continue;
 			}
 			if (key.isAcceptable()) {
-				acceptClient(key);
+				acceptOpHandler.handle(key, serverChannel).register(selector, OP_READ, "client " + conId);
 			}
 			if (key.isReadable()) {
 				readOpHandler.handle(key);
@@ -298,27 +299,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			}
 			iter.remove();
 		}
-	}
-
-	@SuppressWarnings("resource") // the client channel is registers and linked to a key via selector register.
-	private void acceptClient(SelectionKey key) // throws IOException
-	{
-		LOG.trace("{} is acceptable, a client is connecting.", key.attachment());
-		SocketChannel clientChannel;
-		try {
-			clientChannel = serverChannel.accept();
-			if (clientChannel == null) {
-				LOG.error("client channel is null after accept within acceptable key");
-				return;
-			}
-			clientChannel.configureBlocking(false);
-			clientChannel.register(selector, OP_READ, "client " + conId);
-			conId++;
-		}
-		catch (IOException e) {
-			LOG.warn("Could not accept connection from client on {} due to {}", key.attachment(), e.toString(), e);
-		}
-		LOG.trace("Socket accepted for client {}", conId);
 	}
 
 	private ByteBuffer refineResponse(MsgType message, ByteBuffer resultToWrite) {
