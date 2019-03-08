@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 public final class AcceptOpHandler {
 	private static final Logger LOG = LoggerFactory.getLogger(AcceptOpHandler.class);
 
-	private long conId;
-
-	public SocketChannel handle(SelectionKey key, ServerSocketChannel serverChannel) // throws IOException
+	public SocketChannel handle(SelectionKey key, ServerSocketChannel serverChannel, long id)
 	{
 		LOG.trace("{} is acceptable, a client is connecting.", key.attachment());
 		SocketChannel clientChannel;
@@ -23,9 +21,8 @@ public final class AcceptOpHandler {
 				LOG.error("client channel is null after accept within acceptable key");
 				return null;
 			}
-			LOG.trace("Socket accepted for client {}", conId);
+			LOG.trace("Socket accepted for client {}", id);
 			clientChannel.configureBlocking(false);
-			conId++;
 			return clientChannel;
 		}
 		catch (IOException e) {

@@ -57,11 +57,11 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
-	private long conId;
-	private final WriteOpHandler writeOpHandler = new WriteOpHandler();
-	private final ReadOpHandler<MsgType> readOpHandler;
-	private final AcceptOpHandler acceptOpHandler = new AcceptOpHandler();
 	private InvalidKeyHandler validityHandler;
+	private final WriteOpHandler writeOpHandler;
+	private final ReadOpHandler<MsgType> readOpHandler;
+	private final AcceptOpHandler acceptOpHandler;
+	private long conId;
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
 	private List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
@@ -95,7 +95,9 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler) {
 		this.validityHandler = invalidKeyHandler;
+		this.acceptOpHandler = new AcceptOpHandler();
 		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
+		this.writeOpHandler = new WriteOpHandler();
 	}
 
 	/**
@@ -288,7 +290,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 				continue;
 			}
 			if (key.isAcceptable()) {
-				acceptOpHandler.handle(key, serverChannel).register(selector, OP_READ, "client " + conId);
+				acceptOpHandler.handle(key, serverChannel, conId++).register(selector, OP_READ, "client " + conId);
 			}
 			if (key.isReadable()) {
 				readOpHandler.handle(key);
