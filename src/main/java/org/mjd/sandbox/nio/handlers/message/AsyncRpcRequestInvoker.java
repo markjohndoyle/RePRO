@@ -38,7 +38,8 @@ public final class AsyncRpcRequestInvoker implements AsyncMessageHandler<RpcRequ
 			if (result == null) {
 				return Optional.empty();
 			}
-			msgBytes = objectToKryoBytes(kryo, result);
+			ResponseMessage<Object> responseMessage = new ResponseMessage<>(result);
+			msgBytes = objectToKryoBytes(kryo, responseMessage);
 			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
 		});
 	}

@@ -194,7 +194,7 @@ public final class Server<MsgType> {
 
 	public void receive(SelectionKey key,  MsgType subscriptionRequest, Optional<ByteBuffer> notification) {
 		LOG.trace("[{}] Refining notification {}.", key.attachment(), notification);
-		ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification);
+		ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification.get());
 		responseWritersLock.writeLock().lock();
 		if(key.isValid()) {
 			responseWriters.put(key.channel(), SizeHeaderWriter.from(key, bufferToWriteBack));
@@ -248,7 +248,7 @@ public final class Server<MsgType> {
 				LOG.trace("[{}] The job has finished.", job.key.attachment());
 				if(result.isPresent()) {
 					LOG.trace("[{}] Refining response {}.", job.key.attachment(), job.message.getValue());
-					ByteBuffer bufferToWriteBack = refineResponse(job.message.getValue(), result);
+					ByteBuffer bufferToWriteBack = refineResponse(job.message.getValue(), result.get());
 					responseWritersLock.writeLock().lock();
 					responseWriters.put(job.key.channel(), SizeHeaderWriter.from(job.key, bufferToWriteBack));
 					job.key.interestOps(job.key.interestOps() | OP_WRITE);
@@ -407,7 +407,7 @@ public final class Server<MsgType> {
 		else if(msgHandler != null) {
 			Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), reader.getMessage().get());
 			if (resultToWrite.isPresent()) {
-				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite);
+				ByteBuffer bufferToWriteBack = refineResponse(reader.getMessage().get().getValue(), resultToWrite.get());
 				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
 				try {
 					responseWritersLock.writeLock().lock();
@@ -429,8 +429,8 @@ public final class Server<MsgType> {
 				  readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));
 	}
 
-	private ByteBuffer refineResponse(MsgType message, Optional<ByteBuffer> resultToWrite) {
-		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.get().flip();
+	private ByteBuffer refineResponse(MsgType message, ByteBuffer resultToWrite) {
+		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.flip();
 		for(ResponseRefiner<MsgType> responseHandler : responseRefiners) {
 			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
 			LOG.debug("Passing message value '{}' to response refiner", message);

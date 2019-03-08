@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import org.apache.commons.lang3.tuple.Pair;
+import org.mjd.sandbox.nio.handlers.message.ResponseMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +57,12 @@ public class ResponseReader {
 			throw e;
 		}
 		try (Input kin = new Input(bytesRead)) {
-			String result = kryo.readObject(kin, String.class);
-			return Pair.of(requestId, result);
+//			String result = kryo.readObject(kin, String.class);
+			ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
+	        if(responseMessage.isError()) {
+	        	return Pair.of(requestId, responseMessage.getError().get().toString());
+	        }
+			return Pair.of(requestId, responseMessage.getValue().get());
 		}
 	}
 

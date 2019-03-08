@@ -12,6 +12,7 @@ import org.mjd.sandbox.nio.Server;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
+import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,14 +72,24 @@ public final class SubscriptionInvoker implements MessageHandler<RpcRequest>, Su
 		}
 		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 			LOG.error("Error invoking subscription", ex);
-			throw new HandlerException("Error invoking " + subscriptionRequest, ex);
+			ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
+			byte[] returnBuffer;
+			try {
+				returnBuffer = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
+				return Optional.of(ByteBuffer.wrap(returnBuffer));
+			}
+			catch (IOException e) {
+				LOG.error("Game over; error serialising the error. TODO Figure out what to do here.");
+				return Optional.empty();
+			}
 		}
 	}
 
 	@Override
 	public void receive(String notification) {
 		try {
-			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, notification));
+			ResponseMessage<Object> responseMessage = new ResponseMessage<>(notification);
+			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
 			resultByteBuffer.position(resultByteBuffer.limit());
 			connectionContext.server.receive(connectionContext.key, subscriptionRequest, Optional.of(resultByteBuffer));
 		}

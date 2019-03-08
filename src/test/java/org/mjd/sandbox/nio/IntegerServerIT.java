@@ -5,17 +5,23 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
+import org.mjd.sandbox.nio.handlers.message.ResponseMessage;
 import org.mjd.sandbox.nio.message.IntMessage;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
+import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
+import org.mjd.sandbox.nio.util.kryo.RpcRequestKryoPool;
 
 import static com.mscharhag.oleaster.matcher.Matchers.expect;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.afterEach;
@@ -34,6 +40,7 @@ public class IntegerServerIT
     private DataInputStream socketIn;
     private DataOutputStream socketOut;
     private Server<Integer> integerMessageServer;
+    private final RpcRequestKryoPool kryos = new RpcRequestKryoPool(true, false, 500);
 
     // TEST BLOCK
     {
@@ -60,7 +67,7 @@ public class IntegerServerIT
                socketOut.writeInt(Integer.BYTES);
                socketOut.writeInt(requestMsg);
                socketOut.flush();
-               expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
+        	   expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
            });
 
            describe("in multiple writes", () -> {
@@ -73,7 +80,7 @@ public class IntegerServerIT
                        socketOut.write(b);
                        socketOut.flush();
                    }
-                   expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
+            	   expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
                });
 
                describe("and the client overflows, i.e., writes too many bytes", () -> {
@@ -93,7 +100,7 @@ public class IntegerServerIT
                     		   											  0x0F, 0x0F, 0x0F, 0x0F, 0x0F});
                        socketOut.flush();
 
-                       expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
+                	   expect(serversResponseFrom(socketIn)).toEqual(TEST_RSP_MSG + requestMsg);
                    });
                });
            });
@@ -113,9 +120,20 @@ public class IntegerServerIT
 
         // Add echo handler
         integerMessageServer.addHandler((ConnectionContext<Integer> context, Message<Integer> message) -> {
-		    String rsp = TEST_RSP_MSG + message.getValue();
-		    byte[] msgBytes = rsp.getBytes();
-		    return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
+        	Kryo kryo = kryos.obtain();
+        	try {
+			    String rsp = TEST_RSP_MSG + message.getValue();
+			    ResponseMessage<String> responseMessage = new ResponseMessage<>(rsp);
+			    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
+				return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));
+        	}
+			catch (IOException e) {
+				System.err.println(e.toString());
+				return Optional.empty();
+			}
+        	finally {
+        		kryos.free(kryo);
+        	}
 		});
 
         serverService.submit(() -> { integerMessageServer.start(); return null; });
@@ -149,14 +167,25 @@ public class IntegerServerIT
         int bodyRead = 0;
         while((bodyRead = in.read(bytesRead, bodyRead, responseSize - bodyRead)) > 0)
         {
-            // We don't want to potentially head into a further message.
             totalRead += bodyRead;
-            if(totalRead == responseSize)
+            if(totalRead == responseSize) // necessary? the read shouldn't go too far
             {
+            	// We don't want to potentially head into a further message.
                 break;
             }
             // else there is more to read
         }
-        return new String(bytesRead);
+        Kryo kryo = kryos.obtain();
+        try (Input kin = new Input(bytesRead)) {
+	        ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
+	        if(responseMessage.isError()) {
+	        	return responseMessage.getError().get().toString();
+	        }
+	        final String rspValue = responseMessage.getValue().get();
+			return rspValue.toString();
+        }
+        finally {
+			kryos.free(kryo);
+		}
     }
 }

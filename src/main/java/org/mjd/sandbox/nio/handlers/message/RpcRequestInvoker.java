@@ -28,7 +28,8 @@ public final class RpcRequestInvoker implements MessageHandler<RpcRequest> {
 			return Optional.empty();
 		}
 		try {
-			msgBytes = objectToKryoBytes(kryo, result);
+			ResponseMessage<Object> responseMessage = new ResponseMessage<>(result);
+			msgBytes = objectToKryoBytes(kryo, responseMessage);
 			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
 		}
 		catch (IOException ex) {
