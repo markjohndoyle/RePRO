@@ -47,17 +47,17 @@ import static java.nio.channels.SelectionKey.OP_WRITE;
 public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
-	private ServerSocketChannel serverChannel;
-	private Selector selector;
-	private InvalidKeyHandler validityHandler;
 	private final WriteOpHandler<MsgType> writeOpHandler;
 	private final ReadOpHandler<MsgType> readOpHandler;
 	private final AcceptOpHandler acceptOpHandler;
+	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
+	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
+	private ServerSocketChannel serverChannel;
+	private Selector selector;
+	private InvalidKeyHandler validityHandler;
 	private long conId;
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
-	private List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
-	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
