@@ -1,6 +1,7 @@
 package org.mjd.sandbox.nio.async;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.Selector;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
@@ -12,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.mjd.sandbox.nio.Server;
+import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,19 +25,22 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 
 	private BlockingQueue<AsyncMessageJob<MsgType>> messageJobs = new LinkedBlockingQueue<>();
 
-	private final Server<MsgType> server;
+	private final WriteOpHandler<MsgType> writerHandler;
 
-	public SequentialMessageJobExecutor(Server<MsgType> server) {
-		this.server = server;
+	private Selector selector;
+
+	public SequentialMessageJobExecutor(WriteOpHandler<MsgType> server) {
+		this.writerHandler = server;
 	}
 
 	@Override
-	public void start() {
+	public void start(final Selector selector) {
+		this.selector = selector;
 		executor.execute(() -> startAsyncMessageJobHandler());
 	}
 
 	@Override
-	public void add(AsyncMessageJob<MsgType> job) {
+	public void add(final AsyncMessageJob<MsgType> job) {
 		messageJobs.add(job);
 	}
 
@@ -47,11 +51,12 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 				LOG.trace("Blocking on message job queue....");
 				job = messageJobs.take();
 				LOG.trace("[{}] Found a job. There are {} remaining.", job.key.attachment(), messageJobs.size());
-				Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
+				final Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
 				LOG.trace("[{}] The job has finished.", job.key.attachment());
 				if(result.isPresent()) {
-					server.writeResult(job.key, job.message, result.get());
+					writerHandler.writeResult(job.key, job.message, result.get());
 				}
+				selector.wakeup();
 			}
 		}
 		catch (TimeoutException e) {

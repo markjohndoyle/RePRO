@@ -50,7 +50,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private InvalidKeyHandler validityHandler;
-	private final WriteOpHandler writeOpHandler;
+	private final WriteOpHandler<MsgType> writeOpHandler;
 	private final ReadOpHandler<MsgType> readOpHandler;
 	private final AcceptOpHandler acceptOpHandler;
 	private long conId;
@@ -67,16 +67,20 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 *
 	 * @param messageFactory
 	 */
-	public Server(MessageFactory<MsgType> messageFactory) {
+	public Server(final MessageFactory<MsgType> messageFactory) {
 		this(messageFactory, new KeyChannelCloser());
 	}
 
-	public Server(MessageFactory<MsgType> messageFactory, InvalidKeyHandler invalidKeyHandler) {
+	/**
+	 * @param messageFactory
+	 * @param invalidKeyHandler
+	 */
+	public Server(final MessageFactory<MsgType> messageFactory, final InvalidKeyHandler invalidKeyHandler) {
 		this.validityHandler = invalidKeyHandler;
 		this.acceptOpHandler = new AcceptOpHandler();
 		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
-		this.writeOpHandler = new WriteOpHandler();
-		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(this);
+		this.writeOpHandler = new WriteOpHandler<>(selector, responseRefiners);
+		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(writeOpHandler);
 	}
 
 	/**
@@ -99,7 +103,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 *
 	 * @notThreadSafe
      */
-	public Server<MsgType> addHandler(MessageHandler<MsgType> handler) {
+	public Server<MsgType> addHandler(final MessageHandler<MsgType> handler) {
 		this.msgHandler = handler;
 		return this;
 	}
@@ -108,7 +112,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param handler
 	 * @return This {@link Server} instance. Useful for chaining.
 	 */
-	public Server<MsgType> addAsyncHandler(AsyncMessageHandler<MsgType> handler) {
+	public Server<MsgType> addAsyncHandler(final AsyncMessageHandler<MsgType> handler) {
 		this.asyncMsgHandler = handler;
 		return this;
 	}
@@ -120,7 +124,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 *
 	 * @notThreadSafe
 	 */
-	public Server<MsgType> addHandler(ResponseRefiner<MsgType> handler) {
+	public Server<MsgType> addHandler(final ResponseRefiner<MsgType> handler) {
 		this.responseRefiners.add(handler);
 		return this;
 	}
@@ -157,9 +161,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		}
 	}
 
-	public void receive(SelectionKey key,  MsgType subscriptionRequest, Optional<ByteBuffer> notification) {
+	// TODO Will be moved.
+	public void receive(final SelectionKey key, final MsgType subscriptionRequest, final Optional<ByteBuffer> notification) {
 		LOG.trace("[{}] Refining notification {}.", key.attachment(), notification);
-		ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification.get());
+		final ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification.get());
 		if(key.isValid()) {
 			writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
 			key.interestOps(key.interestOps() | OP_WRITE);
@@ -172,7 +177,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	}
 
 	@Override
-	public void handle(SelectionKey key, Message<MsgType> message) {
+	public void handle(final SelectionKey key, final Message<MsgType> message) {
 		if (msgHandler == null && asyncMsgHandler == null) {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
@@ -182,26 +187,19 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
 		}
 		else if(msgHandler != null) {
-			Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), message);
+			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), message);
 			if (resultToWrite.isPresent()) {
-				writeResult(key, message, resultToWrite.get());
+				writeOpHandler.writeResult(key, message, resultToWrite.get());
+				selector.wakeup();
 			}
 		}
-	}
-
-	public void writeResult(SelectionKey key, Message<MsgType> message, ByteBuffer resultToWrite) {
-		ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite);
-		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-		writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
-		key.interestOps(key.interestOps() | OP_WRITE);
-		selector.wakeup();
 	}
 
 	private void enterBlockingServerLoop() {
 		try {
 			while (!Thread.interrupted()) {
 				selector.select();
-				Set<SelectionKey> selectedKeys = selector.selectedKeys();
+				final Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				handleReadyKeys(selectedKeys.iterator());
 			}
 		}
@@ -217,16 +215,16 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			serverChannel.bind(new InetSocketAddress(12509));
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
-			asyncMsgJobExecutor.start();
+			asyncMsgJobExecutor.start(selector);
 		}
 		catch (IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
 		}
 	}
 
-	private void handleReadyKeys(Iterator<SelectionKey> iter) throws IOException, MessageCreationException {
+	private void handleReadyKeys(final Iterator<SelectionKey> iter) throws IOException, MessageCreationException {
 		while (iter.hasNext()) {
-			SelectionKey key = iter.next();
+			final SelectionKey key = iter.next();
 
 			if (!key.isValid()) {
 				validityHandler.handle(key);
@@ -246,9 +244,9 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		}
 	}
 
-	private ByteBuffer refineResponse(MsgType message, ByteBuffer resultToWrite) {
+	private ByteBuffer refineResponse(final MsgType message, final ByteBuffer resultToWrite) {
 		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.flip();
-		for(ResponseRefiner<MsgType> responseHandler : responseRefiners) {
+		for(final ResponseRefiner<MsgType> responseHandler : responseRefiners) {
 			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
 			LOG.debug("Passing message value '{}' to response refiner", message);
 			refinedBuffer = responseHandler.execute(message, refinedBuffer);
