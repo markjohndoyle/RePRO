@@ -131,7 +131,7 @@ public class ServerRpcHighClientChurnIT {
 
 		private AtomicLong requestId;
 
-		public RpcClientRequestJob(Pool<Kryo> kryos, AtomicLong reqId) throws Exception {
+		public RpcClientRequestJob(Pool<Kryo> kryos, AtomicLong reqId) {
 			this.kryos = kryos;
 			this.requestId = reqId;
 		}
