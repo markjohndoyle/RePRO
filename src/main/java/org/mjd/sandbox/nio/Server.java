@@ -11,17 +11,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.mjd.sandbox.nio.async.AsyncMessageJob;
+import org.mjd.sandbox.nio.async.AsyncMessageJobExecutor;
+import org.mjd.sandbox.nio.async.SequentialMessageJobExecutor;
 import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
@@ -44,13 +37,12 @@ import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 /**
- * The main server class. This is a non-blocking selectoer based server that
- * processes messages of type MsgType.
+ * The main server class. This is a non-blocking selectoer based server that processes messages of type MsgType.
  *
- * You can provide handlers to do something with the messages once they are
- * decoded.
+ * You can provide handlers to do something with the messages once they are decoded. This means you message type
+ * can be a wrapper for various Objects or primitives that your handler(s) can interpret.
  *
- * @param <MsgType>
+ * @param <MsgType> the type of message this server expects to receive.
  */
 public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
@@ -65,21 +57,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
 	private List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
-	private BlockingQueue<AsyncMessageJob> messageJobs = new LinkedBlockingQueue<>();
-
-	private final ExecutorService asyncJobChecker = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
-																		.setNameFormat("MsgHandlerChecker").build());
-
-	public final class AsyncMessageJob {
-		public final Future<Optional<ByteBuffer>> messageJob;
-		public final SelectionKey key;
-		public final Message<MsgType> message;
-		AsyncMessageJob(SelectionKey key, Message<MsgType> message, Future<Optional<ByteBuffer>> asyncHandle) {
-			this.messageJob = asyncHandle;
-			this.key = key;
-			this.message= message;
-		}
-	}
+	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
@@ -98,6 +76,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		this.acceptOpHandler = new AcceptOpHandler();
 		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
 		this.writeOpHandler = new WriteOpHandler();
+		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(this);
 	}
 
 	/**
@@ -199,25 +178,23 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			return;
 		}
 		if(asyncMsgHandler != null) {
-			try {
-				LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-				messageJobs.put(new AsyncMessageJob(key, message, asyncMsgHandler.handle(message)));
-			}
-			catch (InterruptedException e) {
-				LOG.info("Interrupt when adding async message handling job");
-				// Server will bail out on interrupt.
-				Thread.currentThread().interrupt();
-			}
+			LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
+			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
 		}
 		else if(msgHandler != null) {
 			Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), message);
 			if (resultToWrite.isPresent()) {
-				ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite.get());
-				LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-				writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
-				key.interestOps(key.interestOps() | OP_WRITE);
+				writeResult(key, message, resultToWrite.get());
 			}
 		}
+	}
+
+	public void writeResult(SelectionKey key, Message<MsgType> message, ByteBuffer resultToWrite) {
+		ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite);
+		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
+		writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
+		key.interestOps(key.interestOps() | OP_WRITE);
+		selector.wakeup();
 	}
 
 	private void enterBlockingServerLoop() {
@@ -240,44 +217,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			serverChannel.bind(new InetSocketAddress(12509));
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
-			asyncJobChecker.execute(() -> startAsyncMessageJobHandler());
+			asyncMsgJobExecutor.start();
 		}
 		catch (IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
-		}
-	}
-
-	private void startAsyncMessageJobHandler() {
-		AsyncMessageJob job = null;
-		try {
-			while(!Thread.interrupted()) {
-				LOG.trace("Blocking on message job queue....");
-				job = messageJobs.take();
-				LOG.trace("[{}] Found a job. There are {} remaining.", job.key.attachment(), messageJobs.size());
-				Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
-				LOG.trace("[{}] The job has finished.", job.key.attachment());
-				if(result.isPresent()) {
-					LOG.trace("[{}] Refining response {}.", job.key.attachment(), job.message.getValue());
-					ByteBuffer bufferToWriteBack = refineResponse(job.message.getValue(), result.get());
-
-					writeOpHandler.add(job.key, SizeHeaderWriter.from(job.key, bufferToWriteBack));
-					job.key.interestOps(job.key.interestOps() | OP_WRITE);
-					selector.wakeup();
-				}
-			}
-		}
-		catch (TimeoutException e) {
-			try {
-				LOG.debug("Waiting for job '{}' timed out, putting it back on the end of the queue", job.message.getValue());
-				messageJobs.put(job);
-			}
-			catch (InterruptedException e1) {
-				Thread.currentThread().interrupt();
-			}
-		}
-		catch (InterruptedException | ExecutionException | CancellationException e) {
-			System.err.println(e.toString());
-			e.printStackTrace();
 		}
 	}
 
