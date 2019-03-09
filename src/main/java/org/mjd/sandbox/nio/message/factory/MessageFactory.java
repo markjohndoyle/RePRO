@@ -20,7 +20,4 @@ public interface MessageFactory<T>
     }
 
     Message<T> createMessage(byte[] bytesRead) throws MessageCreationException;
-
-    int getHeaderSize();
-
 }

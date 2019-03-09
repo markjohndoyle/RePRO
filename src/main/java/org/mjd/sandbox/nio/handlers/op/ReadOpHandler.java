@@ -21,26 +21,28 @@ public final class ReadOpHandler<MsgType> {
 	private static final Logger LOG = LoggerFactory.getLogger(ReadOpHandler.class);
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
-	private final ByteBuffer headerBuffer;
+	private ByteBuffer headerBuffer;
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
 	private final MessageFactory<MsgType> messageFactory;
 	private RootMessageHandler<MsgType> rootHandler;
 
 	public ReadOpHandler(MessageFactory<MsgType> messageFactory, RootMessageHandler<MsgType> rootHandler) {
 		this.messageFactory = messageFactory;
-		this.headerBuffer = ByteBuffer.allocate(messageFactory.getHeaderSize());
 		this.rootHandler = rootHandler;
 	}
 
 	public void handle(SelectionKey key) throws MessageCreationException, IOException {
-		clearReadBuffers();
 		MessageReader<MsgType> reader = findInMap(readers, key.channel()).or(() -> RequestReader.from(key, messageFactory));
+		if(headerBuffer == null) {
+			LOG.trace("Lazy header buffer allocation..");
+			headerBuffer = ByteBuffer.allocate(reader.getHeaderSize());
+		}
+		clearReadBuffers();
 		ByteBuffer[] unread = reader.read(headerBuffer, bodyBuffer);
 		processMessageReaderResults(key, reader);
-
-		// TODO One Key/Channel pair can hog the server here.
 		while (thereIsUnreadData(unread)) {
 			unread = readUnreadData(key, unread);
+			// ^ Can a client hog the server here? There is a max buffer read.
 		}
 	}
 

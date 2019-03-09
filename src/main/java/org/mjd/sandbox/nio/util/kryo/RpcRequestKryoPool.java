@@ -10,6 +10,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.Pool;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.HandlerException;
 import org.mjd.sandbox.nio.handlers.message.ResponseMessage;
+import org.mjd.sandbox.nio.message.IdentifiableRequest;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.util.ArgumentValues;
 import org.mjd.sandbox.nio.util.ArgumentValues.ArgumentValuePair;
@@ -39,6 +40,7 @@ public final class RpcRequestKryoPool extends Pool<Kryo> {
 	@Override
 	protected Kryo create() {
 		Kryo kryo = new Kryo();
+		kryo.register(IdentifiableRequest.class);
 		kryo.register(RpcRequest.class);
 		kryo.register(ArgumentValues.class);
 		kryo.register(ArgumentValuePair.class);

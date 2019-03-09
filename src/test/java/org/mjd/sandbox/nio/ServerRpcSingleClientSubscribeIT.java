@@ -17,8 +17,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionInvoker;
-import org.mjd.sandbox.nio.message.RpcRequest;
-import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
+import org.mjd.sandbox.nio.message.IdentifiableRequest;
+import org.mjd.sandbox.nio.message.factory.KryoBasedRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
 import org.mjd.sandbox.nio.util.ArgumentValues;
 import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
@@ -44,12 +44,12 @@ public class ServerRpcSingleClientSubscribeIT
 {
     private static final Logger LOG = LoggerFactory.getLogger(ServerRpcSingleClientSubscribeIT.class);
     private ExecutorService serverService;
-    private Server<RpcRequest> rpcServer;
+    private Server<IdentifiableRequest> rpcServer;
     private FakeRpcTarget rpcTarget;
     private Socket clientSocket;
     private AtomicLong reqId;
     private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
-    private MessageHandler<RpcRequest> rpcInvoker;
+    private MessageHandler<IdentifiableRequest> rpcInvoker;
 
 	// TEST BLOCK
     {
@@ -82,7 +82,7 @@ public class ServerRpcSingleClientSubscribeIT
 		        		DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 
 		        		long subscriptionId = reqId.getAndIncrement();
-	        			makeRpcCall(clientOut, "subscribe", ArgumentValues.none(), subscriptionId);
+	        			subscribeOverRpc(clientOut, subscriptionId);
 
 	        			Kryo kryo = kryos.obtain();
 
@@ -115,15 +115,15 @@ public class ServerRpcSingleClientSubscribeIT
         });
     }
 
-	private RpcRequest makeRpcCall(DataOutputStream clientOut, String methodName, ArgumentValues args, final long id)
+	private IdentifiableRequest subscribeOverRpc(DataOutputStream clientOut, final long id)
 			throws IOException {
 		Kryo kryo = kryos.obtain();
 		try {
-			RpcRequest request = new RpcRequest(id, methodName, args);
+			IdentifiableRequest identifiableSubRequest = new IdentifiableRequest(id);
 			LOG.debug("Preparing to call request {}", id);
-			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, request).flush();
-			LOG.trace("Request {} written to server from client", request);
-			return request;
+			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, identifiableSubRequest).flush();
+			LOG.trace("Request {} written to server from client", identifiableSubRequest);
+			return identifiableSubRequest;
 		}
 		finally {
 			kryos.free(kryo);
@@ -132,7 +132,7 @@ public class ServerRpcSingleClientSubscribeIT
 
 	private void startServer()
     {
-        rpcServer = new Server<>(new KryoRpcRequestMsgFactory());
+        rpcServer = new Server<>(new KryoBasedRequestMsgFactory());
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 

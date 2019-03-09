@@ -77,7 +77,7 @@ public class ServerRpcHighClientChurnIT {
         describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
             it("should reply correctly to all of them", () -> {
                 final int numClients = 6_000;
-                ExecutorService executor = Executors.newFixedThreadPool(200);
+                ExecutorService executor = Executors.newFixedThreadPool(600);
 
                 BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
                 for(int i = 0; i < numClients; i++)
@@ -161,15 +161,14 @@ public class ServerRpcHighClientChurnIT {
 
 		private Pair<Long, Object> makeRpcCall(Kryo kryo, Socket clientSocket) throws IOException {
 			DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
-			// RpcRequest request = new RpcRequest(Integer.toString(id), "callMeString");
 			final int methodIndex = new Random().nextInt(FakeRpcTarget.methodNamesAndReturnValues.size());
 			Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex).findFirst().get();
 			final long id = requestId.getAndIncrement();
-			Pair<Long, Object> request = Pair.of(id, call.getValue());
+			Pair<Long, Object> requestIdAndExpectedReturn = Pair.of(id, call.getValue());
 			LOG.trace("Making request to {}", call.getKey()	);
-			RpcRequest rpcRequest = new RpcRequest(request.getLeft(), call.getKey());
+			RpcRequest rpcRequest = new RpcRequest(id, call.getKey());
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, rpcRequest).flush();
-			return request;
+			return requestIdAndExpectedReturn;
 		}
 
 		private final class ReadResponse implements Callable<Pair<Long, String>> {

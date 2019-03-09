@@ -48,7 +48,7 @@ public final class FakeRpcTarget implements AutoCloseable {
 	}
 
 	@SubscriptionRegistrar
-	public void subscribe(Subscriber sub) {
+	public void subscribe(Subscriber sub, Object... args) {
 		subs.add(sub);
 	}
 

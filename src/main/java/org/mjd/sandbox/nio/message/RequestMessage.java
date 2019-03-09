@@ -5,18 +5,18 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
-public class RpcRequestMessage implements Message<RpcRequest>
+public class RequestMessage<R extends IdentifiableRequest> implements Message<R>
 {
-    private final RpcRequest request;
+    private final R request;
     private ByteBuffer byteBuffer;
 
-    public RpcRequestMessage(RpcRequest request) throws IOException
+    public RequestMessage(R request) throws IOException
     {
         this.request = request;
         convertToByteStream(request);
     }
 
-    private static void convertToByteStream(RpcRequest request) throws IOException
+    private void convertToByteStream(R request) throws IOException
     {
         try(ByteArrayOutputStream bos = new ByteArrayOutputStream())
         {
@@ -27,7 +27,7 @@ public class RpcRequestMessage implements Message<RpcRequest>
     }
 
     @Override
-    public RpcRequest getValue()
+    public R getValue()
     {
         return request;
     }

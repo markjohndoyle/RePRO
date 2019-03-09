@@ -2,7 +2,7 @@ package org.mjd.sandbox.nio.handlers.response.provided;
 
 import java.nio.ByteBuffer;
 
-import org.mjd.sandbox.nio.message.RpcRequest;
+import org.mjd.sandbox.nio.message.IdentifiableRequest;
 
 public final class RpcRequestRefiners {
 
@@ -20,7 +20,7 @@ public final class RpcRequestRefiners {
 		 * @param buffer
 		 * @return
 		 */
-		public ByteBuffer requestId(RpcRequest rpcRequest, ByteBuffer buffer) {
+		public ByteBuffer requestId(IdentifiableRequest rpcRequest, ByteBuffer buffer) {
 			return ByteBuffer.allocate(Long.BYTES + buffer.capacity()).putLong(rpcRequest.getId()).put(buffer);
 		}
 	}

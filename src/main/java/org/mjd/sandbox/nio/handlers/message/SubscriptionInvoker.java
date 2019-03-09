@@ -10,6 +10,7 @@ import com.esotericsoftware.kryo.Kryo;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.sandbox.nio.Server;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
+import org.mjd.sandbox.nio.message.IdentifiableRequest;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.slf4j.Logger;
@@ -28,13 +29,13 @@ import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
  * TODO {@link Server} will be extended to handle multiple handlers and messages will be routed to the correct
  * handler based upon some kind of flag or address.
  */
-public final class SubscriptionInvoker implements MessageHandler<RpcRequest>, Subscriber {
+public final class SubscriptionInvoker implements MessageHandler<IdentifiableRequest>, Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
 	private final Kryo kryo;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
-	private ConnectionContext<RpcRequest> connectionContext;
-	private RpcRequest subscriptionRequest;
+	private ConnectionContext<IdentifiableRequest> connectionContext;
+	private IdentifiableRequest subscriptionRequest;
 
 	/**
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
@@ -60,12 +61,11 @@ public final class SubscriptionInvoker implements MessageHandler<RpcRequest>, Su
 	}
 
 	@Override
-	public Optional<ByteBuffer> handle(ConnectionContext<RpcRequest> connectionContext, Message<RpcRequest> message) {
+	public Optional<ByteBuffer> handle(ConnectionContext<IdentifiableRequest> connectionContext, Message<IdentifiableRequest> message) {
 		this.connectionContext = connectionContext;
 		subscriptionRequest = message.getValue();
 		try {
-			String requestedMethodCall = subscriptionRequest.getMethod();
-			LOG.debug("Invoking subscription {} with args", requestedMethodCall);
+			LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 			MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), this);
 			return Optional.empty();
 		}

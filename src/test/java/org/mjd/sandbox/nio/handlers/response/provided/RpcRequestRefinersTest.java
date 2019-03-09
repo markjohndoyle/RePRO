@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.handlers.response.provided.RpcRequestRefiners.Prepend;
+import org.mjd.sandbox.nio.message.IdentifiableRequest;
 import org.mjd.sandbox.nio.message.RpcRequest;
 
 import static com.mscharhag.oleaster.matcher.Matchers.expect;
@@ -19,7 +20,7 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 @RunWith(OleasterRunner.class)
 public class RpcRequestRefinersTest {
 	private static final int SIZE_OF_REQ_ID = Long.BYTES;
-	private RpcRequest rpcRequest;
+	private IdentifiableRequest rpcRequest;
 	private ByteBuffer buffer;
 	private Prepend prependRefinerUnderTest;
 	private ByteBuffer result;

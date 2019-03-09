@@ -55,7 +55,6 @@ public final class RequestReaderTest
     {
         beforeEach(() -> {
             MockitoAnnotations.initMocks(this);
-            when(mockFactory.getHeaderSize()).thenReturn(Integer.BYTES);
             when(mockFactory.createMessage(bodyValueBytes)).thenReturn(expectedMsg);
             readerUnderTest =  new RequestReader<>("unittest", mockChannel, mockFactory);
             headerBuffer = ByteBuffer.allocate(Integer.BYTES);

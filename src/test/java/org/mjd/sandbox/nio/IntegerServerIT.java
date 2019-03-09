@@ -18,7 +18,6 @@ import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.sandbox.nio.handlers.message.ResponseMessage;
 import org.mjd.sandbox.nio.message.IntMessage;
 import org.mjd.sandbox.nio.message.Message;
-import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
 import org.mjd.sandbox.nio.util.kryo.RpcRequestKryoPool;
 
@@ -109,13 +108,7 @@ public class IntegerServerIT
 
     public void startServer()
     {
-        integerMessageServer = new Server<>(new MessageFactory<Integer>()
-        {
-            @Override public int getHeaderSize() { return Integer.BYTES; }
-            @Override public Message<Integer> createMessage(byte[] bytesRead) {
-                return IntMessage.from(bytesRead);
-            }
-        });
+        integerMessageServer = new Server<>(bytesRead -> IntMessage.from(bytesRead));
 
         // Add echo handler
         integerMessageServer.addHandler((ConnectionContext<Integer> context, Message<Integer> message) -> {
