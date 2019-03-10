@@ -37,7 +37,62 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.3</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>post-unit-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Sets the path to the file which contains the execution data. -->
+                            <dataFile>target/jacoco.exec</dataFile>
+                            <!-- Sets the output directory for the code coverage report. -->
+                            <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <jacoco-agent.destfile>target/jacoco.exec</jacoco-agent.destfile>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
+            <!-- <plugin>
+                <groupId>com.gavinmogan</groupId>
+                <artifactId>codacy-maven-plugin</artifactId>
+                <version>1.0.3</version>
+                <configuration>
+                    <apiToken>${env.CODACY_API_TOKEN}</apiToken>
+                    <projectToken>${env.CODACY_PROJECT_TOKEN}</projectToken>
+                    <coverageReportFile>${project.reporting.outputDirectory}/jacoco.xml</coverageReportFile>
+                    <commit>${env.TRAVIS_COMMIT}</commit>
+                    <codacyApiBaseUrl>https://api.codacy.com</codacyApiBaseUrl>
+                    <failOnMissingReportFile>false</failOnMissingReportFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>post-test</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>coverage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin> -->
         </plugins>
     </build>
 
