@@ -53,7 +53,6 @@ public class IntegerServerIT
 
         afterEach(()-> {
             socketOut.close();
-            testSocket.close();
             shutdownServer();
             await().atMost(TEN_SECONDS).until(() -> { return integerMessageServer.isShutdown();});
             await().atMost(TEN_SECONDS).until(() -> { return serverService.isTerminated();});

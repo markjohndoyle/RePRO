@@ -18,10 +18,10 @@ public class SubscriptionWriter<MsgType> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Pool<Kryo> kryos;
 	private final SelectionKey key;
-	private final WriteOpHandler<MsgType> writer;
+	private final WriteOpHandler<MsgType, SelectionKey> writer;
 	private final Message<MsgType> message;
 
-	public SubscriptionWriter(final Pool<Kryo> kryos, SelectionKey key, WriteOpHandler<MsgType> writer, Message<MsgType> message) {
+	public SubscriptionWriter(final Pool<Kryo> kryos, SelectionKey key, WriteOpHandler<MsgType, SelectionKey> writer, Message<MsgType> message) {
 		this.kryos = kryos;
 		this.key = key;
 		this.writer = writer;

@@ -12,12 +12,13 @@ import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.sandbox.nio.readers.MessageReader;
 import org.mjd.sandbox.nio.readers.RequestReader;
+import org.mjd.sandbox.nio.util.chain.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.mjd.sandbox.nio.util.Mapper.findInMap;
 
-public final class ReadOpHandler<MsgType> {
+public final class ReadOpHandler<MsgType, K extends SelectionKey> extends AbstractHandler<K> {
 	private static final Logger LOG = LoggerFactory.getLogger(ReadOpHandler.class);
 
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
@@ -31,19 +32,32 @@ public final class ReadOpHandler<MsgType> {
 		this.rootHandler = rootHandler;
 	}
 
-	public void handle(SelectionKey key) throws MessageCreationException, IOException {
-		MessageReader<MsgType> reader = findInMap(readers, key.channel()).or(() -> RequestReader.from(key, messageFactory));
-		if(headerBuffer == null) {
-			LOG.trace("Lazy header buffer allocation..");
-			headerBuffer = ByteBuffer.allocate(reader.getHeaderSize());
+	@Override
+	public void handle(final K key) {
+		LOG.trace("[{}] - read op handler", key.attachment());
+		if(key.isReadable() && key.isValid()) {
+			final MessageReader<MsgType> reader = findInMap(readers, key.channel())
+												  .or(() -> RequestReader.from(key, messageFactory));
+			if(headerBuffer == null) {
+				LOG.trace("Lazy header buffer allocation..");
+				headerBuffer = ByteBuffer.allocate(reader.getHeaderSize());
+			}
+			clearReadBuffers();
+			ByteBuffer[] unread;
+			try {
+				unread = reader.read(headerBuffer, bodyBuffer);
+				processMessageReaderResults(key, reader);
+				while (thereIsUnreadData(unread)) {
+					unread = readUnreadData(key, unread);
+					// ^ Can a client hog the server here? There is a max buffer read.
+				}
+			}
+			catch (MessageCreationException | IOException e) {
+				e.printStackTrace();
+				return;
+			}
 		}
-		clearReadBuffers();
-		ByteBuffer[] unread = reader.read(headerBuffer, bodyBuffer);
-		processMessageReaderResults(key, reader);
-		while (thereIsUnreadData(unread)) {
-			unread = readUnreadData(key, unread);
-			// ^ Can a client hog the server here? There is a max buffer read.
-		}
+		passOnToNextHandler(key);
 	}
 
 	private void processMessageReaderResults(SelectionKey key, MessageReader<MsgType> reader) {

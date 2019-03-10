@@ -1,6 +1,7 @@
 package org.mjd.sandbox.nio.async;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
@@ -25,11 +26,11 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 
 	private BlockingQueue<AsyncMessageJob<MsgType>> messageJobs = new LinkedBlockingQueue<>();
 
-	private final WriteOpHandler<MsgType> writerHandler;
+	private final WriteOpHandler<MsgType, SelectionKey> writerHandler;
 
 	private Selector selector;
 
-	public SequentialMessageJobExecutor(WriteOpHandler<MsgType> server) {
+	public SequentialMessageJobExecutor(WriteOpHandler<MsgType, SelectionKey> server) {
 		this.writerHandler = server;
 	}
 

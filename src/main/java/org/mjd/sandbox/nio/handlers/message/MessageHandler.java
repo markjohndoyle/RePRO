@@ -27,9 +27,9 @@ public interface MessageHandler<MsgType> {
 
 	public static final class ConnectionContext<MsgType> {
 		public final SelectionKey key;
-		public final WriteOpHandler<MsgType> writer;
+		public final WriteOpHandler<MsgType, SelectionKey> writer;
 
-		public ConnectionContext(WriteOpHandler<MsgType> server, SelectionKey key) {
+		public ConnectionContext(WriteOpHandler<MsgType, SelectionKey> server, SelectionKey key) {
 			this.writer = server;
 			this.key = key;
 		}

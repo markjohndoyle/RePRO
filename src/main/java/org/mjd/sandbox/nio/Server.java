@@ -15,12 +15,13 @@ import java.util.Set;
 import org.mjd.sandbox.nio.async.AsyncMessageJob;
 import org.mjd.sandbox.nio.async.AsyncMessageJobExecutor;
 import org.mjd.sandbox.nio.async.SequentialMessageJobExecutor;
-import org.mjd.sandbox.nio.handlers.key.InvalidKeyHandler;
 import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
+import org.mjd.sandbox.nio.handlers.key.KeyHandler;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
-import org.mjd.sandbox.nio.handlers.op.AcceptOpHandler;
+import org.mjd.sandbox.nio.handlers.op.AcceptProtocol;
+import org.mjd.sandbox.nio.handlers.op.KeyOpProtocol;
 import org.mjd.sandbox.nio.handlers.op.ReadOpHandler;
 import org.mjd.sandbox.nio.handlers.op.RootMessageHandler;
 import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
@@ -32,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
-import static java.nio.channels.SelectionKey.OP_READ;
 
 /**
  * The main server class. This is a non-blocking selectoer based server that processes messages of type MsgType.
@@ -45,17 +45,21 @@ import static java.nio.channels.SelectionKey.OP_READ;
 public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
-	private final WriteOpHandler<MsgType> writeOpHandler;
-	private final ReadOpHandler<MsgType> readOpHandler;
-	private final AcceptOpHandler acceptOpHandler;
+//	private final WriteOpHandler<MsgType> writeOpHandler;
+//	private final ReadOpHandler<MsgType> readOpHandler;
+//	private final AcceptOpHandler acceptOpHandler;
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
-	private InvalidKeyHandler validityHandler;
-	private long conId;
+	private KeyHandler validityHandler;
+//	private long conId;
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
+
+	private KeyOpProtocol<java.nio.channels.SelectionKey> keyProtocol;
+
+	private WriteOpHandler<MsgType, SelectionKey> writeOpHandler;
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
@@ -73,18 +77,26 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param messageFactory
 	 * @param invalidKeyHandler
 	 */
-	public Server(final MessageFactory<MsgType> messageFactory, final InvalidKeyHandler invalidKeyHandler) {
+	public Server(final MessageFactory<MsgType> messageFactory, final KeyHandler invalidKeyHandler) {
 		try {
 			selector = Selector.open();
 		}
 		catch (IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
 		}
-		this.validityHandler = invalidKeyHandler;
-		this.acceptOpHandler = new AcceptOpHandler();
-		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
-		this.writeOpHandler = new WriteOpHandler<>(selector, responseRefiners);
+		writeOpHandler = new WriteOpHandler<>(selector, responseRefiners);
 		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(writeOpHandler);
+		setupNonblockingServer();
+		this.validityHandler = invalidKeyHandler;
+//		this.acceptOpHandler = new AcceptOpHandler();
+//		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
+//		this.writeOpHandler = new WriteOpHandler<>(selector, responseRefiners);
+
+		keyProtocol = new KeyOpProtocol<SelectionKey>()
+							.add(new AcceptProtocol<>(serverChannel, selector))
+							.add(new ReadOpHandler<>(messageFactory, this))
+							.add(writeOpHandler);
+
 	}
 
 	/**
@@ -93,7 +105,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 */
 	public void start() {
 		LOG.info("Server starting..");
-		setupNonblockingServer();
 		enterBlockingServerLoop();
 		closeDownServer();
 	}
@@ -210,24 +221,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		}
 	}
 
-	private void handleReadyKeys(final Iterator<SelectionKey> iter) throws IOException, MessageCreationException {
+	private void handleReadyKeys(final Iterator<SelectionKey> iter) throws MessageCreationException {
 		while (iter.hasNext()) {
 			final SelectionKey key = iter.next();
-
-			if (!key.isValid()) {
-				validityHandler.handle(key);
-				continue;
-			}
-			if (key.isAcceptable()) {
-				acceptOpHandler.handle(key, serverChannel, conId++).register(selector, OP_READ, "client " + conId);
-			}
-			if (key.isReadable()) {
-				readOpHandler.handle(key);
-			}
-			// client response, triggered by read.
-			if (key.isValid() && key.isWritable()) {
-				writeOpHandler.handle(key);
-			}
+			keyProtocol.handle(key);
 			iter.remove();
 		}
 	}

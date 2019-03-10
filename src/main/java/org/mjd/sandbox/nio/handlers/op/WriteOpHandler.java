@@ -14,6 +14,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
+import org.mjd.sandbox.nio.util.chain.AbstractHandler;
 import org.mjd.sandbox.nio.writers.SizeHeaderWriter;
 import org.mjd.sandbox.nio.writers.Writer;
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
-public final class WriteOpHandler<MsgType> {
+public final class WriteOpHandler<MsgType, K extends SelectionKey> extends AbstractHandler<K> {
 	private static final Logger LOG = LoggerFactory.getLogger(WriteOpHandler.class);
 
 	private final ReentrantReadWriteLock responseWritersLock = new ReentrantReadWriteLock();
@@ -39,22 +40,30 @@ public final class WriteOpHandler<MsgType> {
 		responseRefiners = refiners;
 	}
 
-	public void handle(SelectionKey key) throws IOException {
-		try {
-			responseWritersLock.writeLock().lock();
-			List<Writer> rspWriters = responseWriters.get(key.channel());
-			LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
-			Iterator<Writer> it = rspWriters.iterator();
-			while(it.hasNext()) {
-				it.next().writeCompleteBuffer();
-				it.remove();
+	@Override
+	public void handle(K key) {
+		if(key.isValid() && key.isWritable()) {
+			try {
+				responseWritersLock.writeLock().lock();
+				List<Writer> rspWriters = responseWriters.get(key.channel());
+				LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
+				Iterator<Writer> it = rspWriters.iterator();
+				while(it.hasNext()) {
+					it.next().writeCompleteBuffer();
+					it.remove();
+				}
+				LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
+				key.interestOps(OP_READ);
 			}
-			LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
-			key.interestOps(OP_READ);
+			catch (IOException e) {
+				e.printStackTrace();
+				return;
+			}
+			finally {
+				responseWritersLock.writeLock().unlock();
+			}
 		}
-		finally {
-			responseWritersLock.writeLock().unlock();
-		}
+		passOnToNextHandler(key);
 	}
 
 	public void writeResult(SelectionKey key, Message<MsgType> message, ByteBuffer resultToWrite) {

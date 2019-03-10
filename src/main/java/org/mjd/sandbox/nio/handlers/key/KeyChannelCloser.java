@@ -6,12 +6,12 @@ import java.nio.channels.SelectionKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class KeyChannelCloser implements InvalidKeyHandler
+public final class KeyChannelCloser implements KeyHandler
 {
     private static final Logger LOG = LoggerFactory.getLogger(KeyChannelCloser.class);
 
     @Override
-    public void handle(SelectionKey key) throws InvalidKeyHandlerException
+    public void handle(final SelectionKey key) throws KeyHandlerException
     {
         LOG.trace("Invalid key {} closing channel", key.attachment());
         try
@@ -20,7 +20,7 @@ public final class KeyChannelCloser implements InvalidKeyHandler
         }
         catch (IOException e)
         {
-            throw new InvalidKeyHandlerException("Exception closing key channel ", e);
+            throw new KeyHandlerException("Exception closing key channel ", e);
         }
     }
 
