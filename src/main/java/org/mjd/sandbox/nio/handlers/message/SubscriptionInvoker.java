@@ -7,9 +7,9 @@ import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.util.Pool;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.sandbox.nio.Server;
-import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
 import org.mjd.sandbox.nio.message.IdentifiableRequest;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
@@ -29,13 +29,13 @@ import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
  * TODO {@link Server} will be extended to handle multiple handlers and messages will be routed to the correct
  * handler based upon some kind of flag or address.
  */
-public final class SubscriptionInvoker implements MessageHandler<IdentifiableRequest>, Subscriber {
+public final class SubscriptionInvoker implements MessageHandler<IdentifiableRequest> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
+	private final Pool<Kryo> kryos;
 	private final Kryo kryo;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
-	private ConnectionContext<IdentifiableRequest> connectionContext;
-	private IdentifiableRequest subscriptionRequest;
+//	private final List<SubscriptionWriter<IdentifiableRequest>> subscriptions = new ArrayList<>();
 
 	/**
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
@@ -47,10 +47,11 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	 *                  requests. It must have one method annotated with the
 	 *                  {@link SubscriptionRegistrar} annotation.
 	 */
-	public SubscriptionInvoker(Kryo kryo, Object rpcTarget) {
-		this.kryo = kryo;
+	public SubscriptionInvoker(final Pool<Kryo> kryos, final Object rpcTarget) {
+		this.kryos = kryos;
+		this.kryo = kryos.obtain();
 		this.subscriptionService = rpcTarget;
-		Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
+		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
 		if (registrationMethods.length != 1) {
 			throw new IllegalStateException(
 					"SubscriptionInvoker requires the RPC target providing the subscription service has 1 method "
@@ -61,17 +62,19 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	}
 
 	@Override
-	public Optional<ByteBuffer> handle(ConnectionContext<IdentifiableRequest> connectionContext, Message<IdentifiableRequest> message) {
-		this.connectionContext = connectionContext;
-		subscriptionRequest = message.getValue();
+	public Optional<ByteBuffer> handle(final ConnectionContext<IdentifiableRequest> connectionContext,
+									   final Message<IdentifiableRequest> message) {
+		final IdentifiableRequest subscriptionRequest = message.getValue();
 		try {
 			LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
-			MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), this);
+			SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
+					new SubscriptionWriter<>(kryos, connectionContext.key, connectionContext.writer, message);
+			MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 			return Optional.empty();
 		}
 		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 			LOG.error("Error invoking subscription", ex);
-			ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
+			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
 			byte[] returnBuffer;
 			try {
 				returnBuffer = objectToKryoBytes(kryo, responseMessage);
@@ -84,16 +87,17 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 		}
 	}
 
-	@Override
-	public void receive(String notification) {
-		try {
-			ResponseMessage<Object> responseMessage = new ResponseMessage<>(notification);
-			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
-			resultByteBuffer.position(resultByteBuffer.limit());
-			connectionContext.server.receive(connectionContext.key, subscriptionRequest, Optional.of(resultByteBuffer));
-		}
-		catch (IOException e) {
-			LOG.error("Error notifying server of subscription message.", e);
-		}
-	}
+//	@Override
+//	public void receive(final String notification) {
+//		try {
+//			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(notification);
+//			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
+//			resultByteBuffer.position(resultByteBuffer.limit());
+////			connectionContext.writer.receive(connectionContext.key, subscriptionRequest, Optional.of(resultByteBuffer));
+//			connectionContext.writer.writeResult(connectionContext.key, responseMessage, resultByteBuffer);
+//		}
+//		catch (IOException e) {
+//			LOG.error("Error notifying server of subscription message.", e);
+//		}
+//	}
 }

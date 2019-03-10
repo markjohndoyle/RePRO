@@ -28,13 +28,11 @@ import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
-import org.mjd.sandbox.nio.writers.SizeHeaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
 
 /**
  * The main server class. This is a non-blocking selectoer based server that processes messages of type MsgType.
@@ -76,6 +74,12 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param invalidKeyHandler
 	 */
 	public Server(final MessageFactory<MsgType> messageFactory, final InvalidKeyHandler invalidKeyHandler) {
+		try {
+			selector = Selector.open();
+		}
+		catch (IOException e) {
+			LOG.error("Fatal server setup up server channel: {}", e.toString());
+		}
 		this.validityHandler = invalidKeyHandler;
 		this.acceptOpHandler = new AcceptOpHandler();
 		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
@@ -161,21 +165,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		}
 	}
 
-	// TODO Will be moved.
-	public void receive(final SelectionKey key, final MsgType subscriptionRequest, final Optional<ByteBuffer> notification) {
-		LOG.trace("[{}] Refining notification {}.", key.attachment(), notification);
-		final ByteBuffer bufferToWriteBack = refineResponse(subscriptionRequest, notification.get());
-		if(key.isValid()) {
-			writeOpHandler.add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
-			key.interestOps(key.interestOps() | OP_WRITE);
-			selector.wakeup();
-		}
-		else {
-			LOG.trace("[{}] Invalid key sent a notifification from subscription request {}. It will be ignored",
-					key.attachment(), subscriptionRequest);
-		}
-	}
-
 	@Override
 	public void handle(final SelectionKey key, final Message<MsgType> message) {
 		if (msgHandler == null && asyncMsgHandler == null) {
@@ -187,7 +176,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
 		}
 		else if(msgHandler != null) {
-			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(this, key), message);
+			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(writeOpHandler, key), message);
 			if (resultToWrite.isPresent()) {
 				writeOpHandler.writeResult(key, message, resultToWrite.get());
 				selector.wakeup();
@@ -210,7 +199,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	private void setupNonblockingServer() {
 		try {
-			selector = Selector.open();
 			serverChannel = ServerSocketChannel.open();
 			serverChannel.bind(new InetSocketAddress(12509));
 			serverChannel.configureBlocking(false);
@@ -242,17 +230,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			}
 			iter.remove();
 		}
-	}
-
-	private ByteBuffer refineResponse(final MsgType message, final ByteBuffer resultToWrite) {
-		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.flip();
-		for(final ResponseRefiner<MsgType> responseHandler : responseRefiners) {
-			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
-			LOG.debug("Passing message value '{}' to response refiner", message);
-			refinedBuffer = responseHandler.execute(message, refinedBuffer);
-			refinedBuffer.flip();
-		}
-		return refinedBuffer;
 	}
 
 	private void closeDownServer() {

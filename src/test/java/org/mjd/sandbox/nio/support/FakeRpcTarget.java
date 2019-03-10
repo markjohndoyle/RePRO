@@ -58,8 +58,8 @@ public final class FakeRpcTarget implements AutoCloseable, Listener {
 	}
 
 	@Override
-	public void notify(String notification) {
-		for (Subscriber sub : subs) {
+	public void notify(final String notification) {
+		for (final Subscriber sub : subs) {
 			sub.receive(notification);
 		}
 	}

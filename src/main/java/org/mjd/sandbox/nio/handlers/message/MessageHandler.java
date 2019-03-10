@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Optional;
 
-import org.mjd.sandbox.nio.Server;
+import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.mjd.sandbox.nio.message.Message;
 
 /**
@@ -27,10 +27,10 @@ public interface MessageHandler<MsgType> {
 
 	public static final class ConnectionContext<MsgType> {
 		public final SelectionKey key;
-		public final Server<MsgType> server;
+		public final WriteOpHandler<MsgType> writer;
 
-		public ConnectionContext(Server<MsgType> server, SelectionKey key) {
-			this.server = server;
+		public ConnectionContext(WriteOpHandler<MsgType> server, SelectionKey key) {
+			this.writer = server;
 			this.key = key;
 		}
 	}

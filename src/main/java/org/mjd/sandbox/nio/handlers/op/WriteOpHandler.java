@@ -57,6 +57,14 @@ public final class WriteOpHandler<MsgType> {
 		}
 	}
 
+	public void writeResult(SelectionKey key, Message<MsgType> message, ByteBuffer resultToWrite) {
+		ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite);
+		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
+		add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
+		key.interestOps(key.interestOps() | OP_WRITE);
+		selector.wakeup();
+	}
+
 	public void add(SelectionKey key, Writer writer) {
 		responseWritersLock.writeLock().lock();
 		try {
@@ -68,16 +76,9 @@ public final class WriteOpHandler<MsgType> {
 		}
 	}
 
-	public void writeResult(SelectionKey key, Message<MsgType> message, ByteBuffer resultToWrite) {
-		ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite);
-		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-		add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
-		key.interestOps(key.interestOps() | OP_WRITE);
-	}
-
-	private ByteBuffer refineResponse(MsgType message, ByteBuffer resultToWrite) {
+	private ByteBuffer refineResponse(final MsgType message, final ByteBuffer resultToWrite) {
 		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.flip();
-		for(ResponseRefiner<MsgType> responseHandler : responseRefiners) {
+		for(final ResponseRefiner<MsgType> responseHandler : responseRefiners) {
 			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
 			LOG.debug("Passing message value '{}' to response refiner", message);
 			refinedBuffer = responseHandler.execute(message, refinedBuffer);
