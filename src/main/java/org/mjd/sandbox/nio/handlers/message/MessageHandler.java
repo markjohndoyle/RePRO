@@ -4,8 +4,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Optional;
 
-import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.mjd.sandbox.nio.message.Message;
+import org.mjd.sandbox.nio.writers.ChannelWriter;
 
 /**
  * Handlers determine how messages sent to the server are handler, that is, executed.
@@ -27,9 +27,9 @@ public interface MessageHandler<MsgType> {
 
 	public static final class ConnectionContext<MsgType> {
 		public final SelectionKey key;
-		public final WriteOpHandler<MsgType, SelectionKey> writer;
+		public final ChannelWriter<MsgType, SelectionKey> writer;
 
-		public ConnectionContext(WriteOpHandler<MsgType, SelectionKey> server, SelectionKey key) {
+		public ConnectionContext(ChannelWriter<MsgType, SelectionKey> server, SelectionKey key) {
 			this.writer = server;
 			this.key = key;
 		}

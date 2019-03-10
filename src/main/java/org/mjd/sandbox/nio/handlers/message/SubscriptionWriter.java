@@ -7,8 +7,8 @@ import java.nio.channels.SelectionKey;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.Pool;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
-import org.mjd.sandbox.nio.handlers.op.WriteOpHandler;
 import org.mjd.sandbox.nio.message.Message;
+import org.mjd.sandbox.nio.writers.ChannelWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,13 +18,14 @@ public class SubscriptionWriter<MsgType> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Pool<Kryo> kryos;
 	private final SelectionKey key;
-	private final WriteOpHandler<MsgType, SelectionKey> writer;
+	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
 	private final Message<MsgType> message;
 
-	public SubscriptionWriter(final Pool<Kryo> kryos, SelectionKey key, WriteOpHandler<MsgType, SelectionKey> writer, Message<MsgType> message) {
+	public SubscriptionWriter(final Pool<Kryo> kryos, final SelectionKey key,
+							 final ChannelWriter<MsgType, SelectionKey> writer, final Message<MsgType> message) {
 		this.kryos = kryos;
 		this.key = key;
-		this.writer = writer;
+		this.channelWriter = writer;
 		this.message = message;
 	}
 
@@ -35,7 +36,7 @@ public class SubscriptionWriter<MsgType> implements Subscriber {
 			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(notification);
 			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
 			resultByteBuffer.position(resultByteBuffer.limit());
-			writer.writeResult(key, message, resultByteBuffer);
+			channelWriter.writeResult(key, message, resultByteBuffer);
 		}
 		catch (IOException e) {
 			LOG.error("Error notifying server of subscription message.", e);

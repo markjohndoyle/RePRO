@@ -29,6 +29,8 @@ import org.mjd.sandbox.nio.handlers.response.ResponseRefiner;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
 import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
+import org.mjd.sandbox.nio.writers.ChannelWriter;
+import org.mjd.sandbox.nio.writers.RefiningChannelWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +63,8 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	private WriteOpHandler<MsgType, SelectionKey> writeOpHandler;
 
+	private ChannelWriter<MsgType, SelectionKey> channelWriter;
+
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
 	 *
@@ -84,8 +88,9 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		catch (IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
 		}
-		writeOpHandler = new WriteOpHandler<>(selector, responseRefiners);
-		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(writeOpHandler);
+		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
+		writeOpHandler = new WriteOpHandler<>(channelWriter);
+		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
 		setupNonblockingServer();
 		this.validityHandler = invalidKeyHandler;
 //		this.acceptOpHandler = new AcceptOpHandler();
@@ -187,9 +192,9 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
 		}
 		else if(msgHandler != null) {
-			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(writeOpHandler, key), message);
+			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(channelWriter, key), message);
 			if (resultToWrite.isPresent()) {
-				writeOpHandler.writeResult(key, message, resultToWrite.get());
+				channelWriter.writeResult(key, message, resultToWrite.get());
 				selector.wakeup();
 			}
 		}
@@ -214,7 +219,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			serverChannel.bind(new InetSocketAddress(12509));
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
-			asyncMsgJobExecutor.start(selector);
+			asyncMsgJobExecutor.start();
 		}
 		catch (IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
