@@ -15,8 +15,6 @@ import java.util.Set;
 import org.mjd.sandbox.nio.async.AsyncMessageJob;
 import org.mjd.sandbox.nio.async.AsyncMessageJobExecutor;
 import org.mjd.sandbox.nio.async.SequentialMessageJobExecutor;
-import org.mjd.sandbox.nio.handlers.key.KeyChannelCloser;
-import org.mjd.sandbox.nio.handlers.key.KeyHandler;
 import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
@@ -47,15 +45,10 @@ import static java.nio.channels.SelectionKey.OP_ACCEPT;
 public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
-//	private final WriteOpHandler<MsgType> writeOpHandler;
-//	private final ReadOpHandler<MsgType> readOpHandler;
-//	private final AcceptOpHandler acceptOpHandler;
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
-	private KeyHandler validityHandler;
-//	private long conId;
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
 
@@ -74,14 +67,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param messageFactory
 	 */
 	public Server(final MessageFactory<MsgType> messageFactory) {
-		this(messageFactory, new KeyChannelCloser());
-	}
-
-	/**
-	 * @param messageFactory
-	 * @param invalidKeyHandler
-	 */
-	public Server(final MessageFactory<MsgType> messageFactory, final KeyHandler invalidKeyHandler) {
 		try {
 			selector = Selector.open();
 		}
@@ -92,10 +77,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		writeOpHandler = new WriteOpHandler<>(channelWriter);
 		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
 		setupNonblockingServer();
-		this.validityHandler = invalidKeyHandler;
-//		this.acceptOpHandler = new AcceptOpHandler();
-//		this.readOpHandler = new ReadOpHandler<>(messageFactory, this);
-//		this.writeOpHandler = new WriteOpHandler<>(selector, responseRefiners);
 
 		keyProtocol = new KeyOpProtocol<SelectionKey>()
 							.add(new AcceptProtocol<>(serverChannel, selector))
