@@ -3,12 +3,12 @@ package org.mjd.sandbox.nio.handlers.op;
 import org.mjd.sandbox.nio.util.chain.AbstractHandler;
 import org.mjd.sandbox.nio.util.chain.Handler;
 
-public class KeyOpProtocol<SelectionKey> implements Handler<SelectionKey> {
+public final class KeyOpProtocol<SelectionKey> implements Handler<SelectionKey> {
 
 	private AbstractHandler<SelectionKey> firstHandler;
 	private AbstractHandler<SelectionKey> lastHandler;
 
-	public KeyOpProtocol<SelectionKey> add(AbstractHandler<SelectionKey> handler) {
+	public KeyOpProtocol<SelectionKey> add(final AbstractHandler<SelectionKey> handler) {
 		if(firstHandler == null) {
 			firstHandler = handler;
 			lastHandler = handler;

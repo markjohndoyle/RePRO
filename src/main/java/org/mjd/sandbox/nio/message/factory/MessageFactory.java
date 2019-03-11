@@ -9,10 +9,10 @@ import org.mjd.sandbox.nio.message.Message;
  */
 public interface MessageFactory<T>
 {
-    public class MessageCreationException extends RuntimeException
+    class MessageCreationException extends RuntimeException
     {
     	private static final long serialVersionUID = 1L;
-        public MessageCreationException(Throwable e)
+        public MessageCreationException(final Throwable e)
         {
             super(e);
         }

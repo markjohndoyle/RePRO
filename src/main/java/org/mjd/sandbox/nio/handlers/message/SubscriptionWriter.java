@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
-public class SubscriptionWriter<MsgType> implements Subscriber {
+public final class SubscriptionWriter<MsgType> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Pool<Kryo> kryos;
 	private final SelectionKey key;
@@ -38,7 +38,7 @@ public class SubscriptionWriter<MsgType> implements Subscriber {
 			resultByteBuffer.position(resultByteBuffer.limit());
 			channelWriter.writeResult(key, message, resultByteBuffer);
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Error notifying server of subscription message.", e);
 		}
 		finally {

@@ -59,9 +59,7 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 		if (key.isReadable() && key.isValid()) {
 			final MessageReader<MsgType> msgReader = findInMap(readers, key.channel())
 														.or(() -> RequestReader.from(key, messageFactory));
-			if (headerBuffer == null) {
-				headerBuffer = ByteBuffer.allocate(msgReader.getHeaderSize());
-			}
+			createHeaderBuffer(msgReader);
 			clearReadBuffers();
 			try {
 				ByteBuffer[] unread = msgReader.read(headerBuffer, bodyBuffer);
@@ -77,6 +75,18 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 			}
 		}
 		passOnToNextHandler(key);
+	}
+
+	/**
+	 * We lazily create the header buffer because it's size is given by {@link MessageReader#getHeaderSize()}
+	 * which we don't know until runtime.
+	 *
+	 * @param msgReader a reader this handler uses to decode messages.
+	 */
+	private void createHeaderBuffer(final MessageReader<MsgType> msgReader) {
+		if (headerBuffer == null) {
+			headerBuffer = ByteBuffer.allocate(msgReader.getHeaderSize());
+		}
 	}
 
 	private void processMessageReaderResults(final SelectionKey key, final MessageReader<MsgType> reader) {

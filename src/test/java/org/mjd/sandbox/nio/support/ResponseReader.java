@@ -11,8 +11,12 @@ import org.mjd.sandbox.nio.handlers.message.ResponseMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ResponseReader {
+public final class ResponseReader {
 	private static final Logger LOG = LoggerFactory.getLogger(ResponseReader.class);
+
+	private ResponseReader() {
+		// Utility class
+	}
 
 	/**
 	 * Response is as follows:
@@ -31,19 +35,19 @@ public class ResponseReader {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Pair<Long, String> readResponse(Kryo kryo, DataInputStream in) throws IOException {
+	public static Pair<Long, String> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
 		int responseSize;
 		long requestId;
 		try {
 			responseSize = in.readInt();
 			requestId = in.readLong();
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Error reading header client-side due to {}", e.toString());
 			e.printStackTrace();
 			throw e;
 		}
-		byte[] bytesRead = new byte[responseSize];
+		final byte[] bytesRead = new byte[responseSize];
 		int bodyRead = 0;
 		LOG.trace("Reading response of size: {}", responseSize);
 		try {
@@ -51,14 +55,14 @@ public class ResponseReader {
 				// Just keep reading
 			}
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Error reading body client-side");
 			e.printStackTrace();
 			throw e;
 		}
 		try (Input kin = new Input(bytesRead)) {
 //			String result = kryo.readObject(kin, String.class);
-			ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
+			final ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
 	        if(responseMessage.isError()) {
 	        	return Pair.of(requestId, responseMessage.getError().get().toString());
 	        }
@@ -70,7 +74,7 @@ public class ResponseReader {
 		private final Kryo readRespKryo;
 		private final DataInputStream in;
 
-		public BlockingResponseReader(Kryo kryo, DataInputStream in) {
+		public BlockingResponseReader(final Kryo kryo, final DataInputStream in) {
 			this.readRespKryo = kryo;
 			this.in = in;
 		}

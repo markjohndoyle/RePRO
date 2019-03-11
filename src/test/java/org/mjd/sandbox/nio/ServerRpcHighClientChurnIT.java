@@ -77,17 +77,17 @@ public class ServerRpcHighClientChurnIT {
         describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
             it("should reply correctly to all of them", () -> {
                 final int numClients = 6_000;
-                ExecutorService executor = Executors.newFixedThreadPool(600);
+                final ExecutorService executor = Executors.newFixedThreadPool(600);
 
-                BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
+                final BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
                 for(int i = 0; i < numClients; i++)
                 {
                     clientJobs.add(executor.submit(new RpcClientRequestJob(kryos, reqId)));
                 }
 
-                Iterator<Future<?>> it = clientJobs.iterator();
+                final Iterator<Future<?>> it = clientJobs.iterator();
                 while(it.hasNext()) {
-                	Future<?> clientJob = it.next();
+                	final Future<?> clientJob = it.next();
                 	((Socket) clientJob.get()).close();
                 	it.remove();
                 }
@@ -105,7 +105,7 @@ public class ServerRpcHighClientChurnIT {
             {
                 rpcServer.start();
             }
-            catch (Exception e)
+            catch (final Exception e)
             {
                 LOG.error("ERROR IN SERVER, see following stack trace:");
                 LOG.error(Joiner.on(System.lineSeparator()).join(e.getStackTrace()));
@@ -131,19 +131,19 @@ public class ServerRpcHighClientChurnIT {
 
 		private AtomicLong requestId;
 
-		public RpcClientRequestJob(Pool<Kryo> kryos, AtomicLong reqId) {
+		RpcClientRequestJob(final Pool<Kryo> kryos, final AtomicLong reqId) {
 			this.kryos = kryos;
 			this.requestId = reqId;
 		}
 
 		@Override
 		public Socket call() throws Exception {
-			Kryo kryo = kryos.obtain();
-			Socket clientSocket = connectToServer();
-			Pair<Long, Object> request = makeRpcCall(kryo, clientSocket);
+			final Kryo kryo = kryos.obtain();
+			final Socket clientSocket = connectToServer();
+			final Pair<Long, Object> request = makeRpcCall(kryo, clientSocket);
 
 			LOG.trace("Reading response from server...");
-			DataInputStream clientIn = new DataInputStream(clientSocket.getInputStream());
+			final DataInputStream clientIn = new DataInputStream(clientSocket.getInputStream());
 			await().atMost(ONE_MINUTE).until(new ReadResponse(kryo, clientIn), is(request));
 			LOG.debug("Expectation passed");
 			kryos.free(kryo);
@@ -152,21 +152,21 @@ public class ServerRpcHighClientChurnIT {
 
 		private static Socket connectToServer() throws IOException {
 			LOG.trace("Running client");
-			Socket clientSocket = new Socket();
+			final Socket clientSocket = new Socket();
 			clientSocket.connect(new InetSocketAddress("localhost", 12509), 512000);
 			await().atMost(TEN_SECONDS.multiply(12)).until(() -> clientSocket.isConnected());
 			LOG.trace("Client isConnected!");
 			return clientSocket;
 		}
 
-		private Pair<Long, Object> makeRpcCall(Kryo kryo, Socket clientSocket) throws IOException {
-			DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
+		private Pair<Long, Object> makeRpcCall(final Kryo kryo, final Socket clientSocket) throws IOException {
+			final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 			final int methodIndex = new Random().nextInt(FakeRpcTarget.methodNamesAndReturnValues.size());
-			Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex).findFirst().get();
+			final Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex).findFirst().get();
 			final long id = requestId.getAndIncrement();
-			Pair<Long, Object> requestIdAndExpectedReturn = Pair.of(id, call.getValue());
+			final Pair<Long, Object> requestIdAndExpectedReturn = Pair.of(id, call.getValue());
 			LOG.trace("Making request to {}", call.getKey()	);
-			RpcRequest rpcRequest = new RpcRequest(id, call.getKey());
+			final RpcRequest rpcRequest = new RpcRequest(id, call.getKey());
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, rpcRequest).flush();
 			return requestIdAndExpectedReturn;
 		}
@@ -175,7 +175,7 @@ public class ServerRpcHighClientChurnIT {
 			private final Kryo readRespKryo;
 			private final DataInputStream in;
 
-			public ReadResponse(Kryo kryo, DataInputStream in) {
+			ReadResponse(final Kryo kryo, final DataInputStream in) {
 				this.readRespKryo = kryo;
 				this.in = in;
 			}

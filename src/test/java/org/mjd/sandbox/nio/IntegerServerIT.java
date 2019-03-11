@@ -30,7 +30,7 @@ import static org.awaitility.Awaitility.await;
 import static org.awaitility.Duration.TEN_SECONDS;
 
 @RunWith(OleasterRunner.class)
-public class IntegerServerIT
+public final class IntegerServerIT
 {
     private static final String TEST_RSP_MSG  = "FakeResult from call message: ";
     private ExecutorService serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
@@ -71,8 +71,8 @@ public class IntegerServerIT
                it("should respond with the expected message as defined by this test servers handler", () -> {
                    final int requestMsg = 10;
                    socketOut.writeInt(Integer.BYTES);
-                   ByteBuffer fiveBuffer = ByteBuffer.allocate(Integer.BYTES).putInt(requestMsg);
-                   for(byte b : fiveBuffer.array())
+                   final ByteBuffer fiveBuffer = ByteBuffer.allocate(Integer.BYTES).putInt(requestMsg);
+                   for(final byte b : fiveBuffer.array())
                    {
                        socketOut.write(b);
                        socketOut.flush();
@@ -84,7 +84,7 @@ public class IntegerServerIT
                    it("should respond with the expected message as defined by this test servers handler", () -> {
                        final int requestMsg = 234;
                        socketOut.writeInt(Integer.BYTES);
-                       ByteBuffer testValueBuffer = ByteBuffer.allocate(Integer.BYTES).putInt(requestMsg);
+                       final ByteBuffer testValueBuffer = ByteBuffer.allocate(Integer.BYTES).putInt(requestMsg);
 
                        // Stagger write the first 3 bytes
                        for(int i = 0; i < testValueBuffer.capacity() - 1; i++)
@@ -110,15 +110,15 @@ public class IntegerServerIT
         integerMessageServer = new Server<>(bytesRead -> IntMessage.from(bytesRead));
 
         // Add echo handler
-        integerMessageServer.addHandler((ConnectionContext<Integer> context, Message<Integer> message) -> {
-        	Kryo kryo = kryos.obtain();
+        integerMessageServer.addHandler((final ConnectionContext<Integer> context, final Message<Integer> message) -> {
+        	final Kryo kryo = kryos.obtain();
         	try {
-			    String rsp = TEST_RSP_MSG + message.getValue();
-			    ResponseMessage<String> responseMessage = new ResponseMessage<>(rsp);
+			    final String rsp = TEST_RSP_MSG + message.getValue();
+			    final ResponseMessage<String> responseMessage = new ResponseMessage<>(rsp);
 			    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
 				return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));
         	}
-			catch (IOException e) {
+			catch (final IOException e) {
 				System.err.println(e.toString());
 				return Optional.empty();
 			}
@@ -149,11 +149,11 @@ public class IntegerServerIT
      * @return
      * @throws IOException
      */
-    private String serversResponseFrom(DataInputStream in) throws IOException
+    private String serversResponseFrom(final DataInputStream in) throws IOException
     {
         await("Waiting for response").atMost(TEN_SECONDS).until(() -> { return in.available() > Integer.BYTES;});
-        int responseSize = in.readInt();
-        byte[] bytesRead = new byte[responseSize];
+        final int responseSize = in.readInt();
+        final byte[] bytesRead = new byte[responseSize];
         int totalRead = 0;
         int bodyRead = 0;
         while((bodyRead = in.read(bytesRead, bodyRead, responseSize - bodyRead)) > 0)
@@ -166,9 +166,9 @@ public class IntegerServerIT
             }
             // else there is more to read
         }
-        Kryo kryo = kryos.obtain();
+        final Kryo kryo = kryos.obtain();
         try (Input kin = new Input(bytesRead)) {
-	        ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
+	        final ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
 	        if(responseMessage.isError()) {
 	        	return responseMessage.getError().get().toString();
 	        }

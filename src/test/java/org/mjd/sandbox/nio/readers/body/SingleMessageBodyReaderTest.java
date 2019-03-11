@@ -2,7 +2,9 @@ package org.mjd.sandbox.nio.readers.body;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Objects;
 
+import com.google.common.hash.HashCode;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.sandbox.nio.message.Message;
@@ -66,7 +68,7 @@ public final class SingleMessageBodyReaderTest {
 			describe("reads a buffer with a complete message PLUS following message data", () ->
 			{
 				beforeEach(() -> {
-					ByteBuffer restPlusFollowingData = ByteBuffer.allocate(testMsgValBytes.capacity() + Integer.BYTES)
+					final ByteBuffer restPlusFollowingData = ByteBuffer.allocate(testMsgValBytes.capacity() + Integer.BYTES)
 															.put(testMsgValBytes)
 															.putInt(4);
 					testMsgValBytes = ByteBuffer.wrap(TEST_MSG_VAL_BYTES);
@@ -135,7 +137,7 @@ public final class SingleMessageBodyReaderTest {
 				{
 					beforeEach(() -> {
 						testMsgValBytes = ByteBuffer.wrap(TEST_MSG_VAL_BYTES, TEST_MSG_VAL.length() / 2, TEST_MSG_VAL.length() / 2);
-						ByteBuffer restPlusNextHeader = ByteBuffer.allocate(testMsgValBytes.capacity() + Integer.BYTES)
+						final ByteBuffer restPlusNextHeader = ByteBuffer.allocate(testMsgValBytes.capacity() + Integer.BYTES)
 								.put(testMsgValBytes)
 								.putInt(4);
 						remaining = readerUnderTest.read((ByteBuffer) restPlusNextHeader.flip());
@@ -199,21 +201,26 @@ public final class SingleMessageBodyReaderTest {
 	{
 		private final String value;
 		private final byte[] array;
-		public StringMessage(String value) { this.value = value; this.array = value.getBytes(); }
+		StringMessage(final String value) { this.value = value; this.array = value.getBytes(); }
 		@Override public String getValue() { return value; }
 		@Override public int size() { return array.length; }
 		@Override public byte[] asByteArray() { return Arrays.copyOf(array, array.length); }
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(final Object obj) {
 			if (obj == this) {
 				return true;
 			}
 			if (!(obj instanceof StringMessage)) {
 				return false;
 			}
-			StringMessage msg = (StringMessage) obj;
+			final StringMessage msg = (StringMessage) obj;
 			return value.equals(msg.value);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(this);
 		}
 	}
 

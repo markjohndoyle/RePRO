@@ -17,19 +17,19 @@ import org.mjd.sandbox.nio.writers.ChannelWriter;
  */
 public interface MessageHandler<MsgType> {
 
-	public static final class HandlerException extends RuntimeException {
+	final class HandlerException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 
-		public HandlerException(String message, Throwable cause) {
+		public HandlerException(final String message, final Throwable cause) {
 			super(message, cause);
 		}
 	}
 
-	public static final class ConnectionContext<MsgType> {
+	final class ConnectionContext<MsgType> {
 		public final SelectionKey key;
 		public final ChannelWriter<MsgType, SelectionKey> writer;
 
-		public ConnectionContext(ChannelWriter<MsgType, SelectionKey> server, SelectionKey key) {
+		public ConnectionContext(final ChannelWriter<MsgType, SelectionKey> server, final SelectionKey key) {
 			this.writer = server;
 			this.key = key;
 		}

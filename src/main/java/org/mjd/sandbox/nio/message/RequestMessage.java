@@ -5,22 +5,22 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
-public class RequestMessage<R extends IdentifiableRequest> implements Message<R>
+public final class RequestMessage<R extends IdentifiableRequest> implements Message<R>
 {
     private final R request;
     private ByteBuffer byteBuffer;
 
-    public RequestMessage(R request) throws IOException
+    public RequestMessage(final R request) throws IOException
     {
         this.request = request;
         convertToByteStream(request);
     }
 
-    private void convertToByteStream(R request) throws IOException
+    private void convertToByteStream(final R request) throws IOException
     {
         try(ByteArrayOutputStream bos = new ByteArrayOutputStream())
         {
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            final ObjectOutputStream oos = new ObjectOutputStream(bos);
             oos.writeObject(request);
             ByteBuffer.wrap(bos.toByteArray());
         }

@@ -60,46 +60,49 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 	}
 
 	/**
-	 * Takes {@link AsyncMessageJob} instances from the blocking queue and waits for 500ms fo rthem to complete.
-	 * If they don't complete in that time, they are put back on the end of the queue and the next job is checked.</br>
+	 * Takes {@link AsyncMessageJob} instances from the blocking queue and waits for 500ms fo rthem to complete. If they
+	 * don't complete in that time, they are put back on the end of the queue and the next job is checked.</br>
 	 * The result is checked if a job is complete (or completes within the timeout). If present, that is, the
 	 * {@link AsyncMessageJob} returned a result, it is sent to the {@link #channelWriter}.
 	 * </p>
 	 * The selector is always woken up in case the key changed within a blocking {@link Selector#select()} call.
 	 */
 	private void startAsyncMessageJobHandler() {
-		AsyncMessageJob<MsgType> job = null;
 		try {
 			while (!Thread.interrupted()) {
-				try {
-						LOG.trace("Blocking on message job queue....");
-						job = messageJobs.take();
-						LOG.trace("[{}] Found a job. There are {} remaining.", job.key.attachment(), messageJobs.size());
-						final Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
-						LOG.trace("[{}] The job has finished.", job.key.attachment());
-						if (result.isPresent()) {
-							channelWriter.writeResult(job.key, job.message, result.get());
-						}
-						selector.wakeup();
-				}
-				catch (TimeoutException e) {
-					try {
-						LOG.debug("Waiting for job timed out, putting it back on the end of the queue");
-						messageJobs.put(job);
-					}
-					catch (InterruptedException ie) {
-						LOG.info("Interrupted whilst returning unfinished job; the server is likely shutting down");
-						Thread.currentThread().interrupt();
-					}
-				}
+				processJobs();
 			}
 		}
-		catch (InterruptedException ie) {
+		catch (final InterruptedException ie) {
 			LOG.info("Interrupted whilst waiting for jobs; the server is likely shutting down");
 			Thread.currentThread().interrupt();
 		}
-		catch (ExecutionException e) {
+		catch (final ExecutionException e) {
 			LOG.error("Error in message processing job", e);
 		}
+	}
+
+	private AsyncMessageJob<MsgType> processJobs() throws InterruptedException, ExecutionException {
+		AsyncMessageJob<MsgType> job = null;
+		try {
+			job = messageJobs.take();
+			LOG.trace("[{}] Found a job. There are {} remaining.", job.key.attachment(), messageJobs.size());
+			final Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
+			if (result.isPresent()) {
+				channelWriter.writeResult(job.key, job.message, result.get());
+			}
+			selector.wakeup();
+		}
+		catch (final TimeoutException e) {
+			try {
+				LOG.debug("Waiting for job timed out, putting it back on the end of the queue");
+				messageJobs.put(job);
+			}
+			catch (final InterruptedException ie) {
+				LOG.info("Interrupted whilst returning unfinished job; the server is likely shutting down");
+				Thread.currentThread().interrupt();
+			}
+		}
+		return job;
 	}
 }

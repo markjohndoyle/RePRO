@@ -6,12 +6,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public class JavaSerialisedMessage<T> implements Message<T> {
+public final class JavaSerialisedMessage<T> implements Message<T> {
 
 	private T value;
 	private byte[] array;
 
-	public JavaSerialisedMessage(T value) throws IOException {
+	public JavaSerialisedMessage(final T value) throws IOException {
 		try(ByteArrayOutputStream out = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(out))
 		{
@@ -38,7 +38,7 @@ public class JavaSerialisedMessage<T> implements Message<T> {
 		return array;
 	}
 
-	public static <T> Message<T> from(byte[] bytes, Class<T> type) throws IOException, ClassNotFoundException
+	public static <T> Message<T> from(final byte[] bytes, final Class<T> type) throws IOException, ClassNotFoundException
 	{
 		try(ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 			ObjectInputStream ooi = new ObjectInputStream(in))

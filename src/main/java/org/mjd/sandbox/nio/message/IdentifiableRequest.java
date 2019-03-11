@@ -14,28 +14,34 @@ public class IdentifiableRequest implements Serializable {
 		// TODO for kryo, create serialiser
 	}
 
-	public IdentifiableRequest(long id) {
+	public IdentifiableRequest(final long id) {
 		this(id, ArgumentValues.none());
 	}
 
-	public IdentifiableRequest(long id, ArgumentValues argValues) {
+	public IdentifiableRequest(final long id, final ArgumentValues argValues) {
 		this.id = id;
 		this.argValues = argValues;
 	}
 
-	public long getId() {
+	/**
+	 * @return the id of this request
+	 */
+	public final long getId() {
 		return id;
 	}
 
-	public ArgumentValues getArgValues() {
+	/**
+	 * @return the {@link ArgumentValues} of this request
+	 */
+	public final ArgumentValues getArgValues() {
 		return argValues;
 	}
 
-	public void setId(long id) {
+	public final void setId(final long id) {
 		this.id = id;
 	}
 
-	public void setArgValues(ArgumentValues argVals) {
+	public final void setArgValues(final ArgumentValues argVals) {
 		this.argValues = argVals;
 	}
 

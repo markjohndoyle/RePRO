@@ -4,13 +4,13 @@ public abstract class AbstractHandler<R> implements Handler<R> {
 
 	private Handler<R> next;
 
-	protected void passOnToNextHandler(final R request) {
+	protected final void passOnToNextHandler(final R request) {
 		if(next != null) {
 			next.handle(request);
 		}
 	}
 
-	public AbstractHandler<R> setNext(final Handler<R> nextHandler) {
+	public final AbstractHandler<R> setNext(final Handler<R> nextHandler) {
 		this.next = nextHandler;
 		return this;
 	}

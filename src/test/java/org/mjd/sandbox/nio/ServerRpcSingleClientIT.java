@@ -61,15 +61,14 @@ public class ServerRpcSingleClientIT
         	rpcTarget = new FakeRpcTarget();
         	rpcInvoker = new AsyncRpcRequestInvoker(kryos.obtain(), new ReflectionInvoker(rpcTarget));
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
-            startServer();
         });
 
         after(() -> {
-            shutdownServer();
         });
 
         describe("When a single client", () -> {
         	beforeEach(() -> {
+        		startServer();
         		reqId = new AtomicLong();
         		clientSocket = new Socket("localhost", 12509);
         		await().atMost(TEN_SECONDS.multiply(12)).until(() -> clientSocket.isConnected());
@@ -77,15 +76,16 @@ public class ServerRpcSingleClientIT
         	});
         	afterEach(() -> {
         		clientSocket.close();
+        		shutdownServer();
         	});
         	describe("sends multiple different consecutive kryo RPC request/reply RpcRequests asynchronously", () -> {
 	        	it("it should recieve all of the responses", () -> {
 	        		final int numCalls = FakeRpcTarget.methodNamesAndReturnValues.size();
-	        		ExecutorService executor = Executors.newFixedThreadPool(numCalls);
+	        		final ExecutorService executor = Executors.newFixedThreadPool(numCalls);
 
-	        		DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
+	        		final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 	        		LOG.trace("Running client");
-	        		ConcurrentHashMap<Long, Future<?>> calls = new ConcurrentHashMap<>();
+	        		final ConcurrentHashMap<Long, Future<?>> calls = new ConcurrentHashMap<>();
 
 	        		FakeRpcTarget.methodNamesAndReturnValues.forEach((methodName, returnValue) -> {
 	        			final long id = reqId.getAndIncrement();
@@ -93,29 +93,29 @@ public class ServerRpcSingleClientIT
 	        		});
 
 	        		// Fire off a few method calls with args
-	        		long argCallId = reqId.getAndIncrement();
+	        		final long argCallId = reqId.getAndIncrement();
 	        		calls.put(argCallId, executor.submit(() ->
 	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 543), argCallId)));
 
-	        		long argCallId2 = reqId.getAndIncrement();
+	        		final long argCallId2 = reqId.getAndIncrement();
 	        		calls.put(argCallId2, executor.submit(() ->
 	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 999), argCallId2)));
 
-	        		long argCallId3 = reqId.getAndIncrement();
+	        		final long argCallId3 = reqId.getAndIncrement();
 	        		calls.put(argCallId3, executor.submit(() ->
 	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 98995786), argCallId3)));
 
-	        		DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
+	        		final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
 
-	        		Kryo kryo = kryos.obtain();
+	        		final Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < calls.size(); i++) {
 	        			LOG.debug("Reading response; iteration {} ", i);
-	        			Pair<Long, String> response = readResponse(kryo, dataIn);
+	        			final Pair<Long, String> response = readResponse(kryo, dataIn);
 	        			final Long responseId = response.getLeft();
 	        			LOG.debug("Got reponse {}; getting the call with that ID", responseId);
-	        			Future<?> call = calls.get(responseId);
+	        			final Future<?> call = calls.get(responseId);
 	        			LOG.debug("Got request from call future...");
-	        			RpcRequest requestMade = (RpcRequest) call.get();
+	        			final RpcRequest requestMade = (RpcRequest) call.get();
 	        			expect(responseId).toEqual(requestMade.getId());
 	        			LOG.info("Asserted; iteration {} ", i);
 	        		}
@@ -125,25 +125,25 @@ public class ServerRpcSingleClientIT
         	describe("sends a large amount of consecutive kryo RPC request/reply RpcRequests asynchronously", () -> {
 	        	it("it should recieve all of the responses", () -> {
 	        		final int numCalls = 5000;
-	        		ExecutorService executor = Executors.newFixedThreadPool(50);
+	        		final ExecutorService executor = Executors.newFixedThreadPool(50);
 
-	        		DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
-	        		ConcurrentHashMap<Long, Future<?>> calls = new ConcurrentHashMap<>();
+	        		final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
+	        		final ConcurrentHashMap<Long, Future<?>> calls = new ConcurrentHashMap<>();
 
 	        		for(int i = 0; i < numCalls; i++) {
-	        			long argCallId = reqId.getAndIncrement();
+	        			final long argCallId = reqId.getAndIncrement();
 	        			calls.put(argCallId, executor.submit(() ->
 	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 543), argCallId)));
 	        		}
 
-	        		DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
+	        		final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
 
-	        		Kryo kryo = kryos.obtain();
+	        		final Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < numCalls; i++) {
-	        			Pair<Long, String> response = readResponse(kryo, dataIn);
+	        			final Pair<Long, String> response = readResponse(kryo, dataIn);
 	        			final Long responseId = response.getLeft();
-	        			Future<?> call = calls.get(responseId);
-	        			RpcRequest requestMade = (RpcRequest) call.get();
+	        			final Future<?> call = calls.get(responseId);
+	        			final RpcRequest requestMade = (RpcRequest) call.get();
 	        			expect(responseId).toEqual(requestMade.getId());
 	        			LOG.info("Asserted {} ", i);
 	        		}
@@ -153,11 +153,11 @@ public class ServerRpcSingleClientIT
         });
     }
 
-	private RpcRequest makeRpcCall(DataOutputStream clientOut, String methodName, ArgumentValues args, final long id)
+	private RpcRequest makeRpcCall(final DataOutputStream clientOut, final String methodName, final ArgumentValues args, final long id)
 			throws IOException {
-		Kryo kryo = kryos.obtain();
+		final Kryo kryo = kryos.obtain();
 		try {
-			RpcRequest request = new RpcRequest(id, methodName, args);
+			final RpcRequest request = new RpcRequest(id, methodName, args);
 			LOG.debug("Preparing to call request {}", id);
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, request).flush();
 			LOG.trace("Request {} written to server from client", request);
