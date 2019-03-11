@@ -52,7 +52,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private MessageHandler<MsgType> msgHandler;
 	private AsyncMessageHandler<MsgType> asyncMsgHandler;
 
-	private KeyOpProtocol<java.nio.channels.SelectionKey> keyProtocol;
+	private KeyOpProtocol<SelectionKey> keyProtocol;
 
 	private WriteOpHandler<MsgType, SelectionKey> writeOpHandler;
 
@@ -67,22 +67,15 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param messageFactory
 	 */
 	public Server(final MessageFactory<MsgType> messageFactory) {
-		try {
-			selector = Selector.open();
-		}
-		catch (IOException e) {
-			LOG.error("Fatal server setup up server channel: {}", e.toString());
-		}
+		setupNonblockingServer();
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
 		writeOpHandler = new WriteOpHandler<>(channelWriter);
-		this.asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
-		setupNonblockingServer();
+		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
 
 		keyProtocol = new KeyOpProtocol<SelectionKey>()
 							.add(new AcceptProtocol<>(serverChannel, selector))
 							.add(new ReadOpHandler<>(messageFactory, this))
 							.add(writeOpHandler);
-
 	}
 
 	/**
@@ -91,8 +84,28 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 */
 	public void start() {
 		LOG.info("Server starting..");
+		asyncMsgJobExecutor.start();
 		enterBlockingServerLoop();
 		closeDownServer();
+	}
+
+	@Override
+	public void handle(final SelectionKey key, final Message<MsgType> message) {
+		if (msgHandler == null && asyncMsgHandler == null) {
+			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
+			return;
+		}
+		if(asyncMsgHandler != null) {
+			LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
+			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
+		}
+		else if(msgHandler != null) {
+			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(channelWriter, key), message);
+			if (resultToWrite.isPresent()) {
+				channelWriter.writeResult(key, message, resultToWrite.get());
+				selector.wakeup();
+			}
+		}
 	}
 
 	/**
@@ -131,6 +144,20 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	}
 
 	/**
+	 * Closes the selector which will pull the server out of the blocking loop.
+	 */
+	public void shutDown() {
+		try {
+			selector.close();
+		}
+		catch (IOException e) {
+			LOG.error("Error closing the selector when shutting down the server. Will interrupt this thread to pull "
+					+ "selector out of the blocking select and then server out of it's event loop.", e);
+			Thread.currentThread().interrupt();
+		}
+	}
+
+	/**
 	 * The server is considered available when the selector is open and the server
 	 * socket channel is bound and listening.
 	 *
@@ -148,36 +175,16 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		return !isAvailable();
 	}
 
-	/**
-	 * Closes the selector which will pull the server out of the blocking loop.
-	 */
-	public void shutDown() {
+	private void setupNonblockingServer() {
 		try {
-			selector.close();
+			selector = Selector.open();
+			serverChannel = ServerSocketChannel.open();
+			serverChannel.bind(new InetSocketAddress(12509));
+			serverChannel.configureBlocking(false);
+			serverChannel.register(selector, OP_ACCEPT, "The Director");
 		}
 		catch (IOException e) {
-			LOG.error("Error closing the selector when shutting down the server. Will interrupt this thread to pull "
-					+ "selector out of the blocking select and then server out of it's event loop.", e);
-			Thread.currentThread().interrupt();
-		}
-	}
-
-	@Override
-	public void handle(final SelectionKey key, final Message<MsgType> message) {
-		if (msgHandler == null && asyncMsgHandler == null) {
-			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
-			return;
-		}
-		if(asyncMsgHandler != null) {
-			LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
-		}
-		else if(msgHandler != null) {
-			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(channelWriter, key), message);
-			if (resultToWrite.isPresent()) {
-				channelWriter.writeResult(key, message, resultToWrite.get());
-				selector.wakeup();
-			}
+			LOG.error("Fatal server setup up server channel: {}", e.toString());
 		}
 	}
 
@@ -191,19 +198,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		}
 		catch (IOException e) {
 			LOG.error("Fatal server error: {}", e.toString(), e);
-		}
-	}
-
-	private void setupNonblockingServer() {
-		try {
-			serverChannel = ServerSocketChannel.open();
-			serverChannel.bind(new InetSocketAddress(12509));
-			serverChannel.configureBlocking(false);
-			serverChannel.register(selector, OP_ACCEPT, "The Director");
-			asyncMsgJobExecutor.start();
-		}
-		catch (IOException e) {
-			LOG.error("Fatal server setup up server channel: {}", e.toString());
 		}
 	}
 
