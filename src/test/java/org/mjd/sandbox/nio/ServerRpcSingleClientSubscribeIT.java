@@ -49,10 +49,12 @@ public class ServerRpcSingleClientSubscribeIT
     private AtomicLong reqId;
     private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
     private MessageHandler<IdentifiableRequest> rpcInvoker;
+    private Kryo kryo;
 
 	// TEST BLOCK
     {
         beforeEach(()-> {
+        	kryo = kryos.obtain();
         	rpcTarget = new FakeRpcTarget();
         	rpcInvoker = new SubscriptionInvoker(kryos, rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
@@ -60,6 +62,7 @@ public class ServerRpcSingleClientSubscribeIT
         });
 
         afterEach(() -> {
+        	kryos.free(kryo);
         	rpcTarget.close();
             shutdownServer();
         });
@@ -78,27 +81,27 @@ public class ServerRpcSingleClientSubscribeIT
         		describe("and waits for at least 5 notifications", () -> {
 		        	it("it should recieve all of the notifications", () -> {
 		        		final int numNotifications = 5;
-		        		DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
+		        		final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 
-		        		long subscriptionId = reqId.getAndIncrement();
+		        		final long subscriptionId = reqId.getAndIncrement();
 	        			subscribeOverRpc(clientOut, subscriptionId);
 
-	        			Kryo kryo = kryos.obtain();
+	        			final Kryo responseReaderKryo = kryos.obtain();
 
-		        		DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
-		        		ExecutorService receiverService = Executors.newSingleThreadExecutor();
-		        		Future<?> receiverJob = receiverService.submit(() -> {
+		        		final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
+		        		final ExecutorService receiverService = Executors.newSingleThreadExecutor();
+		        		final Future<?> receiverJob = receiverService.submit(() -> {
 		        			int notifications = 0;
 		        			while(notifications <  numNotifications) {
 			        			try {
-			        				Pair<Long, String> readResponse = readResponse(kryo, dataIn);
+			        				final Pair<Long, String> readResponse = readResponse(responseReaderKryo, dataIn);
 			        				if(readResponse.getLeft() == subscriptionId) {
 			        		    		expect(readResponse.getLeft()).toEqual(subscriptionId);
 			        		    		expect(readResponse.getRight()).toStartWith("Things just seem so much better in theory than in practice");
 			        		    		notifications++;
 			        		    	}
 								}
-								catch (IOException e) {
+								catch (final IOException e) {
 									e.printStackTrace();
 								}
 		        			}
@@ -107,18 +110,18 @@ public class ServerRpcSingleClientSubscribeIT
 		        		receiverJob.get();
 		        		dataIn.close();
 		        		clientOut.close();
-		        		kryos.free(kryo);
+		        		kryos.free(responseReaderKryo);
 		        	});
 	        	});
         	});
         });
     }
 
-	private IdentifiableRequest subscribeOverRpc(DataOutputStream clientOut, final long id)
+	private IdentifiableRequest subscribeOverRpc(final DataOutputStream clientOut, final long id)
 			throws IOException {
-		Kryo kryo = kryos.obtain();
+		final Kryo kryo = kryos.obtain();
 		try {
-			IdentifiableRequest identifiableSubRequest = new IdentifiableRequest(id);
+			final IdentifiableRequest identifiableSubRequest = new IdentifiableRequest(id);
 			LOG.debug("Preparing to call request {}", id);
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, identifiableSubRequest).flush();
 			LOG.trace("Request {} written to server from client", identifiableSubRequest);

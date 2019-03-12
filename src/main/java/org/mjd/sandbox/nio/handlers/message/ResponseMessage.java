@@ -14,14 +14,14 @@ import org.mjd.sandbox.nio.handlers.message.ResponseMessage.ResponseMessageSeria
 @DefaultSerializer(ResponseMessageSerialiser.class)
 public final class ResponseMessage<T> implements Serializable {
 	private static final long serialVersionUID = 1L;
-	private Optional<T> value;
+	private Optional<T> value = Optional.empty();
 	private HandlerException exception;
 
-	public ResponseMessage(T value) {
+	public ResponseMessage(final T value) {
 		this.value = Optional.of(value);
 	}
 
-	public ResponseMessage(HandlerException ex) {
+	public ResponseMessage(final HandlerException ex) {
 		this.exception = ex;
 	}
 
@@ -37,6 +37,10 @@ public final class ResponseMessage<T> implements Serializable {
 		return exception != null;
 	}
 
+	public static ResponseMessage<Object> error(final Exception ex) {
+		return new ResponseMessage<>(ex);
+	}
+
 
 	public static final class ResponseMessageSerialiser extends Serializer<ResponseMessage<Object>> {
 		public ResponseMessageSerialiser() {
@@ -44,7 +48,7 @@ public final class ResponseMessage<T> implements Serializable {
 		}
 
 		@Override
-		public void write(Kryo kryo, Output output, ResponseMessage<Object> object) {
+		public void write(final Kryo kryo, final Output output, final ResponseMessage<Object> object) {
 			if(object.isError()) {
 				output.writeBoolean(true);
 				kryo.writeObject(output, object.getError().get());
@@ -56,7 +60,7 @@ public final class ResponseMessage<T> implements Serializable {
 		}
 
 		@Override
-		public ResponseMessage<Object> read(Kryo kryo, Input input, Class<? extends ResponseMessage<Object>> type) {
+		public ResponseMessage<Object> read(final Kryo kryo, final Input input, final Class<? extends ResponseMessage<Object>> type) {
 			if(input.readBoolean()) {
 				return new ResponseMessage<>(kryo.readObject(input, HandlerException.class));
 			}

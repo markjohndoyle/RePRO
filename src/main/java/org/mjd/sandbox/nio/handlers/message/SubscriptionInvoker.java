@@ -31,6 +31,8 @@ import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
  *
  * TODO {@link Server} will be extended to handle multiple handlers and messages will be routed to the correct
  * handler based upon some kind of flag or address.
+ *
+ * @NotThreadSafe
  */
 public final class SubscriptionInvoker implements MessageHandler<IdentifiableRequest> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
@@ -38,14 +40,14 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	private final Kryo kryo;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
-	final ExecutorService executor = MoreExecutors.newDirectExecutorService();
+	private final ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
 	/**
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
 	 * use after this constructor completes.
 	 *
-	 * @param kryo      {@link Kryo} object used for serialising the notifications
-	 *                  back to the server.
+	 * @param kryos     An {@link Pool} of kryos that can handle {@link IdentifiableRequest} objects. Used for
+	 * 					serialising the notifications back to the server.
 	 * @param rpcTarget the RPC target, in this case, the target of subscription
 	 *                  requests. It must have one method annotated with the
 	 *                  {@link SubscriptionRegistrar} annotation.
@@ -78,16 +80,8 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 			}
 			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 				LOG.error("Error invoking subscription", ex);
-				final ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
-				byte[] returnBuffer;
-				try {
-					returnBuffer = objectToKryoBytes(kryo, responseMessage);
-					return Optional.of(ByteBuffer.wrap(returnBuffer));
-				}
-				catch (final IOException e) {
-					LOG.error("Game over; error serialising the error. TODO Figure out what to do here.");
-					return Optional.empty();
-				}
+				final HandlerException handlerEx = new HandlerException("Error invoking " + subscriptionRequest, ex);
+				return Optional.of(ByteBuffer.wrap(objectToKryoBytes(kryo, ResponseMessage.error(handlerEx))));
 			}
 		});
 	}

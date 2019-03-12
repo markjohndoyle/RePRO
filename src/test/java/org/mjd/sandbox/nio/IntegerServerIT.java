@@ -122,10 +122,6 @@ public final class IntegerServerIT
 
 					return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));
 	        	}
-				catch (final IOException e) {
-					System.err.println(e.toString());
-					return Optional.empty();
-				}
 	        	finally {
 	        		kryos.free(kryo);
 	        	}

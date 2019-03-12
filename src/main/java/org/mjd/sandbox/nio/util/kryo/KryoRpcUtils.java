@@ -12,13 +12,13 @@ public final class KryoRpcUtils {
 	private KryoRpcUtils() { }
 
 	public synchronized static DataOutputStream
-	writeKryoWithHeader(Kryo kryo, DataOutputStream clientOut, Object request) throws IOException {
+	writeKryoWithHeader(final Kryo kryo, final DataOutputStream clientOut, final Object request) throws IOException {
 		try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			 Output kryoByteArrayOut = new Output(bos)) {
 			kryo.writeObject(kryoByteArrayOut, request);
 			kryoByteArrayOut.flush();
 			bos.flush();
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			outputStream.write(Ints.toByteArray(bos.size()));
 			outputStream.write(bos.toByteArray());
 			clientOut.write(outputStream.toByteArray());
@@ -26,7 +26,7 @@ public final class KryoRpcUtils {
 		}
 	}
 
-	public static byte[] objectToKryoBytes(Kryo kryo, Object obj) throws IOException
+	public static byte[] objectToKryoBytes(final Kryo kryo, final Object obj)
 	{
 	    try(ByteArrayOutputStream bos = new ByteArrayOutputStream();
 	        Output kryoByteArrayOut = new Output(bos))
@@ -35,6 +35,9 @@ public final class KryoRpcUtils {
 	        kryoByteArrayOut.flush();
 	        return bos.toByteArray();
 	    }
+		catch (final IOException e) {
+			throw new IllegalStateException("Error serialising " + obj + " to bytes with kryo", e);
+		}
 	}
 
 }

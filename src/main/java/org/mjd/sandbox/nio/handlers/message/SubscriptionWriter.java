@@ -1,6 +1,5 @@
 package org.mjd.sandbox.nio.handlers.message;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
@@ -37,9 +36,6 @@ public final class SubscriptionWriter<MsgType> implements Subscriber {
 			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
 			resultByteBuffer.position(resultByteBuffer.limit());
 			channelWriter.writeResult(key, message, resultByteBuffer);
-		}
-		catch (final IOException e) {
-			LOG.error("Error notifying server of subscription message.", e);
 		}
 		finally {
 			kryos.free(kryo);
