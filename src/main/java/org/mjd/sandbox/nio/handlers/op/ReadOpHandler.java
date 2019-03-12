@@ -9,7 +9,6 @@ import java.util.Map;
 
 import com.google.common.base.Joiner;
 import org.mjd.sandbox.nio.message.factory.MessageFactory;
-import org.mjd.sandbox.nio.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.sandbox.nio.readers.MessageReader;
 import org.mjd.sandbox.nio.readers.RequestReader;
 import org.mjd.sandbox.nio.util.chain.AbstractHandler;

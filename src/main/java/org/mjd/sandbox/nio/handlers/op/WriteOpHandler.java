@@ -4,8 +4,6 @@ import java.nio.channels.SelectionKey;
 
 import org.mjd.sandbox.nio.util.chain.AbstractHandler;
 import org.mjd.sandbox.nio.writers.ChannelWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class WriteOpHandler<MsgType, K extends SelectionKey> extends AbstractHandler<K> {
 
