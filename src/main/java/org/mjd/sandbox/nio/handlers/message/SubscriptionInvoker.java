@@ -66,13 +66,13 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 
 	@Override
 	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<IdentifiableRequest> connectionContext,
-									   final Message<IdentifiableRequest> message) {
+									   		   final Message<IdentifiableRequest> message) {
 		return executor.submit(() -> {
 			final IdentifiableRequest subscriptionRequest = message.getValue();
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 				final SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
-						new SubscriptionWriter<>(kryos, connectionContext.key, connectionContext.writer, message);
+						new SubscriptionWriter<>(kryos, connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
 			}
@@ -91,18 +91,4 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 			}
 		});
 	}
-
-//	@Override
-//	public void receive(final String notification) {
-//		try {
-//			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(notification);
-//			final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
-//			resultByteBuffer.position(resultByteBuffer.limit());
-////			connectionContext.writer.receive(connectionContext.key, subscriptionRequest, Optional.of(resultByteBuffer));
-//			connectionContext.writer.writeResult(connectionContext.key, responseMessage, resultByteBuffer);
-//		}
-//		catch (IOException e) {
-//			LOG.error("Error notifying server of subscription message.", e);
-//		}
-//	}
 }
