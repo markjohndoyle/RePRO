@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.message.RpcRequest;
+import org.mjd.sandbox.nio.rpc.RpcRequestMethodInvoker;
 
 import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
