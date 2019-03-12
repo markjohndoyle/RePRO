@@ -16,9 +16,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.handlers.message.AsyncRpcRequestInvoker;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.ReflectionInvoker;
+import org.mjd.sandbox.nio.handlers.message.RpcHandlers;
+import org.mjd.sandbox.nio.handlers.message.RpcRequestInvoker;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
@@ -29,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.mscharhag.oleaster.matcher.Matchers.expect;
-import static com.mscharhag.oleaster.runner.StaticRunnerSupport.after;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.afterEach;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.before;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;
@@ -59,11 +59,8 @@ public class ServerRpcSingleClientIT
     {
         before(()->{
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new AsyncRpcRequestInvoker(kryos.obtain(), new ReflectionInvoker(rpcTarget));
+        	rpcInvoker = RpcHandlers.singleThreadRpcInvoker(kryos.obtain(), rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
-        });
-
-        after(() -> {
         });
 
         describe("When a single client", () -> {

@@ -23,8 +23,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.handlers.message.ReflectionInvoker;
-import org.mjd.sandbox.nio.handlers.message.RpcRequestInvoker;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler;
+import org.mjd.sandbox.nio.handlers.message.RpcHandlers;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.sandbox.nio.support.FakeRpcTarget;
@@ -53,14 +53,14 @@ public class ServerRpcHighClientChurnIT {
     private static AtomicLong reqId = new AtomicLong();
     private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 5000);
     private FakeRpcTarget rpcTarget;
-    private RpcRequestInvoker rpcInvoker;
+    private MessageHandler<RpcRequest> rpcInvoker;
 
 
     // TEST BLOCK
     {
         beforeEach(() -> {
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new RpcRequestInvoker(kryos.obtain(), new ReflectionInvoker(rpcTarget));
+        	rpcInvoker = RpcHandlers.singleThreadRpcInvoker(kryos.obtain(), rpcTarget);
             // pre charge the kryo pool
             for(int i = 0; i < 500; i++)
             {

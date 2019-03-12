@@ -13,15 +13,15 @@ public class ReflectionInvoker implements RpcRequestMethodInvoker {
 	private static final Logger LOG = LoggerFactory.getLogger(ReflectionInvoker.class);
 	private final Object rpcTarget;
 
-	public ReflectionInvoker(Object rpcTarget) {
+	public ReflectionInvoker(final Object rpcTarget) {
 		this.rpcTarget = rpcTarget;
 	}
 
 	@Override
-	public final Object invoke(RpcRequest request) {
+	public final Object invoke(final RpcRequest request) {
 		try {
-			String requestedMethodCall = request.getMethod();
-			ArgumentValues args = request.getArgValues();
+			final String requestedMethodCall = request.getMethod();
+			final ArgumentValues args = request.getArgValues();
 			LOG.debug("Invoking {} with args {}", requestedMethodCall, args);
 			return MethodUtils.invokeMethod(rpcTarget, requestedMethodCall, args.asObjArray());
 		}
