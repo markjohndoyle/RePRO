@@ -34,7 +34,7 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 	private BlockingQueue<AsyncMessageJob<MsgType>> messageJobs = new LinkedBlockingQueue<>();
 
 	/**
-	 * Conscructs a fully initialised {@link SequentialMessageJobExecutor}
+	 * Constructs a fully initialised {@link SequentialMessageJobExecutor}
 	 *
 	 * @param selector the selector associated with the message jobs with executor processes.
 	 * @param writer   a {@link WriteOpHandler} that can write responses back to the correct clients

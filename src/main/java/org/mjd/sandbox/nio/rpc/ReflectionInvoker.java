@@ -3,7 +3,6 @@ package org.mjd.sandbox.nio.rpc;
 import java.lang.reflect.InvocationTargetException;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.mjd.sandbox.nio.handlers.message.MessageHandler.HandlerException;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.util.ArgumentValues;
 import org.slf4j.Logger;

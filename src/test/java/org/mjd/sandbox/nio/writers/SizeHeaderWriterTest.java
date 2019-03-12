@@ -44,7 +44,7 @@ public class SizeHeaderWriterTest {
 			describe("is asked to write the complete header", () -> {
 				beforeEach(() -> {
 					writerUnderTest = new SizeHeaderWriter(0, mockChannel, testBuffer);
-					writerUnderTest.writeCompleteBuffer();
+					writerUnderTest.write();
 				});
 				it("should complete", () -> {
 					expect(writerUnderTest.isComplete()).toBeTrue();

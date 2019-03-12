@@ -1,6 +1,5 @@
 package org.mjd.sandbox.nio.handlers.message;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
