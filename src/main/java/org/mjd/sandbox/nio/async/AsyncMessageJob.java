@@ -17,17 +17,17 @@ public final class AsyncMessageJob<MsgType> {
 	/**
 	 * {@link Future} holding the result of the message processing job.
 	 */
-	public final Future<Optional<ByteBuffer>> messageJob;
+	private final Future<Optional<ByteBuffer>> messageJob;
 
 	/**
 	 * The {@link SelectionKey} this asynchronous message processing job was started for
 	 */
-	public final SelectionKey key;
+	private final SelectionKey key;
 
 	/**
 	 * The {@link Message} this asynchronous message processing job is processing/processed.
 	 */
-	public final Message<MsgType> message;
+	private final Message<MsgType> message;
 
 	/**
 	 * Constructs a complete {@link AsyncMessageJob} for type MsgType.
@@ -41,5 +41,17 @@ public final class AsyncMessageJob<MsgType> {
 		this.messageJob = asyncHandle;
 		this.key = key;
 		this.message= message;
+	}
+
+	public Future<Optional<ByteBuffer>> getMessageJob() {
+		return messageJob;
+	}
+
+	public SelectionKey getKey() {
+		return key;
+	}
+
+	public Message<MsgType> getMessage() {
+		return message;
 	}
 }

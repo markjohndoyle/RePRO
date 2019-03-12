@@ -83,7 +83,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	@Override
 	public void handle(final SelectionKey key, final Message<MsgType> message) {
 		if (msgHandler == null) {
-			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
+			LOG.warn("No handler for {}. Message will be discarded.", key.attachment());
 			return;
 		}
 		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);

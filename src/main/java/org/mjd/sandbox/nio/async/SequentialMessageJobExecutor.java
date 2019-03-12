@@ -86,10 +86,10 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 		AsyncMessageJob<MsgType> job = null;
 		try {
 			job = messageJobs.take();
-			LOG.trace("[{}] Found a job. There are {} remaining.", job.key.attachment(), messageJobs.size());
-			final Optional<ByteBuffer> result = job.messageJob.get(500, TimeUnit.MILLISECONDS);
+			LOG.trace("[{}] Found a job. There are {} remaining.", job.getKey().attachment(), messageJobs.size());
+			final Optional<ByteBuffer> result = job.getMessageJob().get(500, TimeUnit.MILLISECONDS);
 			if (result.isPresent()) {
-				channelWriter.writeResult(job.key, job.message, result.get());
+				channelWriter.writeResult(job.getKey(), job.getMessage(), result.get());
 			}
 			selector.wakeup();
 		}
