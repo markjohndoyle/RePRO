@@ -48,7 +48,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private Selector selector;
 	private MessageHandler<MsgType> msgHandler;
 	private KeyOpProtocol<SelectionKey> keyProtocol;
-	private WriteOpHandler<MsgType, SelectionKey> writeOpHandler;
 	private ChannelWriter<MsgType, SelectionKey> channelWriter;
 
 	/**
@@ -62,13 +61,12 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	public Server(final MessageFactory<MsgType> messageFactory) {
 		setupNonblockingServer();
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
-		writeOpHandler = new WriteOpHandler<>(channelWriter); // doesnt need to be a field I think
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
 
 		keyProtocol = new KeyOpProtocol<SelectionKey>()
 							.add(new AcceptProtocol<>(serverChannel, selector))
 							.add(new ReadOpHandler<>(messageFactory, this))
-							.add(writeOpHandler);
+							.add(new WriteOpHandler<>(channelWriter));
 	}
 
 	/**
@@ -106,15 +104,6 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		this.msgHandler = handler;
 		return this;
 	}
-
-	/**
-	 * @param handler
-	 * @return This {@link Server} instance. Useful for chaining.
-	 */
-//	public Server<MsgType> addAsyncHandler(final AsyncMessageHandler<MsgType> handler) {
-//		this.asyncMsgHandler = handler;
-//		return this;
-//	}
 
 	/**
 	 *
