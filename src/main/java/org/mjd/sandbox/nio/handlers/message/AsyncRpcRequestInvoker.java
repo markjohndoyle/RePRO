@@ -15,34 +15,31 @@ import org.slf4j.LoggerFactory;
 
 import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
-public final class AsyncRpcRequestInvoker implements AsyncMessageHandler<RpcRequest> {
+public final class AsyncRpcRequestInvoker implements MessageHandler<RpcRequest> {
 	private static final Logger LOG = LoggerFactory.getLogger(AsyncRpcRequestInvoker.class);
 	private final Kryo kryo;
 	private ExecutorService executor = Executors.newSingleThreadExecutor();
 	private RpcRequestMethodInvoker methodInvoker;
 
-	public AsyncRpcRequestInvoker(Kryo kryo, RpcRequestMethodInvoker rpcMethodInvoker) {
+	public AsyncRpcRequestInvoker(final Kryo kryo, final RpcRequestMethodInvoker rpcMethodInvoker) {
 		this.kryo = kryo;
 		this.methodInvoker = rpcMethodInvoker;
 	}
 
 	@Override
-	public Future<Optional<ByteBuffer>> handle(Message<RpcRequest> message) {
-		RpcRequest request = message.getValue();
-		String requestedMethodCall = request.getMethod();
-		ArgumentValues args = request.getArgValues();
+	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<RpcRequest> conCtx, final Message<RpcRequest> message) {
+		final RpcRequest request = message.getValue();
+		final String requestedMethodCall = request.getMethod();
+		final ArgumentValues args = request.getArgValues();
 		LOG.debug("Invoking {} with args {}", requestedMethodCall, args);
 		return executor.submit(() -> {
-			byte[] msgBytes;
-			Object result = methodInvoker.invoke(message.getValue());
+			final Object result = methodInvoker.invoke(message.getValue());
 			if (result == null) {
 				return Optional.empty();
 			}
-			ResponseMessage<Object> responseMessage = new ResponseMessage<>(result);
-			msgBytes = objectToKryoBytes(kryo, responseMessage);
+			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(result);
+			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
 		});
 	}
 }
-
-

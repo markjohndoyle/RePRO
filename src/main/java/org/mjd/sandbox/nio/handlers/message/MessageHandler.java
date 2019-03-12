@@ -3,6 +3,7 @@ package org.mjd.sandbox.nio.handlers.message;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Optional;
+import java.util.concurrent.Future;
 
 import org.mjd.sandbox.nio.message.Message;
 import org.mjd.sandbox.nio.writers.ChannelWriter;
@@ -44,5 +45,5 @@ public interface MessageHandler<MsgType> {
      * @param message
      * @return
      */
-    Optional<ByteBuffer> handle(ConnectionContext<MsgType> connectionContext, Message<MsgType> message);
+    Future<Optional<ByteBuffer>> handle(ConnectionContext<MsgType> connectionContext, Message<MsgType> message);
 }

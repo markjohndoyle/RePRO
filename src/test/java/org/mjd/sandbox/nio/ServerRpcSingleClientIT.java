@@ -16,8 +16,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
-import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.AsyncRpcRequestInvoker;
+import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.ReflectionInvoker;
 import org.mjd.sandbox.nio.message.RpcRequest;
 import org.mjd.sandbox.nio.message.factory.KryoRpcRequestMsgFactory;
@@ -53,7 +53,7 @@ public class ServerRpcSingleClientIT
     private Socket clientSocket;
     private AtomicLong reqId;
     private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 10000);
-    private AsyncMessageHandler<RpcRequest> rpcInvoker;
+    private MessageHandler<RpcRequest> rpcInvoker;
 
 	// TEST BLOCK
     {
@@ -172,7 +172,7 @@ public class ServerRpcSingleClientIT
     {
         rpcServer = new Server<>(new KryoRpcRequestMsgFactory());
 
-        rpcServer.addAsyncHandler(rpcInvoker::handle)
+        rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 
         serverService.submit(() -> rpcServer.start());

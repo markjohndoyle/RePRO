@@ -8,9 +8,12 @@ import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
@@ -111,20 +114,24 @@ public final class IntegerServerIT
 
         // Add echo handler
         integerMessageServer.addHandler((final ConnectionContext<Integer> context, final Message<Integer> message) -> {
+        	final ExecutorService executor = MoreExecutors.newDirectExecutorService();
         	final Kryo kryo = kryos.obtain();
-        	try {
-			    final String rsp = TEST_RSP_MSG + message.getValue();
-			    final ResponseMessage<String> responseMessage = new ResponseMessage<>(rsp);
-			    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
-				return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));
-        	}
-			catch (final IOException e) {
-				System.err.println(e.toString());
-				return Optional.empty();
-			}
-        	finally {
-        		kryos.free(kryo);
-        	}
+        	return executor.submit(() -> {
+	        	try {
+				    final String rsp = TEST_RSP_MSG + message.getValue();
+				    final ResponseMessage<String> responseMessage = new ResponseMessage<>(rsp);
+				    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
+
+					return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));
+	        	}
+				catch (final IOException e) {
+					System.err.println(e.toString());
+					return Optional.empty();
+				}
+	        	finally {
+	        		kryos.free(kryo);
+	        	}
+        	});
 		});
 
         serverService.submit(() -> { integerMessageServer.start(); return null; });

@@ -5,9 +5,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.Pool;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.sandbox.nio.Server;
 import org.mjd.sandbox.nio.message.IdentifiableRequest;
@@ -35,7 +38,7 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	private final Kryo kryo;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
-//	private final List<SubscriptionWriter<IdentifiableRequest>> subscriptions = new ArrayList<>();
+	final ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
 	/**
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
@@ -62,29 +65,31 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	}
 
 	@Override
-	public Optional<ByteBuffer> handle(final ConnectionContext<IdentifiableRequest> connectionContext,
+	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<IdentifiableRequest> connectionContext,
 									   final Message<IdentifiableRequest> message) {
-		final IdentifiableRequest subscriptionRequest = message.getValue();
-		try {
-			LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
-			SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
-					new SubscriptionWriter<>(kryos, connectionContext.key, connectionContext.writer, message);
-			MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
-			return Optional.empty();
-		}
-		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
-			LOG.error("Error invoking subscription", ex);
-			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
-			byte[] returnBuffer;
+		return executor.submit(() -> {
+			final IdentifiableRequest subscriptionRequest = message.getValue();
 			try {
-				returnBuffer = objectToKryoBytes(kryo, responseMessage);
-				return Optional.of(ByteBuffer.wrap(returnBuffer));
-			}
-			catch (IOException e) {
-				LOG.error("Game over; error serialising the error. TODO Figure out what to do here.");
+				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
+				final SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
+						new SubscriptionWriter<>(kryos, connectionContext.key, connectionContext.writer, message);
+				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
 			}
-		}
+			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
+				LOG.error("Error invoking subscription", ex);
+				final ResponseMessage<Object> responseMessage = new ResponseMessage<>(new HandlerException("Error invoking " + subscriptionRequest, ex));
+				byte[] returnBuffer;
+				try {
+					returnBuffer = objectToKryoBytes(kryo, responseMessage);
+					return Optional.of(ByteBuffer.wrap(returnBuffer));
+				}
+				catch (final IOException e) {
+					LOG.error("Game over; error serialising the error. TODO Figure out what to do here.");
+					return Optional.empty();
+				}
+			}
+		});
 	}
 
 //	@Override

@@ -2,20 +2,17 @@ package org.mjd.sandbox.nio;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.mjd.sandbox.nio.async.AsyncMessageJob;
 import org.mjd.sandbox.nio.async.AsyncMessageJobExecutor;
 import org.mjd.sandbox.nio.async.SequentialMessageJobExecutor;
-import org.mjd.sandbox.nio.handlers.message.AsyncMessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.sandbox.nio.handlers.op.AcceptProtocol;
@@ -50,12 +47,8 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private MessageHandler<MsgType> msgHandler;
-	private AsyncMessageHandler<MsgType> asyncMsgHandler;
-
 	private KeyOpProtocol<SelectionKey> keyProtocol;
-
 	private WriteOpHandler<MsgType, SelectionKey> writeOpHandler;
-
 	private ChannelWriter<MsgType, SelectionKey> channelWriter;
 
 	/**
@@ -69,7 +62,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	public Server(final MessageFactory<MsgType> messageFactory) {
 		setupNonblockingServer();
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
-		writeOpHandler = new WriteOpHandler<>(channelWriter);
+		writeOpHandler = new WriteOpHandler<>(channelWriter); // doesnt need to be a field I think
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
 
 		keyProtocol = new KeyOpProtocol<SelectionKey>()
@@ -91,21 +84,13 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	@Override
 	public void handle(final SelectionKey key, final Message<MsgType> message) {
-		if (msgHandler == null && asyncMsgHandler == null) {
+		if (msgHandler == null) {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
-		if(asyncMsgHandler != null) {
-			LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-			asyncMsgJobExecutor.add(new AsyncMessageJob<>(key, message, asyncMsgHandler.handle(message)));
-		}
-		else if(msgHandler != null) {
-			final Optional<ByteBuffer> resultToWrite = msgHandler.handle(new ConnectionContext<>(channelWriter, key), message);
-			if (resultToWrite.isPresent()) {
-				channelWriter.writeResult(key, message, resultToWrite.get());
-				selector.wakeup();
-			}
-		}
+		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
+		asyncMsgJobExecutor.add(new AsyncMessageJob<>(
+							key, message, msgHandler.handle(new ConnectionContext<>(channelWriter, key), message)));
 	}
 
 	/**
@@ -126,10 +111,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param handler
 	 * @return This {@link Server} instance. Useful for chaining.
 	 */
-	public Server<MsgType> addAsyncHandler(final AsyncMessageHandler<MsgType> handler) {
-		this.asyncMsgHandler = handler;
-		return this;
-	}
+//	public Server<MsgType> addAsyncHandler(final AsyncMessageHandler<MsgType> handler) {
+//		this.asyncMsgHandler = handler;
+//		return this;
+//	}
 
 	/**
 	 *
@@ -150,7 +135,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		try {
 			selector.close();
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Error closing the selector when shutting down the server. Will interrupt this thread to pull "
 					+ "selector out of the blocking select and then server out of it's event loop.", e);
 			Thread.currentThread().interrupt();
@@ -183,7 +168,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());
 		}
 	}
@@ -196,7 +181,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 				handleReadyKeys(selectedKeys.iterator());
 			}
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Fatal server error: {}", e.toString(), e);
 		}
 	}
@@ -215,7 +200,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			selector.close();
 			serverChannel.close();
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Error shutting down server: {}. We're going anyway ¯\\_(ツ)_/¯ ", e.toString());
 		}
 	}
