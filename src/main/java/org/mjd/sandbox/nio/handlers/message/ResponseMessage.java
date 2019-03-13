@@ -15,13 +15,13 @@ import org.mjd.sandbox.nio.handlers.message.ResponseMessage.ResponseMessageSeria
 public final class ResponseMessage<T> implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private Optional<T> value = Optional.empty();
-	private HandlerException exception;
+	private Throwable exception;
 
 	public ResponseMessage(final T value) {
 		this.value = Optional.of(value);
 	}
 
-	public ResponseMessage(final HandlerException ex) {
+	public ResponseMessage(final Throwable ex) {
 		this.exception = ex;
 	}
 
@@ -29,7 +29,7 @@ public final class ResponseMessage<T> implements Serializable {
 		return value;
 	}
 
-	public Optional<HandlerException> getError() {
+	public Optional<Throwable> getError() {
 		return Optional.of(exception);
 	}
 

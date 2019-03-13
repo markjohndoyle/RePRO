@@ -17,8 +17,8 @@ public class MapperTest {
 
     // TEST INSTANCE BLOCK
     {
-		Map<Integer, String> testMap = new HashMap<>(ImmutableMap.of(1, "one", 2, "two", 3, "three"));
-		
+		final Map<Integer, String> testMap = new HashMap<>(ImmutableMap.of(1, "one", 2, "two", 3, "three"));
+
 		describe("when using the Mapper to find a value", () -> {
 			describe("using a present key", () -> {
 				it("should be found", () -> {

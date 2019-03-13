@@ -21,7 +21,7 @@ public final class SubscriptionWriter<MsgType> implements Subscriber {
 	private final Message<MsgType> message;
 
 	public SubscriptionWriter(final Pool<Kryo> kryos, final SelectionKey key,
-							 final ChannelWriter<MsgType, SelectionKey> writer, final Message<MsgType> message) {
+							  final ChannelWriter<MsgType, SelectionKey> writer, final Message<MsgType> message) {
 		this.kryos = kryos;
 		this.key = key;
 		this.channelWriter = writer;

@@ -5,8 +5,8 @@ import java.util.function.Supplier;
 
 public abstract class Mapper<K, V> {
 
-	public static <K, V> Mapper<K, V> findInMap(Map<K, V> map, K key) {
-		V result = map.get(key);
+	public static <K, V> Mapper<K, V> findInMap(final Map<K, V> map, final K key) {
+		final V result = map.get(key);
 		if (result != null) {
 			return new Found<>(result);
 		}
@@ -22,12 +22,12 @@ public abstract class Mapper<K, V> {
 	public static final class Found<K, V> extends Mapper<K, V> {
 		private final V value;
 
-		public Found(V found) {
+		public Found(final V found) {
 			value = found;
 		}
 
 		@Override
-		public V or(Supplier<V> supplier) {
+		public V or(final Supplier<V> supplier) {
 			return value;
 		}
 
@@ -45,13 +45,13 @@ public abstract class Mapper<K, V> {
 	public static final class NotFound<K, V> extends Mapper<K, V> {
 		private final Map<K, V> map;
 		private final K key;
-		public NotFound(Map<K, V> map, K key) {
+		public NotFound(final Map<K, V> map, final K key) {
 			this.map = map;
 			this.key = key;
 		}
 
 		@Override
-		public V or(Supplier<V> supplier) {
+		public V or(final Supplier<V> supplier) {
 			final V supplied = supplier.get();
 			map.put(key, supplied);
 			return supplied;
@@ -59,7 +59,7 @@ public abstract class Mapper<K, V> {
 
 		@Override
 		public V get() {
-			throw new IllegalStateException("Value was not in the map and no create insttruction was provided");
+			throw new IllegalStateException("Value was not in the map and no Supplier was provided");
 		}
 
 		@Override

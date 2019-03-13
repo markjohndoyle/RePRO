@@ -25,7 +25,7 @@ public final class FakeRpcTarget implements AutoCloseable, Listener {
 	}
 
 	public void callMeVoid() {
-		/* Intentionall empty, test support class */ }
+		/* Intentionally empty, test support class */ }
 
 	public String callMeString() {
 		return "callMeString";
@@ -39,12 +39,12 @@ public final class FakeRpcTarget implements AutoCloseable, Listener {
 		return "it's this string...";
 	}
 
-	public String hackTheGibson(int password) {
+	public String hackTheGibson(final int password) {
 		return "password sent: " + password;
 	}
 
 	@SubscriptionRegistrar
-	public void subscribe(Subscriber sub, Object... args) {
+	public void subscribe(final Subscriber sub, final Object... args) {
 		if(thing == null) {
 			thing = new Thing();
 		}

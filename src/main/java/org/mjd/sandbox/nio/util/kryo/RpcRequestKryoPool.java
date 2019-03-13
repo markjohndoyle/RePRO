@@ -7,6 +7,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.esotericsoftware.kryo.util.Pool;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.HandlerException;
 import org.mjd.sandbox.nio.handlers.message.ResponseMessage;
@@ -17,7 +18,7 @@ import org.mjd.sandbox.nio.util.ArgumentValues.ArgumentValuePair;
 
 public final class RpcRequestKryoPool extends Pool<Kryo> {
 
-	public RpcRequestKryoPool(boolean threadSafe, boolean softReferences, int maximumCapacity) {
+	public RpcRequestKryoPool(final boolean threadSafe, final boolean softReferences, final int maximumCapacity) {
 		super(threadSafe, softReferences, maximumCapacity);
 	}
 
@@ -29,7 +30,7 @@ public final class RpcRequestKryoPool extends Pool<Kryo> {
 		}
 
 		@Override
-		public ByteBuffer read(Kryo kryo, Input input, Class<? extends ByteBuffer> type) {
+		public ByteBuffer read(final Kryo kryo, final Input input, final Class<? extends ByteBuffer> type) {
 			final int length = input.readInt();
 			final byte[] buffer = new byte[length];
 			input.read(buffer, 0, length);
@@ -39,7 +40,8 @@ public final class RpcRequestKryoPool extends Pool<Kryo> {
 
 	@Override
 	protected Kryo create() {
-		Kryo kryo = new Kryo();
+		final Kryo kryo = new Kryo();
+		kryo.addDefaultSerializer(java.lang.Throwable.class, new JavaSerializer());
 		kryo.register(IdentifiableRequest.class);
 		kryo.register(RpcRequest.class);
 		kryo.register(ArgumentValues.class);

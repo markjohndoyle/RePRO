@@ -11,10 +11,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.mjd.sandbox.nio.Server;
 import org.mjd.sandbox.nio.message.IdentifiableRequest;
 import org.mjd.sandbox.nio.message.Message;
-import org.mjd.sandbox.nio.message.RpcRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,14 +20,10 @@ import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
 /**
  * A {@link SubscriptionInvoker} will register your client for notifications on the rpcTarget Object using the
- * in the {@link RpcRequest}, that is, {@link RpcRequest#getId()}.
- * In this {@link MessageHandler} the method name in the {@link RpcRequest} is actually ignored because the
- * {@link SubscriptionInvoker} looks up the registration method on the rpcTarget denoted byt the
- * {@link SubscriptionRegistrar} annotation. This is a limited use case since every request will be a subscription.
+ * identifier passed in the {@link IdentifiableRequest} message.
+ * The {@link SubscriptionInvoker} looks up the registration method on the rpcTarget denoted by the
+ * {@link SubscriptionRegistrar} annotation.
  * A Server using this {@link MessageHandler} would be restricted as a  subscription service.
- *
- * TODO {@link Server} will be extended to handle multiple handlers and messages will be routed to the correct
- * handler based upon some kind of flag or address.
  *
  * @NotThreadSafe
  */
@@ -57,7 +51,7 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 		this.subscriptionService = rpcTarget;
 		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
 		if (registrationMethods.length != 1) {
-			throw new IllegalStateException(
+			throw new IllegalArgumentException(
 					"SubscriptionInvoker requires the RPC target providing the subscription service has 1 method "
 					+ "annotated on RPC target " + rpcTarget.getClass() + " with "
 					+ SubscriptionRegistrar.class.getName() + " for subscription calls");

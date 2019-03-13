@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -61,6 +62,17 @@ public final class SequentialMessageJobExecutorTest {
 			});
 			afterEach(() -> executorUnderTest.stop());
 
+			describe("receives one job that throws an exception when processing", () -> {
+				beforeEach(() -> {
+					when(mockFuture.get(anyLong(), any(TimeUnit.class)))
+					.thenThrow(ExecutionException.class);
+					executorUnderTest.add(fakeJob);
+				});
+				it("should put the job back on the queue to be processed next time around", () -> {
+					executorUnderTest.start();
+					verify(mockChannelWriter, never()).writeResult(selectionKey, fakeMessage, fakeResult.get());
+				});
+			});
 			describe("receives one job that has NOT finished processing", () -> {
 				beforeEach(() -> {
 					when(mockFuture.get(anyLong(), any(TimeUnit.class)))
