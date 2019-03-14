@@ -12,7 +12,6 @@ import org.mjd.sandbox.nio.handlers.message.MessageHandler.HandlerException;
 import org.mjd.sandbox.nio.handlers.message.SubscriptionRegistrar.Subscriber;
 import org.mjd.sandbox.nio.message.IdentifiableRequest;
 import org.mjd.sandbox.nio.message.RequestMessage;
-import org.mjd.sandbox.nio.util.kryo.KryoRpcUtils;
 import org.mjd.sandbox.nio.util.kryo.RpcRequestKryoPool;
 import org.mjd.sandbox.nio.writers.ChannelWriter;
 import org.mockito.Mock;
@@ -26,7 +25,6 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link SubscriptionInvoker}
