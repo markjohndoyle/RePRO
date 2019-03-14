@@ -11,6 +11,13 @@ import com.esotericsoftware.kryo.io.Output;
 import org.mjd.sandbox.nio.handlers.message.MessageHandler.HandlerException;
 import org.mjd.sandbox.nio.handlers.message.ResponseMessage.ResponseMessageSerialiser;
 
+/**
+ * {@link ResponseMessage} is a simple container that can hold a value of type T or a Throwable.
+ *
+ * Servers can send this back to clients in cases where they need to handle exceptions.
+ *
+ * @param <T> the response {@link #value} type.
+ */
 @DefaultSerializer(ResponseMessageSerialiser.class)
 public final class ResponseMessage<T> implements Serializable {
 	private static final long serialVersionUID = 1L;
