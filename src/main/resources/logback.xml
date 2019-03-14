@@ -32,7 +32,7 @@
     <!-- <appender-ref ref="FILE" /> -->
   </root>
   
-  <!-- <logger name="org.mjd.sandbox.nio.ServerRpcHighChurnIT" level="trace">
+  <!-- <logger name="org.mjd.repro.ServerRpcHighChurnIT" level="trace">
     <appender-ref ref="ServerRpcITFile"/>
   </logger> -->
 
