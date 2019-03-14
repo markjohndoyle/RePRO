@@ -3,6 +3,7 @@ package org.mjd.repro;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -165,7 +166,7 @@ public class ServerRpcSingleClientIT
 
     private void startServer()
     {
-        rpcServer = new Server<>(new KryoRpcRequestMsgFactory());
+        rpcServer = new Server<>(new InetSocketAddress(12509), new KryoRpcRequestMsgFactory());
 
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);

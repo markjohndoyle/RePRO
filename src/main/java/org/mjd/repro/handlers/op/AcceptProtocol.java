@@ -37,7 +37,7 @@ public final class AcceptProtocol<K extends SelectionKey> extends AbstractHandle
 					conId++;
 				}
 			}
-			catch (IOException e) {
+			catch (final IOException e) {
 				LOG.warn("Could not accept connection from client on {} due to {}", key.attachment(), e.toString(), e);
 			}
 		}

@@ -46,4 +46,22 @@ public final class RpcHandlers {
 		final ThreadFactory nameFactory = new ThreadFactoryBuilder().setNameFormat(RpcRequestInvoker.class.getName()).build();
 		return new RpcRequestInvoker(Executors.newSingleThreadExecutor(nameFactory), kryo, new ReflectionInvoker(rpcTarget));
 	}
+
+	/**
+	 * Creates a new {@link RpcRequestInvoker} that invokers {@link RpcRequest} methods using reflection in a fixed size
+	 * thread pool.
+	 *
+	 * Responses are serialised using the given {@link Kryo} instance.
+	 *
+	 * @param kryo        the {@link Kryo} used to serialise responses.
+	 * @param rpcTarget   the Obejct to execute methods upon.
+	 * @param threadCount the number of threads to use in the thread pool
+	 * @return {@link MessageHandler} for {@link RpcRequest} messages.
+	 */
+	public static MessageHandler<RpcRequest> newFixedThreadRpcInvoker(final Kryo kryo, final Object rpcTarget,
+			final int threadCount) {
+		final ThreadFactory nameFactory = new ThreadFactoryBuilder().setNameFormat(RpcRequestInvoker.class.getName()).build();
+		return new RpcRequestInvoker(Executors.newFixedThreadPool(threadCount, nameFactory), kryo,
+				new ReflectionInvoker(rpcTarget));
+	}
 }

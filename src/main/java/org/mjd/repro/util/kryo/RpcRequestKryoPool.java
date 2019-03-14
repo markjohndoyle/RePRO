@@ -1,22 +1,14 @@
 package org.mjd.repro.util.kryo;
 
 import java.nio.ByteBuffer;
-import java.util.Optional;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.esotericsoftware.kryo.util.Pool;
-import org.mjd.repro.handlers.message.MessageHandler.HandlerException;
-import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.IdentifiableRequest;
-import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.util.ArgumentValues;
-import org.mjd.repro.util.ArgumentValues.ArgumentValuePair;
 
-public final class RpcRequestKryoPool extends Pool<Kryo> {
+public class RpcRequestKryoPool extends Pool<Kryo> {
 
 	public RpcRequestKryoPool(final boolean threadSafe, final boolean softReferences, final int maximumCapacity) {
 		super(threadSafe, softReferences, maximumCapacity);
@@ -39,18 +31,19 @@ public final class RpcRequestKryoPool extends Pool<Kryo> {
 	}
 
 	@Override
-	protected Kryo create() {
+	protected final Kryo create() {
 		final Kryo kryo = new Kryo();
-		kryo.addDefaultSerializer(java.lang.Throwable.class, new JavaSerializer());
-		kryo.register(IdentifiableRequest.class);
-		kryo.register(RpcRequest.class);
-		kryo.register(ArgumentValues.class);
-		kryo.register(ArgumentValuePair.class);
-		kryo.register(ResponseMessage.class, new ResponseMessage.ResponseMessageSerialiser());
-		kryo.register(HandlerException.class);
-		kryo.register(Optional.class);
-		kryo.register(ByteBuffer.allocate(0).getClass(), new ByteBufferSerializer());
-		kryo.register(Object.class);
-		return kryo;
+		preRegisterClasses(kryo);
+		return RpcKryo.configure(kryo);
+	}
+
+	/**
+	 * Hook called before Rpc related classes are registered with Kryo. Allows extenders to register their own classes
+	 * first.
+	 *
+	 * @param kryo the kryo pool object that will be return on calls to {@link #obtain()}
+	 */
+	protected void preRegisterClasses(final Kryo kryo) {
+		// extension point - no-op here
 	}
 }

@@ -56,10 +56,11 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * The server is not started and will not accept connections until you call
 	 * {@link #start()}
 	 *
-	 * @param messageFactory
+	 * @param serverAddress address this server listens on
+	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
 	 */
-	public Server(final MessageFactory<MsgType> messageFactory) {
-		setupNonblockingServer();
+	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory) {
+		setupNonblockingServer(serverAddress);
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
 
@@ -149,11 +150,11 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		return !isAvailable();
 	}
 
-	private void setupNonblockingServer() {
+	private void setupNonblockingServer(final InetSocketAddress address) {
 		try {
 			selector = Selector.open();
 			serverChannel = ServerSocketChannel.open();
-			serverChannel.bind(new InetSocketAddress(12509));
+			serverChannel.bind(address);
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
 		}

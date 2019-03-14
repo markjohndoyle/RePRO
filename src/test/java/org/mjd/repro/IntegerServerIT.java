@@ -3,6 +3,7 @@ package org.mjd.repro;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -108,7 +109,7 @@ public final class IntegerServerIT
 
     public void startServer()
     {
-        integerMessageServer = new Server<>(bytesRead -> IntMessage.from(bytesRead));
+        integerMessageServer = new Server<>(new InetSocketAddress(12509), bytesRead -> IntMessage.from(bytesRead));
 
         // Add echo handler
         integerMessageServer.addHandler((final ConnectionContext<Integer> context, final Message<Integer> message) -> {
