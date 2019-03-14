@@ -10,13 +10,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of a {@link Writer} that that wites a ByteBuffer to a SocketChannel with a prepended
- * {@link Integer} header whose value describes the length of the bytebuffer written.
+ * Implementation of a {@link Writer} that that wites a ByteBuffer to a SocketChannel with a prepended {@link Integer}
+ * header whose value describes the length of the bytebuffer written.
  * </p>
- * E.g. Given a 21 byte buffer to write to the channel, this {@link Writer} will add a 4 byte header with the
- * value 21 in.
- * </br>
+ * E.g. Given a 21 byte buffer to write to the channel, this {@link Writer} will add a 4 byte header with the value 21
+ * in. </br>
  * Visually:
+ *
  * <pre>
  * +---------+ +--------------------------------+
  * | 4 bytes | |           21 bytes             |
@@ -32,13 +32,13 @@ public final class SizeHeaderWriter implements Writer {
 	private static final Logger LOG = LoggerFactory.getLogger(SizeHeaderWriter.class);
 
 	private static final int HEADER_LENGTH = Integer.BYTES;
-	private ByteBuffer buffer;
+	private final ByteBuffer buffer;
 	private final WritableByteChannel channel;
+	private final int bodySize;
+	private final Object id;
+	private final ByteBuffer headerBuffer = ByteBuffer.allocate(Integer.BYTES);
+	private final int expectedWrite;
 	private int bytesWritten;
-	private int bodySize;
-	private int expectedWrite = HEADER_LENGTH;
-	private Object id;
-	private ByteBuffer headerBuffer = ByteBuffer.allocate(Integer.BYTES);
 
 	/**
 	 * Constructs a fully initialised {@link SizeHeaderWriter} that can write the given {@link ByteBuffer} to the given
@@ -57,8 +57,8 @@ public final class SizeHeaderWriter implements Writer {
 		bodySize = buffer.limit();
 		expectedWrite = bodySize + HEADER_LENGTH;
 		headerBuffer.putInt(bodySize).flip();
-		LOG.trace("[{}] Writer created for response; expected write is '{}' bytes of which {} is the body", id, expectedWrite,
-				bodySize);
+		LOG.trace("[{}] Writer created for response; expected write is '{}' bytes of which {} is the body",
+				  id, expectedWrite, bodySize);
 	}
 
 	@Override
@@ -76,6 +76,7 @@ public final class SizeHeaderWriter implements Writer {
 
 	/**
 	 * Writes the complete {@link #headerBuffer}
+	 *
 	 * @throws IOException
 	 */
 	private void writeHeader() throws IOException {
@@ -87,6 +88,7 @@ public final class SizeHeaderWriter implements Writer {
 
 	/**
 	 * writes the complete {@link #buffer}
+	 *
 	 * @throws IOException
 	 */
 	private void writeBody() throws IOException {
@@ -105,9 +107,10 @@ public final class SizeHeaderWriter implements Writer {
 	}
 
 	/**
-	 * Static factory method for creating {@link SizeHeaderWriter}. Offers a more declarative syntactic sugar
-	 * for clients that may have a Selection key rather than a {@link Channel}
-	 * @param key the {@link SelectionKey} that associated with the {@link Channel} the writer should use
+	 * Static factory method for creating {@link SizeHeaderWriter}. Offers a more declarative syntactic sugar for clients
+	 * that may have a Selection key rather than a {@link Channel}
+	 *
+	 * @param key           the {@link SelectionKey} that associated with the {@link Channel} the writer should use
 	 * @param bufferToWrite the {@link ByteBuffer} to write to the {@link Channel}
 	 * @return a new {@link SizeHeaderWriter}
 	 *
