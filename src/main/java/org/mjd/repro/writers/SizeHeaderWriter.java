@@ -34,7 +34,6 @@ public final class SizeHeaderWriter implements Writer {
 	private static final int HEADER_LENGTH = Integer.BYTES;
 	private final ByteBuffer buffer;
 	private final WritableByteChannel channel;
-	private final int bodySize;
 	private final Object id;
 	private final ByteBuffer headerBuffer = ByteBuffer.allocate(Integer.BYTES);
 	private final int expectedWrite;
@@ -54,7 +53,7 @@ public final class SizeHeaderWriter implements Writer {
 		this.buffer = bufferToWrite;
 		headerBuffer.mark();
 		buffer.mark();
-		bodySize = buffer.limit();
+		final int bodySize = buffer.limit();
 		expectedWrite = bodySize + HEADER_LENGTH;
 		headerBuffer.putInt(bodySize).flip();
 		LOG.trace("[{}] Writer created for response; expected write is '{}' bytes of which {} is the body",
