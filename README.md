@@ -1,4 +1,4 @@
-# RpRro
+# ReRro
 
 Non-blocking server with RPC features.
 
