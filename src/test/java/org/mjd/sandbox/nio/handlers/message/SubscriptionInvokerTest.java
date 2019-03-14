@@ -44,13 +44,13 @@ public class SubscriptionInvokerTest {
 	{
 		before(()-> {
 			MockitoAnnotations.initMocks(this);
-			invokerUnderTest = new SubscriptionInvoker(kryos, mockBroadcaster);
+			invokerUnderTest = new SubscriptionInvoker(kryos.obtain(), mockBroadcaster);
 		});
 
 		describe("when the " + SubscriptionInvoker.class, () -> {
 			describe("is given an RPC target object with no " + SubscriptionRegistrar.class + " method" , () -> {
 				it("should thrown an IllegalStateException exception", () -> {
-					expect(() -> new SubscriptionInvoker(kryos, new Object())).toThrow(IllegalArgumentException.class);
+					expect(() -> new SubscriptionInvoker(kryos.obtain(), new Object())).toThrow(IllegalArgumentException.class);
 				});
 			});
 			describe("is given a valid RPC target object" , () -> {

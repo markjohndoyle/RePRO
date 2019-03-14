@@ -56,7 +56,7 @@ public class ServerRpcSingleClientSubscribeIT
         beforeEach(()-> {
         	kryo = kryos.obtain();
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new SubscriptionInvoker(kryos, rpcTarget);
+        	rpcInvoker = new SubscriptionInvoker(kryo, rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
         });

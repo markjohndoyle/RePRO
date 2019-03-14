@@ -48,7 +48,7 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 			LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
 			key.interestOps(OP_READ);
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			e.printStackTrace();
 			return;
 		}

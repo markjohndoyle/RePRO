@@ -29,7 +29,7 @@ import static org.mjd.sandbox.nio.util.kryo.KryoRpcUtils.objectToKryoBytes;
  */
 public final class SubscriptionInvoker implements MessageHandler<IdentifiableRequest> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
-	private final Pool<Kryo> kryos;
+//	private final Pool<Kryo> kryos;
 	private final Kryo kryo;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
@@ -39,15 +39,15 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
 	 * use after this constructor completes.
 	 *
-	 * @param kryos     An {@link Pool} of kryos that can handle {@link IdentifiableRequest} objects. Used for
+	 * @param kryo      An {@link Pool} of kryos that can handle {@link IdentifiableRequest} objects. Used for
 	 * 					serialising the notifications back to the server.
 	 * @param rpcTarget the RPC target, in this case, the target of subscription
 	 *                  requests. It must have one method annotated with the
 	 *                  {@link SubscriptionRegistrar} annotation.
 	 */
-	public SubscriptionInvoker(final Pool<Kryo> kryos, final Object rpcTarget) {
-		this.kryos = kryos;
-		this.kryo = kryos.obtain();
+	public SubscriptionInvoker(final Kryo kryo, final Object rpcTarget) {
+		this.kryo = kryo;
+//		this.kryo = kryos.obtain();
 		this.subscriptionService = rpcTarget;
 		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
 		if (registrationMethods.length != 1) {
@@ -67,7 +67,7 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 				final SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
-						new SubscriptionWriter<>(kryos, connectionContext.getKey(), connectionContext.getWriter(), message);
+					new SubscriptionWriter<>(kryo, connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
 			}
