@@ -6,8 +6,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import javax.swing.RepaintManager;
-
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;

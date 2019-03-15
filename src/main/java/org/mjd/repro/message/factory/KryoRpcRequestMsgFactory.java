@@ -8,7 +8,6 @@ import com.esotericsoftware.kryo.io.Input;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestMessage;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

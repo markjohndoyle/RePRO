@@ -9,7 +9,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.primitives.Ints;
-import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 
 public final class KryoRpcUtils {
 	private KryoRpcUtils() {
