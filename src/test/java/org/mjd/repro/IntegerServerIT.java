@@ -118,7 +118,7 @@ public final class IntegerServerIT
         	return executor.submit(() -> {
 	        	try {
 				    final String rsp = TEST_RSP_MSG + message.getValue();
-				    final ResponseMessage<String> responseMessage = new ResponseMessage<>(rsp);
+				    final ResponseMessage<String> responseMessage = new ResponseMessage<>(0, rsp);
 				    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
 
 					return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));

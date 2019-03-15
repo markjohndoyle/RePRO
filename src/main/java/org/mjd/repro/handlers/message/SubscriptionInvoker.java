@@ -67,14 +67,14 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 				final SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
-					new SubscriptionWriter<>(kryo, connectionContext.getKey(), connectionContext.getWriter(), message);
+					new SubscriptionWriter<IdentifiableRequest>(kryo, connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
 			}
 			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 				LOG.error("Error invoking subscription", ex);
 				final HandlerException handlerEx = new HandlerException("Error invoking " + subscriptionRequest, ex);
-				return Optional.of(ByteBuffer.wrap(objectToKryoBytes(kryo, ResponseMessage.error(handlerEx))));
+				return Optional.of(ByteBuffer.wrap(objectToKryoBytes(kryo, ResponseMessage.error(subscriptionRequest.getId(), handlerEx))));
 			}
 		});
 	}

@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.SubscriptionRegistrar.Subscriber;
+import org.mjd.repro.message.IdentifiableRequest;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.writers.ChannelWriter;
 import org.slf4j.Logger;
@@ -22,13 +23,13 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
  *
  * @ThreadSafe
  */
-public final class SubscriptionWriter<MsgType> implements Subscriber {
+public final class SubscriptionWriter<R extends IdentifiableRequest> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Object mutex = new Object();
 	private final Kryo kryo;
 	private final SelectionKey key;
-	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
-	private final Message<MsgType> message;
+	private final ChannelWriter<R, SelectionKey> channelWriter;
+	private final Message<R> message;
 
 	/**
 	 * Constructs a fully initialised {@link SubscriptionWriter} ready to process notifications.
@@ -39,8 +40,8 @@ public final class SubscriptionWriter<MsgType> implements Subscriber {
 	 * @param writer  A {@link ChannelWriter} to handle writing back notifications to the client
 	 * @param message The original request {@link Message}
 	 */
-	public SubscriptionWriter(final Kryo kryo, final SelectionKey key, final ChannelWriter<MsgType, SelectionKey> writer,
-			final Message<MsgType> message) {
+	public SubscriptionWriter(final Kryo kryo, final SelectionKey key, final ChannelWriter<R, SelectionKey> writer,
+			final Message<R> message) {
 		this.kryo = kryo;
 		this.key = key;
 		this.channelWriter = writer;
@@ -49,7 +50,7 @@ public final class SubscriptionWriter<MsgType> implements Subscriber {
 
 	@Override
 	public void receive(final String notification) {
-		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(notification);
+		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), notification);
 		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
 		resultByteBuffer.position(resultByteBuffer.limit());
 		LOG.trace(SubscriptionWriter.class + "recieved notification; handing result over to channel writer");
