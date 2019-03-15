@@ -95,11 +95,14 @@ public class ServerRpcSingleClientSubscribeIT
 		        			int notifications = 0;
 		        			while(notifications <  numNotifications) {
 			        			try {
-			        				final Pair<Long, String> readResponse = readResponse(responseReaderKryo, dataIn);
+			        				final Pair<Long, Object> readResponse = readResponse(responseReaderKryo, dataIn);
 			        				if(readResponse.getLeft() == subscriptionId) {
 			        		    		expect(readResponse.getLeft()).toEqual(subscriptionId);
-			        		    		expect(readResponse.getRight()).toStartWith("Things just seem so much better in theory than in practice");
-			        		    		notifications++;
+			        		    		if(readResponse.getRight() != null)
+			        		    		{
+			        		    			expect(readResponse.getRight().toString()).toStartWith("Things just seem so much better in theory than in practice");
+			        		    			notifications++;
+			        		    		}
 			        		    	}
 								}
 								catch (final IOException e) {

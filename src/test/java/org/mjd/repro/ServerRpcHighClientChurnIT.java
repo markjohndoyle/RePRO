@@ -173,7 +173,7 @@ public class ServerRpcHighClientChurnIT {
 			return requestIdAndExpectedReturn;
 		}
 
-		private final class ReadResponse implements Callable<Pair<Long, String>> {
+		private final class ReadResponse implements Callable<Pair<Long, Object>> {
 			private final Kryo readRespKryo;
 			private final DataInputStream in;
 
@@ -183,7 +183,7 @@ public class ServerRpcHighClientChurnIT {
 			}
 
 			@Override
-			public Pair<Long, String> call() throws Exception {
+			public Pair<Long, Object> call() throws Exception {
 				return readResponse(readRespKryo, in);
 			}
 		}

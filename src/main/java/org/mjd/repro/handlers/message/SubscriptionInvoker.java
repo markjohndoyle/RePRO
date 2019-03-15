@@ -29,7 +29,6 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
  */
 public final class SubscriptionInvoker implements MessageHandler<IdentifiableRequest> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
-//	private final Pool<Kryo> kryos;
 	private final Kryo kryo;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
@@ -47,7 +46,6 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 	 */
 	public SubscriptionInvoker(final Kryo kryo, final Object rpcTarget) {
 		this.kryo = kryo;
-//		this.kryo = kryos.obtain();
 		this.subscriptionService = rpcTarget;
 		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
 		if (registrationMethods.length != 1) {

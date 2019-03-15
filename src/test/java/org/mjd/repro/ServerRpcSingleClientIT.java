@@ -106,7 +106,7 @@ public class ServerRpcSingleClientIT
 	        		final Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < calls.size(); i++) {
 	        			LOG.debug("Reading response; iteration {} ", i);
-	        			final Pair<Long, String> response = readResponse(kryo, dataIn);
+	        			final Pair<Long, Object> response = readResponse(kryo, dataIn);
 	        			final Long responseId = response.getLeft();
 	        			LOG.debug("Got reponse {}; getting the call with that ID", responseId);
 	        			final Future<?> call = calls.get(responseId);
@@ -136,7 +136,7 @@ public class ServerRpcSingleClientIT
 
 	        		final Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < numCalls; i++) {
-	        			final Pair<Long, String> response = readResponse(kryo, dataIn);
+	        			final Pair<Long, Object> response = readResponse(kryo, dataIn);
 	        			final Long responseId = response.getLeft();
 	        			final Future<?> call = calls.get(responseId);
 	        			final RpcRequest requestMade = (RpcRequest) call.get();

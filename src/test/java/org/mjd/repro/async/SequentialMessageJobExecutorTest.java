@@ -41,7 +41,7 @@ public final class SequentialMessageJobExecutorTest {
 	private AsyncMessageJob<Integer> fakeJob;
 
 	@Spy private SelectionKey selectionKey;
-	private Message<Integer> fakeMessage;
+	@Mock private Message<Integer> fakeMessage;
 	@Mock private Future<Optional<ByteBuffer>> mockFuture;
 
 	private Optional<ByteBuffer> fakeResult = Optional.of(ByteBuffer.allocate(0));
@@ -64,8 +64,7 @@ public final class SequentialMessageJobExecutorTest {
 
 			describe("receives one job that throws an exception when processing", () -> {
 				beforeEach(() -> {
-					when(mockFuture.get(anyLong(), any(TimeUnit.class)))
-					.thenThrow(ExecutionException.class);
+					when(mockFuture.get(anyLong(), any(TimeUnit.class))).thenThrow(ExecutionException.class);
 					executorUnderTest.add(fakeJob);
 				});
 				it("should put the job back on the queue to be processed next time around", () -> {
@@ -87,7 +86,6 @@ public final class SequentialMessageJobExecutorTest {
 			});
 			describe("receives has one job that has finished processing", () -> {
 				beforeEach(() -> {
-					when(mockFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(fakeVoidResult);
 					executorUnderTest.add(fakeJob);
 				});
 
@@ -97,7 +95,7 @@ public final class SequentialMessageJobExecutorTest {
 						executorUnderTest.start();
 					});
 					it("should not write anything to the channel writer", () -> {
-						verify(mockChannelWriter, never()).writeResult(selectionKey, fakeMessage, fakeResult.get());
+						verify(mockChannelWriter, timeout(5000)).writeResult(selectionKey, fakeMessage, ByteBuffer.allocate(0));
 					});
 
 				});

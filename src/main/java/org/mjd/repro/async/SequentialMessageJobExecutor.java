@@ -91,9 +91,10 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 			if (result.isPresent()) {
 				channelWriter.writeResult(job.getKey(), job.getMessage(), result.get());
 			}
-//			else {
-//				channelWriter.writeResult(job.getKey(), new SuccessMessage(), result.get());
-//			}
+			else {
+				LOG.trace("No return for call {}; Writing empty buffer back", job);
+				channelWriter.writeResult(job.getKey(), job.getMessage(), ByteBuffer.allocate(0));
+			}
 			selector.wakeup();
 		}
 		catch (final TimeoutException e) {

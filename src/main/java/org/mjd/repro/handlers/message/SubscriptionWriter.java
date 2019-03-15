@@ -53,7 +53,7 @@ public final class SubscriptionWriter<R extends IdentifiableRequest> implements 
 		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), notification);
 		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
 		resultByteBuffer.position(resultByteBuffer.limit());
-		LOG.trace(SubscriptionWriter.class + "recieved notification; handing result over to channel writer");
+		LOG.trace(SubscriptionWriter.class + "received notification; handing result over to channel writer");
 		synchronized (mutex) {
 			channelWriter.writeResult(key, message, resultByteBuffer);
 		}

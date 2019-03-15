@@ -35,7 +35,7 @@ public final class ResponseReader {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Pair<Long, String> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
+	public static Pair<Long, Object> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
 		int responseSize;
 		long requestId;
 		try {
@@ -47,6 +47,12 @@ public final class ResponseReader {
 			e.printStackTrace();
 			throw e;
 		}
+
+		if(responseSize == Long.BYTES) {
+			LOG.trace("Returning void message, only have ID");
+			return Pair.of(requestId, null);
+		}
+
 		final byte[] bytesRead = new byte[responseSize];
 		int bodyRead = 0;
 		LOG.trace("Reading response of size: {}", responseSize);
@@ -70,7 +76,7 @@ public final class ResponseReader {
 		}
 	}
 
-	public static final class BlockingResponseReader implements Callable<Pair<Long, String>> {
+	public static final class BlockingResponseReader implements Callable<Pair<Long, Object>> {
 		private final Kryo readRespKryo;
 		private final DataInputStream in;
 
@@ -80,7 +86,7 @@ public final class ResponseReader {
 		}
 
 		@Override
-		public Pair<Long, String> call() throws Exception {
+		public Pair<Long, Object> call() throws Exception {
 			return readResponse(readRespKryo, in);
 		}
 	}
