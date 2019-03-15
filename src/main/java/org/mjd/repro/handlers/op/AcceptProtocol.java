@@ -14,8 +14,8 @@ import static java.nio.channels.SelectionKey.OP_READ;
 
 public final class AcceptProtocol<K extends SelectionKey> extends AbstractHandler<K> {
 	private static final Logger LOG = LoggerFactory.getLogger(AcceptProtocol.class);
-	private ServerSocketChannel serverChannel;
-	private Selector selector;
+	private final ServerSocketChannel serverChannel;
+	private final Selector selector;
 	private long conId;
 
 	public AcceptProtocol(final ServerSocketChannel channel, final Selector selector) {

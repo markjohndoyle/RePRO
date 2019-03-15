@@ -18,12 +18,11 @@ import static org.mockito.Mockito.when;
 
 @RunWith(OleasterRunner.class)
 public class SizeHeaderWriterTest {
-
 	@Mock private WritableByteChannel mockChannel;
-
+	private final ByteBuffer testBuffer = ByteBuffer.allocate(Long.BYTES * 4);
 	private SizeHeaderWriter writerUnderTest;
-	private ByteBuffer testBuffer = ByteBuffer.allocate(Long.BYTES * 4);
 
+	// TEST INSTANCE BLOCK
 	{
 		before(() -> {
 			MockitoAnnotations.initMocks(this);
@@ -34,7 +33,7 @@ public class SizeHeaderWriterTest {
 													return Integer.BYTES;
 												})
 												.then((answer) -> {
-													ByteBuffer buffer = (ByteBuffer)answer.getArgument(0);
+													final ByteBuffer buffer = (ByteBuffer)answer.getArgument(0);
 													buffer.position(buffer.limit());
 													return buffer.capacity();
 												});

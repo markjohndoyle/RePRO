@@ -31,14 +31,16 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 	private final ExecutorService executor = Executors.newSingleThreadExecutor(called("AsyncMsgJobExec"));
 	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
 	private final Selector selector;
-	private BlockingQueue<AsyncMessageJob<MsgType>> messageJobs = new LinkedBlockingQueue<>();
-	private boolean acknowledgeVoids;
+	private final BlockingQueue<AsyncMessageJob<MsgType>> messageJobs = new LinkedBlockingQueue<>();
+	private final boolean acknowledgeVoids;
 
 	/**
 	 * Constructs a fully initialised {@link SequentialMessageJobExecutor}
 	 *
-	 * @param selector the selector associated with the message jobs with executor processes.
-	 * @param writer   a {@link WriteOpHandler} that can write responses back to the correct clients
+	 * @param selector         the selector associated with the message jobs with executor processes.
+	 * @param writer           a {@link WriteOpHandler} that can write responses back to the correct clients
+	 * @param acknowledgeVoids whether this executor shoudl write back void responses, i.e., acknowledgements when the
+	 *                         result of the message job is empty
 	 */
 	public SequentialMessageJobExecutor(final Selector selector, final ChannelWriter<MsgType, SelectionKey> writer,
 			final boolean acknowledgeVoids) {
@@ -110,7 +112,7 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 		if (result.isPresent()) {
 			channelWriter.writeResult(job.getKey(), job.getMessage(), result.get());
 		}
-		else if(acknowledgeVoids){
+		else if (acknowledgeVoids) {
 			LOG.trace("No return for call {}; Writing empty buffer back", job);
 			channelWriter.writeResult(job.getKey(), job.getMessage(), ByteBuffer.allocate(0));
 		}

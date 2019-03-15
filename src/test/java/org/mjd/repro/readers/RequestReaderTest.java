@@ -33,14 +33,11 @@ public final class RequestReaderTest
 {
     @Mock private ScatteringByteChannel mockChannel;
     @Mock private MessageFactory<Integer> mockFactory;
-
     private RequestReader<Integer> readerUnderTest;
-
     private ByteBuffer headerBuffer;
     private final int sizeOfTestMsg = Integer.BYTES;
-    private byte[] headerValueArray = Ints.toByteArray(sizeOfTestMsg);
-    private List<Byte> headerValueList = Bytes.asList(headerValueArray);
-
+    private final byte[] headerValueArray = Ints.toByteArray(sizeOfTestMsg);
+    private final List<Byte> headerValueList = Bytes.asList(headerValueArray);
     private ByteBuffer bodyBuffer;
     private final Message<Integer> expectedMsg = new IntMessage(17369615);
     private final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg.getValue());
@@ -174,7 +171,7 @@ public final class RequestReaderTest
                         describe("followed by the rest of the body and the header from the next message", () -> {
                             beforeEach(() -> {
                                 // Create a list with the rest  of the body AND the following message header
-                                List<Byte> bodyWithNextHeader = new ArrayList<>(bodyValueList.subList(2, 4));
+                                final List<Byte> bodyWithNextHeader = new ArrayList<>(bodyValueList.subList(2, 4));
                                 bodyWithNextHeader.addAll(headerValueList);
                                 addBodyBytesToChannel(bodyWithNextHeader);
                                 readerUnderTest.read(headerBuffer, bodyBuffer);
@@ -297,7 +294,7 @@ public final class RequestReaderTest
     } // END TEST INSTANCE BLOCK
 
 
-    private OngoingStubbing<Long> addHeaderAndBodyBytesToChannel(List<Byte> header, List<Byte> body) throws IOException
+    private OngoingStubbing<Long> addHeaderAndBodyBytesToChannel(final List<Byte> header, final List<Byte> body) throws IOException
     {
         clearReadBuffers();
         return when(mockChannel.read(any(ByteBuffer[].class)))
@@ -306,7 +303,7 @@ public final class RequestReaderTest
 
     }
 
-    private void addBodyBytesToChannel(List<Byte> bodyWithNextHeader) throws IOException
+    private void addBodyBytesToChannel(final List<Byte> bodyWithNextHeader) throws IOException
     {
         clearReadBuffers();
         when(mockChannel.read(any(ByteBuffer[].class)))
@@ -314,7 +311,7 @@ public final class RequestReaderTest
             .thenReturn(noMoreData());
     }
 
-    private void addHeaderBytesToChannel(int from, int to) throws IOException, MessageCreationException
+    private void addHeaderBytesToChannel(final int from, final int to) throws IOException, MessageCreationException
     {
         clearReadBuffers();
         when(mockChannel.read(any(ByteBuffer[].class)))
@@ -322,7 +319,7 @@ public final class RequestReaderTest
             .thenReturn(noMoreData());
     }
 
-    private void addBodyBytesToChannel(int from, int to) throws IOException, MessageCreationException
+    private void addBodyBytesToChannel(final int from, final int to) throws IOException, MessageCreationException
     {
         clearReadBuffers();
         when(mockChannel.read(any(ByteBuffer[].class)))
@@ -346,23 +343,23 @@ public final class RequestReaderTest
         bodyBuffer.clear();
     }
 
-    private long addbytesToHeader(List<Byte> bytes)
+    private long addbytesToHeader(final List<Byte> bytes)
     {
         return addbytesToHeader(Bytes.toArray(bytes));
     }
 
-    private long addbytesToHeader(byte... bytesToAdd)
+    private long addbytesToHeader(final byte... bytesToAdd)
     {
         headerBuffer.put(bytesToAdd);
         return bytesToAdd.length;
     }
 
-    private long addbytesToBody(List<Byte> bytes)
+    private long addbytesToBody(final List<Byte> bytes)
     {
         return addbytesToBody(Bytes.toArray(bytes));
     }
 
-    private long addbytesToBody(byte... bytesToAdd)
+    private long addbytesToBody(final byte... bytesToAdd)
     {
         bodyBuffer.put(bytesToAdd);
         return bytesToAdd.length;

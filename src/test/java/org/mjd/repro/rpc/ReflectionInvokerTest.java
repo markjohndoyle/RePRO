@@ -15,16 +15,13 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
  */
 @RunWith(OleasterRunner.class)
 public class ReflectionInvokerTest {
-
 	private final FakeTarget fakeTarget = new FakeTarget();
+	private RpcRequest testRequest;
 
 	class FakeTarget {
 		public void voidMethod() { /* nothing to do */ }
 		public int intReturn() { return 120509;}
 	}
-
-	private RpcRequest testRequest;
-
 
 	// TEST INSTANCE BLOCK
 	{
@@ -57,5 +54,4 @@ public class ReflectionInvokerTest {
 			});
 		});
 	}
-
 }

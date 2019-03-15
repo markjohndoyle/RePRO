@@ -48,10 +48,10 @@ import static org.mjd.repro.support.ResponseReader.readResponse;
 public class ServerRpcHighClientChurnIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(ServerRpcHighClientChurnIT.class);
+    private static final AtomicLong reqId = new AtomicLong();
+    private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 5000);
     private ExecutorService serverService;
     private Server<RpcRequest> rpcServer;
-    private static AtomicLong reqId = new AtomicLong();
-    private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 5000);
     private FakeRpcTarget rpcTarget;
     private MessageHandler<RpcRequest> rpcInvoker;
 

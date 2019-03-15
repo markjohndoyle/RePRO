@@ -31,14 +31,13 @@ import static org.mockito.Mockito.verify;
  */
 @RunWith(OleasterRunner.class)
 public class SubscriptionInvokerTest {
-
 	@Spy private SelectionKey spyKey;
 	@Mock private ChannelWriter<IdentifiableRequest, SelectionKey> mockChannelWriter;
 	@Mock private FakeBroadcaster mockBroadcaster;
-
 	private final RpcRequestKryoPool kryos = new RpcRequestKryoPool(true, false, 10);
+	private final ConnectionContext<IdentifiableRequest> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
 	private SubscriptionInvoker invokerUnderTest;
-	private ConnectionContext<IdentifiableRequest> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
+
 
 	// TEST INSTANCE BLOCK
 	{

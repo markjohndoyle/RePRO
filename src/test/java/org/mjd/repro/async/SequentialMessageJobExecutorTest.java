@@ -31,21 +31,16 @@ import static org.mockito.Mockito.when;
 
 @RunWith(OleasterRunner.class)
 public final class SequentialMessageJobExecutorTest {
-
+	private final Optional<ByteBuffer> fakeResult = Optional.of(ByteBuffer.allocate(0));
+	private final Optional<ByteBuffer> fakeVoidResult = Optional.empty();
 	private Selector selector;
-
-	@Mock private ChannelWriter<Integer, SelectionKey> mockChannelWriter;
-
 	private SequentialMessageJobExecutor<Integer> executorUnderTest;
-
 	private AsyncMessageJob<Integer> fakeJob;
-
+	@Mock private ChannelWriter<Integer, SelectionKey> mockChannelWriter;
 	@Spy private SelectionKey selectionKey;
 	@Mock private Message<Integer> fakeMessage;
 	@Mock private Future<Optional<ByteBuffer>> mockFuture;
 
-	private Optional<ByteBuffer> fakeResult = Optional.of(ByteBuffer.allocate(0));
-	private Optional<ByteBuffer> fakeVoidResult = Optional.empty();
 
 	// UNIT TEST INSTANCE BLOCK
 	{
