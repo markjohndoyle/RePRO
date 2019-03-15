@@ -12,11 +12,11 @@ import org.slf4j.LoggerFactory;
  * An {@link RpcRequestMethodInvoker} that uses reflection to invoke an {@link RpcRequest} on the {@code rpcTarget}.
  * The rpcTarget is provided at construction time and is used for every invocation.
  *
- * @ThreadSafe However, the rpcTarget may not be threadsafe depending upon the method invoked.
+ * @NotThreadSafe The rpcTarget method invocation may not be threadsafe.
  */
-public class ReflectionInvoker implements RpcRequestMethodInvoker {
+public final class ReflectionInvoker implements RpcRequestMethodInvoker {
 	private static final Logger LOG = LoggerFactory.getLogger(ReflectionInvoker.class);
-	private final Object rpcTarget;
+	private Object rpcTarget;
 
 	/**
 	 * Constructs a fully initialised {@link ReflectionInvoker} for the given {@code rpcTarget}
@@ -27,8 +27,15 @@ public class ReflectionInvoker implements RpcRequestMethodInvoker {
 		this.rpcTarget = rpcTarget;
 	}
 
+	public ReflectionInvoker() {
+		this.rpcTarget = null;
+	}
+
 	@Override
-	public final Object invoke(final RpcRequest request) {
+	public Object invoke(final RpcRequest request) {
+		if(rpcTarget == null) {
+			throw new IllegalStateException("RPC target has not been set");
+		}
 		try {
 			final String requestedMethodCall = request.getMethod();
 			final ArgumentValues args = request.getArgValues();
@@ -38,5 +45,10 @@ public class ReflectionInvoker implements RpcRequestMethodInvoker {
 		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 			throw new InvocationException("Error invoking " + request, ex);
 		}
+	}
+
+	@Override
+	public void changeTarget(final Object newTarget) {
+		rpcTarget = newTarget;
 	}
 }

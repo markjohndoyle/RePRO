@@ -166,7 +166,8 @@ public class ServerRpcSingleClientIT
 
     private void startServer()
     {
-        rpcServer = new Server<>(new InetSocketAddress(12509), new KryoRpcRequestMsgFactory());
+        rpcServer = new Server<>(new InetSocketAddress(12509),
+        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class));
 
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);

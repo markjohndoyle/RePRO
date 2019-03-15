@@ -97,9 +97,10 @@ public class ServerRpcHighClientChurnIT {
 
     private void startServer()
     {
-        rpcServer = new Server<>(new InetSocketAddress(12509), new KryoRpcRequestMsgFactory())
-        				.addHandler(rpcInvoker)
-        				.addHandler(prepend::requestId);
+        rpcServer = new Server<>(new InetSocketAddress(12509),
+        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class))
+        						.addHandler(rpcInvoker)
+        						.addHandler(prepend::requestId);
 
         serverService.submit(() ->  {
             try

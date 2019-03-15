@@ -12,30 +12,37 @@ import org.mjd.repro.util.kryo.RpcRequestKryoPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class KryoRpcRequestMsgFactory implements MessageFactory<RpcRequest> {
+public final class KryoRpcRequestMsgFactory<R extends RpcRequest> implements MessageFactory<R> {
 	private static final Logger LOG = LoggerFactory.getLogger(KryoRpcRequestMsgFactory.class);
 
-	private final Kryo kryo = new RpcRequestKryoPool(false, false, 1).obtain();
+	private final Kryo kryo;
+
+	private final Class<R> type;
+
+	public KryoRpcRequestMsgFactory(final Kryo kryo, final Class<R> type) {
+		this.kryo = kryo;
+		this.type = type;
+	}
 
 	/**
 	 * Expects a Kryo object with a marshalled RpcRequest
 	 */
 	@Override
-	public Message<RpcRequest> createMessage(byte[] bytesRead) {
+	public Message<R> createMessage(final byte[] bytesRead) {
 		try {
 			return new RequestMessage<>(readBytesWithKryo(kryo, bytesRead));
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			throw new MessageCreationException(e);
 		}
 	}
 
-	private static RpcRequest readBytesWithKryo(Kryo kryo, byte[] data) {
+	private R readBytesWithKryo(final Kryo kryo, final byte[] data) {
 		try (ByteArrayInputStream bin = new ByteArrayInputStream(data);
 			 Input kryoByteArrayIn = new Input(bin)) {
-			return kryo.readObject(kryoByteArrayIn, RpcRequest.class);
+			return kryo.readObject(kryoByteArrayIn, type);
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			LOG.error("Error deserialising response from server", e);
 			throw new MessageCreationException(e);
 		}

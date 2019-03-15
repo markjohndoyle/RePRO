@@ -3,6 +3,7 @@ package org.mjd.repro.handlers.message;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.function.Function;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -28,8 +29,9 @@ public final class RpcHandlers {
 	 * @param rpcTarget the Obejct to execute methods upon.
 	 * @return {@link MessageHandler} for {@link RpcRequest} messages.
 	 */
-	public static MessageHandler<RpcRequest> directRpcInvoker(final Kryo kryo, final Object rpcTarget) {
-		return new RpcRequestInvoker(MoreExecutors.newDirectExecutorService(), kryo, new ReflectionInvoker(rpcTarget));
+	public static <R extends RpcRequest> MessageHandler<R>
+	directRpcInvoker(final Kryo kryo, final Object rpcTarget) {
+		return new RpcRequestInvoker<>(MoreExecutors.newDirectExecutorService(), kryo, new ReflectionInvoker(rpcTarget));
 	}
 
 	/**
@@ -42,9 +44,10 @@ public final class RpcHandlers {
 	 * @param rpcTarget the Obejct to execute methods upon.
 	 * @return {@link MessageHandler} for {@link RpcRequest} messages.
 	 */
-	public static MessageHandler<RpcRequest> singleThreadRpcInvoker(final Kryo kryo, final Object rpcTarget) {
+	public static <R extends RpcRequest> MessageHandler<R>
+	singleThreadRpcInvoker(final Kryo kryo, final Object rpcTarget) {
 		final ThreadFactory nameFactory = new ThreadFactoryBuilder().setNameFormat(RpcRequestInvoker.class.getName()).build();
-		return new RpcRequestInvoker(Executors.newSingleThreadExecutor(nameFactory), kryo, new ReflectionInvoker(rpcTarget));
+		return new RpcRequestInvoker<>(Executors.newSingleThreadExecutor(nameFactory), kryo, new ReflectionInvoker(rpcTarget));
 	}
 
 	/**
@@ -58,10 +61,18 @@ public final class RpcHandlers {
 	 * @param threadCount the number of threads to use in the thread pool
 	 * @return {@link MessageHandler} for {@link RpcRequest} messages.
 	 */
-	public static MessageHandler<RpcRequest> newFixedThreadRpcInvoker(final Kryo kryo, final Object rpcTarget,
+	public static <R extends RpcRequest> MessageHandler<R>
+	newFixedThreadRpcInvoker(final Kryo kryo, final Object rpcTarget,
 			final int threadCount) {
 		final ThreadFactory nameFactory = new ThreadFactoryBuilder().setNameFormat(RpcRequestInvoker.class.getName()).build();
-		return new RpcRequestInvoker(Executors.newFixedThreadPool(threadCount, nameFactory), kryo,
+		return new RpcRequestInvoker<>(Executors.newFixedThreadPool(threadCount, nameFactory), kryo,
 				new ReflectionInvoker(rpcTarget));
+	}
+
+	public static <R extends RpcRequest> MessageHandler<R>
+	newFixedThreadRpcInvoker(final Kryo kryo, final int threadCount, final Function<R, Object> rpcTargetSupplier) {
+		final ThreadFactory nameFactory = new ThreadFactoryBuilder().setNameFormat(RpcRequestInvoker.class.getName()).build();
+		return new SuppliedRpcRequestInvoker<>(Executors.newFixedThreadPool(threadCount, nameFactory), kryo,
+				new ReflectionInvoker(), rpcTargetSupplier);
 	}
 }

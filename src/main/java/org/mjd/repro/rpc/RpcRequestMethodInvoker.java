@@ -28,4 +28,6 @@ public interface RpcRequestMethodInvoker {
 	 * @return the result of the invocation
 	 */
 	Object invoke(RpcRequest request);
+
+	void changeTarget(Object newTarget);
 }

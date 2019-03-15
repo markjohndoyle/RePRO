@@ -6,11 +6,8 @@ import org.mjd.repro.util.ArgumentValues;
  * @author mark
  *
  */
-public final class RpcRequest extends IdentifiableRequest {
+public class RpcRequest extends IdentifiableRequest {
 	private static final long serialVersionUID = 3320910799863854768L;
-
-	// TEMP USE CASE for development - reposnse object are not yet implemented.
-	public static final IdentifiableRequest ERROR = new RpcRequest(-1, "error");
 
 	private String method;
 
@@ -19,25 +16,25 @@ public final class RpcRequest extends IdentifiableRequest {
 		// TODO For Kryo, will create serialisers
 	}
 
-	public RpcRequest(long id, String method) {
+	public RpcRequest(final long id, final String method) {
 		this(id, method, ArgumentValues.none());
 	}
 
-	public RpcRequest(long id, String method, ArgumentValues argVals) {
+	public RpcRequest(final long id, final String method, final ArgumentValues argVals) {
 		super(id, argVals);
 		this.method = method;
 	}
 
-	public String getMethod() {
+	public final String getMethod() {
 		return method;
 	}
 
-	public void setMethod(String method) {
+	public final void setMethod(final String method) {
 		this.method = method;
 	}
 
 	@Override
-	public String toString() {
+	public final String toString() {
 		return "RpcRequest [id=" + getId() + ", method=" + method + ", argValues=" + getArgValues() + "]";
 	}
 
