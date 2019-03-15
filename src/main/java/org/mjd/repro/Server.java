@@ -44,11 +44,11 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
+	private final KeyOpProtocol<SelectionKey> keyProtocol;
+	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private MessageHandler<MsgType> msgHandler;
-	private KeyOpProtocol<SelectionKey> keyProtocol;
-	private ChannelWriter<MsgType, SelectionKey> channelWriter;
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.

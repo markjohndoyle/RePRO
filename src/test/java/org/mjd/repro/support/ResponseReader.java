@@ -32,21 +32,12 @@ public final class ResponseReader {
 	 * @param kryo
 	 *
 	 * @param in
-	 * @return
+	 * @return {@link Pair} containing the request ID (Key/Left) and the response value {@link Object} (Value/Right)
 	 * @throws IOException
 	 */
 	public static Pair<Long, Object> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
-		int responseSize;
-		long requestId;
-		try {
-			responseSize = in.readInt();
-			requestId = in.readLong();
-		}
-		catch (final IOException e) {
-			LOG.error("Error reading header client-side due to {}", e.toString());
-			e.printStackTrace();
-			throw e;
-		}
+		final int responseSize = in.readInt();
+		final long requestId = in.readLong();
 
 		if(responseSize == Long.BYTES) {
 			LOG.trace("Returning void message, only have ID");
@@ -56,18 +47,11 @@ public final class ResponseReader {
 		final byte[] bytesRead = new byte[responseSize];
 		int bodyRead = 0;
 		LOG.trace("Reading response of size: {}", responseSize);
-		try {
-			while ((bodyRead = in.read(bytesRead, bodyRead, responseSize - Long.BYTES - bodyRead)) > 0) {
-				// Just keep reading
-			}
+		while ((bodyRead = in.read(bytesRead, bodyRead, responseSize - Long.BYTES - bodyRead)) > 0) {
+			// Just keep reading
 		}
-		catch (final IOException e) {
-			LOG.error("Error reading body client-side");
-			e.printStackTrace();
-			throw e;
-		}
+
 		try (Input kin = new Input(bytesRead)) {
-//			String result = kryo.readObject(kin, String.class);
 			final ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
 	        if(responseMessage.isError()) {
 	        	return Pair.of(requestId, responseMessage.getError().get().toString());
