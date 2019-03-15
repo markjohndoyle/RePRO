@@ -21,7 +21,7 @@ import static org.mjd.repro.util.thread.Threads.called;
 
 /**
  * Single threaded sequential implementation of an {@link AsyncMessageJobExecutor}.</br>
- * In this implementation one {@link AsyncMessageJob} will be processed at a time, in the order they were added.
+ * In this implementation one {@link AsyncMessageJob} will be processed one at a time, in the order they were added.
  *
  * @param <MsgType>
  */
@@ -91,6 +91,9 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 			if (result.isPresent()) {
 				channelWriter.writeResult(job.getKey(), job.getMessage(), result.get());
 			}
+//			else {
+//				channelWriter.writeResult(job.getKey(), new SuccessMessage(), result.get());
+//			}
 			selector.wakeup();
 		}
 		catch (final TimeoutException e) {

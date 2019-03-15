@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.SubscriptionInvoker;
 import org.mjd.repro.message.IdentifiableRequest;
-import org.mjd.repro.message.factory.KryoBasedRequestMsgFactory;
+import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.repro.support.FakeRpcTarget;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
 import org.mjd.repro.util.kryo.RpcRequestKryoPool;
@@ -107,7 +107,6 @@ public class ServerRpcSingleClientSubscribeIT
 								}
 		        			}
 		        		});
-
 		        		receiverJob.get();
 		        		dataIn.close();
 		        		clientOut.close();
@@ -135,7 +134,8 @@ public class ServerRpcSingleClientSubscribeIT
 
 	private void startServer()
     {
-        rpcServer = new Server<>(new InetSocketAddress(12509), new KryoBasedRequestMsgFactory());
+	        rpcServer = new Server<>(new InetSocketAddress(12509),
+        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), IdentifiableRequest.class));
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 
