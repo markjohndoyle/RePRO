@@ -67,7 +67,7 @@ public final class SubscriptionInvoker implements MessageHandler<IdentifiableReq
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 				final SubscriptionWriter<IdentifiableRequest> subscriptionWriter =
-					new SubscriptionWriter<IdentifiableRequest>(kryo, connectionContext.getKey(), connectionContext.getWriter(), message);
+					new SubscriptionWriter<>(kryo, connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
 			}
