@@ -62,7 +62,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory) {
 		setupNonblockingServer(serverAddress);
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
-		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter);
+		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
 		keyProtocol = new KeyOpProtocol<SelectionKey>()
 							.add(new AcceptProtocol<>(serverChannel, selector))

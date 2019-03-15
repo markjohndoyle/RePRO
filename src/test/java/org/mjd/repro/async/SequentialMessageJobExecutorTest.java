@@ -58,7 +58,7 @@ public final class SequentialMessageJobExecutorTest {
 
 		describe("when a started " + SequentialMessageJobExecutor.class.getName(), () -> {
 			beforeEach(() -> {
-				executorUnderTest = new SequentialMessageJobExecutor<>(selector, mockChannelWriter);
+				executorUnderTest = new SequentialMessageJobExecutor<>(selector, mockChannelWriter, true);
 			});
 			afterEach(() -> executorUnderTest.stop());
 

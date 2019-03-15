@@ -32,6 +32,7 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
 	private final Selector selector;
 	private BlockingQueue<AsyncMessageJob<MsgType>> messageJobs = new LinkedBlockingQueue<>();
+	private boolean acknowledgeVoids;
 
 	/**
 	 * Constructs a fully initialised {@link SequentialMessageJobExecutor}
@@ -39,9 +40,11 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 	 * @param selector the selector associated with the message jobs with executor processes.
 	 * @param writer   a {@link WriteOpHandler} that can write responses back to the correct clients
 	 */
-	public SequentialMessageJobExecutor(final Selector selector, final ChannelWriter<MsgType, SelectionKey> writer) {
+	public SequentialMessageJobExecutor(final Selector selector, final ChannelWriter<MsgType, SelectionKey> writer,
+			final boolean acknowledgeVoids) {
 		this.selector = selector;
 		this.channelWriter = writer;
+		this.acknowledgeVoids = acknowledgeVoids;
 	}
 
 	@Override
@@ -87,14 +90,7 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 		try {
 			job = messageJobs.take();
 			LOG.trace("[{}] Found a job. There are {} remaining.", job.getKey().attachment(), messageJobs.size());
-			final Optional<ByteBuffer> result = job.getMessageJob().get(500, TimeUnit.MILLISECONDS);
-			if (result.isPresent()) {
-				channelWriter.writeResult(job.getKey(), job.getMessage(), result.get());
-			}
-			else {
-				LOG.trace("No return for call {}; Writing empty buffer back", job);
-				channelWriter.writeResult(job.getKey(), job.getMessage(), ByteBuffer.allocate(0));
-			}
+			writeResponse(job, job.getMessageJob().get(500, TimeUnit.MILLISECONDS));
 			selector.wakeup();
 		}
 		catch (final TimeoutException e) {
@@ -108,5 +104,15 @@ public final class SequentialMessageJobExecutor<MsgType> implements AsyncMessage
 			}
 		}
 		return job;
+	}
+
+	private void writeResponse(final AsyncMessageJob<MsgType> job, final Optional<ByteBuffer> result) {
+		if (result.isPresent()) {
+			channelWriter.writeResult(job.getKey(), job.getMessage(), result.get());
+		}
+		else if(acknowledgeVoids){
+			LOG.trace("No return for call {}; Writing empty buffer back", job);
+			channelWriter.writeResult(job.getKey(), job.getMessage(), ByteBuffer.allocate(0));
+		}
 	}
 }
