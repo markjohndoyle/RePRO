@@ -43,12 +43,12 @@ import static org.mjd.repro.support.ResponseReader.readResponse;
 public class ServerRpcSingleClientSubscribeIT
 {
     private static final Logger LOG = LoggerFactory.getLogger(ServerRpcSingleClientSubscribeIT.class);
+    private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
+    private static final AtomicLong reqId = new AtomicLong();
     private ExecutorService serverService;
     private Server<IdentifiableRequest> rpcServer;
     private FakeRpcTarget rpcTarget;
     private Socket clientSocket;
-    private AtomicLong reqId;
-    private Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
     private MessageHandler<IdentifiableRequest> rpcInvoker;
     private Kryo kryo;
 
@@ -70,7 +70,6 @@ public class ServerRpcSingleClientSubscribeIT
 
         describe("When a single client", () -> {
         	beforeEach(() -> {
-        		reqId = new AtomicLong();
         		clientSocket = new Socket("localhost", 12509);
         		await().atMost(TEN_SECONDS.multiply(12)).until(() -> clientSocket.isConnected());
         		LOG.debug("Client isConnected!");

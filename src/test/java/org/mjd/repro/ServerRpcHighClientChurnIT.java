@@ -130,8 +130,7 @@ public class ServerRpcHighClientChurnIT {
 	{
 		private static final Logger LOG = LoggerFactory.getLogger(RpcClientRequestJob.class);
 		private final Pool<Kryo> kryos;
-
-		private AtomicLong requestId;
+		private final AtomicLong requestId;
 
 		RpcClientRequestJob(final Pool<Kryo> kryos, final AtomicLong reqId) {
 			this.kryos = kryos;
