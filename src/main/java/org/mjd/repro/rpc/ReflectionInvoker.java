@@ -26,6 +26,12 @@ public final class ReflectionInvoker implements RpcRequestMethodInvoker {
 		this.rpcTarget = rpcTarget;
 	}
 
+	/**
+	 * Creates an uninitialised {@link ReflectionInvoker}. This cannot invoke methods until an RPC target
+	 * {@link Object} as been set via {@link #changeTarget(Object)}
+	 *
+	 * I don't really like this but you as a client don't necessarily know the RPC target object up front.
+	 */
 	public ReflectionInvoker() {
 		this.rpcTarget = null;
 	}
