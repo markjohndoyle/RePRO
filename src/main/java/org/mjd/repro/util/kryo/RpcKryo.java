@@ -10,8 +10,6 @@ import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Request;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.util.ArgumentValues;
-import org.mjd.repro.util.ArgumentValues.ArgumentValuePair;
 import org.mjd.repro.util.kryo.RpcRequestKryoPool.ByteBufferSerializer;
 
 public final class RpcKryo {
@@ -24,8 +22,6 @@ public final class RpcKryo {
 		kryo.register(Request.class);
 		kryo.register(RequestWithArgs.class);
 		kryo.register(RpcRequest.class);
-		kryo.register(ArgumentValues.class);
-		kryo.register(ArgumentValuePair.class);
 		kryo.register(ResponseMessage.class, new ResponseMessage.ResponseMessageSerialiser());
 		kryo.register(HandlerException.class);
 		kryo.register(Optional.class);

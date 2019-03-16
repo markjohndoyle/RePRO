@@ -22,7 +22,6 @@ import org.mjd.repro.handlers.message.RpcHandlers;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.repro.support.FakeRpcTarget;
-import org.mjd.repro.util.ArgumentValues;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
 import org.mjd.repro.util.kryo.RpcRequestKryoPool;
 import org.slf4j.Logger;
@@ -84,21 +83,21 @@ public class ServerRpcSingleClientIT
 
 	        		FakeRpcTarget.methodNamesAndReturnValues.forEach((methodName, returnValue) -> {
 	        			final long id = reqId.getAndIncrement();
-	        			calls.put(id, executor.submit(() -> makeRpcCall(clientOut, methodName, ArgumentValues.none(), id)));
+	        			calls.put(id, executor.submit(() -> makeRpcCall(clientOut, id, methodName)));
 	        		});
 
 	        		// Fire off a few method calls with args
 	        		final long argCallId = reqId.getAndIncrement();
-	        		calls.put(argCallId, executor.submit(() ->
-	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 543), argCallId)));
+	        		calls.put(argCallId,
+	        				  executor.submit(() -> makeRpcCall(clientOut, argCallId, "hackTheGibson", 543)));
 
 	        		final long argCallId2 = reqId.getAndIncrement();
-	        		calls.put(argCallId2, executor.submit(() ->
-	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 999), argCallId2)));
+	        		calls.put(argCallId2,
+	        				  executor.submit(() -> makeRpcCall(clientOut, argCallId2, "hackTheGibson", 999)));
 
 	        		final long argCallId3 = reqId.getAndIncrement();
-	        		calls.put(argCallId3, executor.submit(() ->
-	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 98995786), argCallId3)));
+	        		calls.put(argCallId3,
+	        				  executor.submit(() -> makeRpcCall(clientOut, argCallId3, "hackTheGibson",  98995786)));
 
 	        		final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
 
@@ -127,8 +126,8 @@ public class ServerRpcSingleClientIT
 
 	        		for(int i = 0; i < numCalls; i++) {
 	        			final long argCallId = reqId.getAndIncrement();
-	        			calls.put(argCallId, executor.submit(() ->
-	        			makeRpcCall(clientOut, "hackTheGibson",  ArgumentValues.of("password", 543), argCallId)));
+	        			calls.put(argCallId,
+	        					  executor.submit(() -> makeRpcCall(clientOut, argCallId, "hackTheGibson", 543)));
 	        		}
 
 	        		final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
@@ -176,11 +175,6 @@ public class ServerRpcSingleClientIT
     		kryos.free(kryo);
     	}
     }
-
-	private RpcRequest makeRpcCall(final DataOutputStream clientOut, final String methodName, final ArgumentValues args, final long id)
-			throws IOException {
-		return makeRpcCall(clientOut, id, methodName, args.asObjArray());
-	}
 
     private void startServer()
     {

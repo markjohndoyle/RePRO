@@ -2,11 +2,8 @@ package org.mjd.repro.message;
 
 import com.esotericsoftware.kryo.DefaultSerializer;
 import com.esotericsoftware.kryo.serializers.JavaSerializer;
-import org.mjd.repro.util.ArgumentValues;
 
 /**
- * @author mark
- *
  */
 @DefaultSerializer(JavaSerializer.class)
 public class RpcRequest extends RequestWithArgs {
@@ -19,12 +16,6 @@ public class RpcRequest extends RequestWithArgs {
 	}
 
 	public RpcRequest(final long id, final String method, final Object[] argVals) {
-		super(id, argVals);
-		this.method = method;
-	}
-
-	@Deprecated
-	public RpcRequest(final long id, final String method, final ArgumentValues argVals) {
 		super(id, argVals);
 		this.method = method;
 	}
