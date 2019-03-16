@@ -33,6 +33,7 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.awaitility.Awaitility.await;
+import static org.awaitility.Duration.ONE_MINUTE;
 import static org.awaitility.Duration.TEN_SECONDS;
 import static org.mjd.repro.handlers.response.provided.RpcRequestRefiners.prepend;
 import static org.mjd.repro.support.ResponseReader.readResponse;
@@ -191,8 +192,8 @@ public class ServerRpcSingleClientIT
     {
         LOG.info("Test is shutting down server....");
         serverService.shutdownNow();
-        await().atMost(TEN_SECONDS).until(() -> { return rpcServer.isShutdown();});
-        await().atMost(TEN_SECONDS).until(() -> { return serverService.isTerminated();});
+        await().atMost(ONE_MINUTE).until(() -> { return rpcServer.isShutdown();});
+        await().atMost(ONE_MINUTE).until(() -> { return serverService.isTerminated();});
     }
 
 }
