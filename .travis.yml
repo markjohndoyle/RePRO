@@ -1,1 +1,4 @@
 language: java
+env:
+  - TEST_SUITE=units
+  - TEST_SUITE=integration
