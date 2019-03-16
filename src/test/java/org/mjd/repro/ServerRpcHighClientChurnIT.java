@@ -76,7 +76,7 @@ public class ServerRpcHighClientChurnIT {
 
         describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
             it("should reply correctly to all of them", () -> {
-                final int numClients = 6_000;
+                final int numClients = 1200;
                 final ExecutorService executor = Executors.newFixedThreadPool(600);
 
                 final BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
