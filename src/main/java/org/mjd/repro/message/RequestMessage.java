@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
-public final class RequestMessage<R extends IdentifiableRequest> implements Message<R>
+public final class RequestMessage<R extends RequestWithArgs> implements Message<R>
 {
     private final R request;
     private ByteBuffer byteBuffer;

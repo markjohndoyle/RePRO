@@ -1,33 +1,23 @@
 package org.mjd.repro.message;
 
-import java.io.Serializable;
-
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import org.mjd.repro.util.ArgumentValues;
 
-public class IdentifiableRequest implements Serializable {
+@DefaultSerializer(JavaSerializer.class)
+public class RequestWithArgs extends Request {
 	private static final long serialVersionUID = 1L;
 
 	private long id;
 	private ArgumentValues argValues = new ArgumentValues();
 
-	public IdentifiableRequest() {
-		// TODO for kryo, create serialiser
-	}
-
-	public IdentifiableRequest(final long id) {
+	public RequestWithArgs(final long id) {
 		this(id, ArgumentValues.none());
 	}
 
-	public IdentifiableRequest(final long id, final ArgumentValues argValues) {
-		this.id = id;
+	public RequestWithArgs(final long id, final ArgumentValues argValues) {
+		super(id);
 		this.argValues = argValues;
-	}
-
-	/**
-	 * @return the id of this request
-	 */
-	public final long getId() {
-		return id;
 	}
 
 	/**
@@ -37,12 +27,7 @@ public class IdentifiableRequest implements Serializable {
 		return argValues;
 	}
 
-	public final void setId(final long id) {
-		this.id = id;
-	}
-
 	public final void setArgValues(final ArgumentValues argVals) {
 		this.argValues = argVals;
 	}
-
 }

@@ -10,7 +10,7 @@ import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.repro.handlers.message.MessageHandler.HandlerException;
 import org.mjd.repro.handlers.message.SubscriptionRegistrar.Subscriber;
-import org.mjd.repro.message.IdentifiableRequest;
+import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.RequestMessage;
 import org.mjd.repro.util.kryo.RpcRequestKryoPool;
 import org.mjd.repro.writers.ChannelWriter;
@@ -32,10 +32,10 @@ import static org.mockito.Mockito.verify;
 @RunWith(OleasterRunner.class)
 public class SubscriptionInvokerTest {
 	@Spy private SelectionKey spyKey;
-	@Mock private ChannelWriter<IdentifiableRequest, SelectionKey> mockChannelWriter;
+	@Mock private ChannelWriter<RequestWithArgs, SelectionKey> mockChannelWriter;
 	@Mock private FakeBroadcaster mockBroadcaster;
 	private final RpcRequestKryoPool kryos = new RpcRequestKryoPool(true, false, 10);
-	private final ConnectionContext<IdentifiableRequest> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
+	private final ConnectionContext<RequestWithArgs> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
 	private SubscriptionInvoker invokerUnderTest;
 
 
@@ -54,8 +54,8 @@ public class SubscriptionInvokerTest {
 			});
 			describe("is given a valid RPC target object" , () -> {
 				it("should be able to register as a Subscriber without error" , () -> {
-					final IdentifiableRequest voidRequest = new IdentifiableRequest(0L);
-					final RequestMessage<IdentifiableRequest> fakeMsg = new RequestMessage<>(voidRequest);
+					final RequestWithArgs voidRequest = new RequestWithArgs(0L);
+					final RequestMessage<RequestWithArgs> fakeMsg = new RequestMessage<>(voidRequest);
 					invokerUnderTest.handle(fakeCtx, fakeMsg);
 					verify(mockBroadcaster).register(any(Subscriber.class));
 				});
@@ -64,8 +64,8 @@ public class SubscriptionInvokerTest {
 						doThrow(RuntimeException.class).when(mockBroadcaster).register(any(Subscriber.class));
 					});
 					it("should throw a HandlerException" , () -> {
-						final IdentifiableRequest voidRequest = new IdentifiableRequest(0L);
-						final RequestMessage<IdentifiableRequest> fakeMsg = new RequestMessage<>(voidRequest);
+						final RequestWithArgs voidRequest = new RequestWithArgs(0L);
+						final RequestMessage<RequestWithArgs> fakeMsg = new RequestMessage<>(voidRequest);
 						final ByteBuffer actualReturn = invokerUnderTest.handle(fakeCtx, fakeMsg).get().get();
 						final Kryo kryo = kryos.obtain();
 						try(Input input = new Input(actualReturn.array())) {

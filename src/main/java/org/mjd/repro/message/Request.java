@@ -25,7 +25,10 @@ public class Request implements Serializable {
 		this.id = id;
 	}
 
-	final long getId() {
+	/**
+	 * @return the ID of this request.
+	 */
+	public final long getId() {
 		return id;
 	}
 }

@@ -5,13 +5,13 @@ import java.io.IOException;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import org.mjd.repro.message.IdentifiableRequest;
+import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class KryoRpcRequestMsgFactory<R extends IdentifiableRequest> implements MessageFactory<R> {
+public final class KryoRpcRequestMsgFactory<R extends RequestWithArgs> implements MessageFactory<R> {
 	private static final Logger LOG = LoggerFactory.getLogger(KryoRpcRequestMsgFactory.class);
 
 	private final Kryo kryo;

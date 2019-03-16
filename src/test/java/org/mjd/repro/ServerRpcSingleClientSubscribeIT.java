@@ -18,7 +18,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.SubscriptionInvoker;
-import org.mjd.repro.message.IdentifiableRequest;
+import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.repro.support.FakeRpcTarget;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
@@ -46,10 +46,10 @@ public class ServerRpcSingleClientSubscribeIT
     private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
     private static final AtomicLong reqId = new AtomicLong();
     private ExecutorService serverService;
-    private Server<IdentifiableRequest> rpcServer;
+    private Server<RequestWithArgs> rpcServer;
     private FakeRpcTarget rpcTarget;
     private Socket clientSocket;
-    private MessageHandler<IdentifiableRequest> rpcInvoker;
+    private MessageHandler<RequestWithArgs> rpcInvoker;
     private Kryo kryo;
 
 	// TEST BLOCK
@@ -119,11 +119,11 @@ public class ServerRpcSingleClientSubscribeIT
         });
     }
 
-	private IdentifiableRequest subscribeOverRpc(final DataOutputStream clientOut, final long id)
+	private RequestWithArgs subscribeOverRpc(final DataOutputStream clientOut, final long id)
 			throws IOException {
 		final Kryo kryo = kryos.obtain();
 		try {
-			final IdentifiableRequest identifiableSubRequest = new IdentifiableRequest(id);
+			final RequestWithArgs identifiableSubRequest = new RequestWithArgs(id);
 			LOG.debug("Preparing to call request {}", id);
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, identifiableSubRequest).flush();
 			LOG.trace("Request {} written to server from client", identifiableSubRequest);
@@ -137,7 +137,7 @@ public class ServerRpcSingleClientSubscribeIT
 	private void startServer()
     {
 	        rpcServer = new Server<>(new InetSocketAddress(12509),
-        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), IdentifiableRequest.class));
+        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), RequestWithArgs.class));
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 

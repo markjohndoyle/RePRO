@@ -7,7 +7,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import org.mjd.repro.handlers.message.MessageHandler.HandlerException;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.IdentifiableRequest;
+import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.util.ArgumentValues;
 import org.mjd.repro.util.ArgumentValues.ArgumentValuePair;
@@ -20,7 +20,7 @@ public final class RpcKryo {
 
 	public static Kryo configure(final Kryo kryo) {
 		kryo.addDefaultSerializer(java.lang.Throwable.class, new JavaSerializer());
-		kryo.register(IdentifiableRequest.class);
+		kryo.register(RequestWithArgs.class);
 		kryo.register(RpcRequest.class);
 		kryo.register(ArgumentValues.class);
 		kryo.register(ArgumentValuePair.class);

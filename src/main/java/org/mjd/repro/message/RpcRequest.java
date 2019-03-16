@@ -1,20 +1,18 @@
 package org.mjd.repro.message;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import org.mjd.repro.util.ArgumentValues;
 
 /**
  * @author mark
  *
  */
-public class RpcRequest extends IdentifiableRequest {
+@DefaultSerializer(JavaSerializer.class)
+public class RpcRequest extends RequestWithArgs {
 	private static final long serialVersionUID = 3320910799863854768L;
 
 	private String method;
-
-	public RpcRequest() {
-		// TODO Auto-generated constructor stub
-		// TODO For Kryo, will create serialisers
-	}
 
 	public RpcRequest(final long id, final String method) {
 		this(id, method, ArgumentValues.none());
@@ -29,14 +27,8 @@ public class RpcRequest extends IdentifiableRequest {
 		return method;
 	}
 
-	public final void setMethod(final String method) {
-		this.method = method;
-	}
-
 	@Override
 	public final String toString() {
 		return "RpcRequest [id=" + getId() + ", method=" + method + ", argValues=" + getArgValues() + "]";
 	}
-
-
 }

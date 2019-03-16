@@ -6,7 +6,7 @@ import java.nio.channels.SelectionKey;
 
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.SubscriptionRegistrar.Subscriber;
-import org.mjd.repro.message.IdentifiableRequest;
+import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.writers.ChannelWriter;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
  *
  * @ThreadSafe
  */
-public final class SubscriptionWriter<R extends IdentifiableRequest> implements Subscriber {
+public final class SubscriptionWriter<R extends RequestWithArgs> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Object mutex = new Object();
 	private final Kryo kryo;
