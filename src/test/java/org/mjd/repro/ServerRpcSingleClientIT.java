@@ -145,22 +145,41 @@ public class ServerRpcSingleClientIT
 	        		kryos.free(kryo);
 	        	});
         	});
+        	describe("sends a void return method request", () -> {
+        		it("it should recieve an empty response as an acknowledgement", () -> {
+        			final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
+        			final RpcRequest sentRequest = makeRpcCall(clientOut, 1701L, "callMeVoid");
+
+        			final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
+        			final Kryo kryo = kryos.obtain();
+        			final Pair<Long, Object> response = readResponse(kryo, dataIn);
+
+        			expect(response.getLeft()).toEqual(sentRequest.getId());
+        			expect(response.getRight()).toBeNull();
+        		});
+        	});
         });
+    }
+
+	private RpcRequest makeRpcCall(final DataOutputStream clientOut, final long id, final String methodName,
+			final Object... args) throws IOException
+    {
+    	final Kryo kryo = kryos.obtain();
+    	try {
+    		final RpcRequest request = new RpcRequest(id, methodName, args);
+    		LOG.debug("Preparing to call request {}", id);
+    		KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, request).flush();
+    		LOG.trace("Request {} written to server from client", request);
+    		return request;
+    	}
+    	finally {
+    		kryos.free(kryo);
+    	}
     }
 
 	private RpcRequest makeRpcCall(final DataOutputStream clientOut, final String methodName, final ArgumentValues args, final long id)
 			throws IOException {
-		final Kryo kryo = kryos.obtain();
-		try {
-			final RpcRequest request = new RpcRequest(id, methodName, args);
-			LOG.debug("Preparing to call request {}", id);
-			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, request).flush();
-			LOG.trace("Request {} written to server from client", request);
-			return request;
-		}
-		finally {
-			kryos.free(kryo);
-		}
+		return makeRpcCall(clientOut, id, methodName, args.asObjArray());
 	}
 
     private void startServer()
