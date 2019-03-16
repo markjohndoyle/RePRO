@@ -64,7 +64,7 @@ public class ServerRpcSingleClientIT
         describe("When a single client", () -> {
         	beforeEach(() -> {
         		startServer();
-        		clientSocket = new Socket("localhost", 12509);
+        		clientSocket = new Socket("localhost", rpcServer.getPort());
         		await().atMost(TEN_SECONDS.multiply(12)).until(() -> clientSocket.isConnected());
         		LOG.debug("Client isConnected!");
         	});
@@ -178,8 +178,7 @@ public class ServerRpcSingleClientIT
 
     private void startServer()
     {
-        rpcServer = new Server<>(new InetSocketAddress(12509),
-        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class));
+        rpcServer = new Server<>(new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class));
 
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);

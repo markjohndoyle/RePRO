@@ -1,6 +1,7 @@
 package org.mjd.repro;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -49,25 +50,30 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private MessageHandler<MsgType> msgHandler;
+	private int port;
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.
 	 *
-	 * The server is not started and will not accept connections until you call
-	 * {@link #start()}
+	 * The server is not started and will not accept connections until you call {@link #start()}.
 	 *
-	 * @param serverAddress address this server listens on
+	 * The port will be assigned by the operating system.
+	 *
 	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
 	 */
+	public Server(final MessageFactory<MsgType> messageFactory) {
+		this(new InetSocketAddress(0), messageFactory);
+	}
+
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory) {
 		setupNonblockingServer(serverAddress);
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
 		keyProtocol = new KeyOpProtocol<SelectionKey>()
-							.add(new AcceptProtocol<>(serverChannel, selector))
-							.add(new ReadOpHandler<>(messageFactory, this))
-							.add(new WriteOpHandler<>(channelWriter));
+				.add(new AcceptProtocol<>(serverChannel, selector))
+				.add(new ReadOpHandler<>(messageFactory, this))
+				.add(new WriteOpHandler<>(channelWriter));
 	}
 
 	/**
@@ -150,6 +156,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		return !isAvailable();
 	}
 
+	public int getPort() {
+		return port;
+	}
+
 	private void setupNonblockingServer(final InetSocketAddress address) {
 		try {
 			selector = Selector.open();
@@ -157,6 +167,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 			serverChannel.bind(address);
 			serverChannel.configureBlocking(false);
 			serverChannel.register(selector, OP_ACCEPT, "The Director");
+			port = ((InetSocketAddress)serverChannel.getLocalAddress()).getPort();
 		}
 		catch (final IOException e) {
 			LOG.error("Fatal server setup up server channel: {}", e.toString());

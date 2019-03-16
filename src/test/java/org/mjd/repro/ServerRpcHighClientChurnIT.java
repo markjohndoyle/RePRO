@@ -54,6 +54,7 @@ public class ServerRpcHighClientChurnIT {
     private Server<RpcRequest> rpcServer;
     private FakeRpcTarget rpcTarget;
     private MessageHandler<RpcRequest> rpcInvoker;
+	private int port;
 
 
     // TEST BLOCK
@@ -82,7 +83,7 @@ public class ServerRpcHighClientChurnIT {
                 final BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
                 for(int i = 0; i < numClients; i++)
                 {
-                    clientJobs.add(executor.submit(new RpcClientRequestJob(kryos, reqId)));
+                    clientJobs.add(executor.submit(new RpcClientRequestJob(kryos, reqId, port)));
                 }
 
                 final Iterator<Future<?>> it = clientJobs.iterator();
@@ -97,8 +98,7 @@ public class ServerRpcHighClientChurnIT {
 
     private void startServer()
     {
-        rpcServer = new Server<>(new InetSocketAddress(12509),
-        						 new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class))
+        rpcServer = new Server<>(new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class))
         						.addHandler(rpcInvoker)
         						.addHandler(prepend::requestId);
 
@@ -115,6 +115,7 @@ public class ServerRpcHighClientChurnIT {
             }
         });
         await().until(() -> { return rpcServer.isAvailable();});
+        port = rpcServer.getPort();
     }
 
 	private void shutdownServer()
@@ -131,16 +132,18 @@ public class ServerRpcHighClientChurnIT {
 		private static final Logger LOG = LoggerFactory.getLogger(RpcClientRequestJob.class);
 		private final Pool<Kryo> kryos;
 		private final AtomicLong requestId;
+		private final int port;
 
-		RpcClientRequestJob(final Pool<Kryo> kryos, final AtomicLong reqId) {
+		RpcClientRequestJob(final Pool<Kryo> kryos, final AtomicLong reqId, final int port) {
 			this.kryos = kryos;
 			this.requestId = reqId;
+			this.port = port;
 		}
 
 		@Override
 		public Socket call() throws Exception {
 			final Kryo kryo = kryos.obtain();
-			final Socket clientSocket = connectToServer();
+			final Socket clientSocket = connectToServer(port);
 			final Pair<Long, Object> request = makeRpcCall(kryo, clientSocket);
 
 			LOG.trace("Reading response from server...");
@@ -151,10 +154,10 @@ public class ServerRpcHighClientChurnIT {
 			return clientSocket;
 		}
 
-		private static Socket connectToServer() throws IOException {
+		private static Socket connectToServer(final int port) throws IOException {
 			LOG.trace("Running client");
 			final Socket clientSocket = new Socket();
-			clientSocket.connect(new InetSocketAddress("localhost", 12509), 512000);
+			clientSocket.connect(new InetSocketAddress("localhost", port), 512000);
 			await().atMost(TEN_SECONDS.multiply(12)).until(() -> clientSocket.isConnected());
 			LOG.trace("Client isConnected!");
 			return clientSocket;

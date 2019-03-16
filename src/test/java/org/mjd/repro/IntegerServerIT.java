@@ -41,6 +41,7 @@ public final class IntegerServerIT
     private DataOutputStream socketOut;
     private Server<Integer> integerMessageServer;
     private final RpcRequestKryoPool kryos = new RpcRequestKryoPool(true, false, 500);
+    private int serverPort;
 
     // TEST BLOCK
     {
@@ -48,7 +49,7 @@ public final class IntegerServerIT
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
             await().atMost(TEN_SECONDS).until(() -> { return integerMessageServer.isAvailable();});
-            testSocket = new Socket("localhost", 12509);
+            testSocket = new Socket("localhost", serverPort);
             socketIn = new DataInputStream(testSocket.getInputStream());
             socketOut = new DataOutputStream(testSocket.getOutputStream());
         });
@@ -106,10 +107,10 @@ public final class IntegerServerIT
         });
     }
 
-
     public void startServer()
     {
-        integerMessageServer = new Server<>(new InetSocketAddress(12509), bytesRead -> IntMessage.from(bytesRead));
+        integerMessageServer = new Server<>(bytesRead -> IntMessage.from(bytesRead));
+        serverPort = integerMessageServer.getPort();
 
         // Add echo handler
         integerMessageServer.addHandler((final ConnectionContext<Integer> context, final Message<Integer> message) -> {
