@@ -1,3 +1,2 @@
 language: java
-install: true
-script: mvn verify
+script: mvn clean verify
