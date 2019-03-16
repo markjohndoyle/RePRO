@@ -5,9 +5,9 @@ import java.io.IOException;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestMessage;
+import org.mjd.repro.message.RequestWithArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

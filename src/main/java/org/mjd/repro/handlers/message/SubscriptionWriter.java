@@ -6,8 +6,8 @@ import java.nio.channels.SelectionKey;
 
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.SubscriptionRegistrar.Subscriber;
-import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.Message;
+import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.writers.ChannelWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

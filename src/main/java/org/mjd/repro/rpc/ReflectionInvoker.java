@@ -4,7 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.util.ArgumentValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +36,8 @@ public final class ReflectionInvoker implements RpcRequestMethodInvoker {
 			throw new IllegalStateException("RPC target has not been set");
 		}
 		try {
-			final String requestedMethodCall = request.getMethod();
-			final ArgumentValues args = request.getArgValues();
-			LOG.debug("Invoking {} with args {}", requestedMethodCall, args);
-			return MethodUtils.invokeMethod(rpcTarget, requestedMethodCall, args.asObjArray());
+			LOG.debug("Invoking {} with args {}", request.getMethod(), request.getArgValues());
+			return MethodUtils.invokeMethod(rpcTarget, request.getMethod(), request.getArgValues());
 		}
 		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 			throw new InvocationException("Error invoking " + request, ex);

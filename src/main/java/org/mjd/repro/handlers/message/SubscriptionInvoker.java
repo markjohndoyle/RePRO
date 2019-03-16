@@ -11,8 +11,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.Message;
+import org.mjd.repro.message.RequestWithArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
