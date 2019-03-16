@@ -17,7 +17,7 @@ import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler;
-import org.mjd.repro.handlers.message.SubscriptionInvoker;
+import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.repro.support.FakeRpcTarget;

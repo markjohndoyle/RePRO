@@ -1,4 +1,4 @@
-package org.mjd.repro.handlers.message;
+package org.mjd.repro.handlers.subscriber;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

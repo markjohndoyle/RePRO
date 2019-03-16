@@ -9,8 +9,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.mjd.repro.handlers.message.MessageHandler;
-import org.mjd.repro.handlers.message.RpcRequestInvoker;
-import org.mjd.repro.handlers.message.SuppliedRpcRequestInvoker;
+import org.mjd.repro.handlers.request.RpcRequestInvoker;
+import org.mjd.repro.handlers.subscriber.SuppliedRpcRequestInvoker;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.ReflectionInvoker;
 

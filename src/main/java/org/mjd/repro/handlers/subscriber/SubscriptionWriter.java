@@ -1,11 +1,12 @@
-package org.mjd.repro.handlers.message;
+package org.mjd.repro.handlers.subscriber;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 
 import com.esotericsoftware.kryo.Kryo;
-import org.mjd.repro.handlers.message.SubscriptionRegistrar.Subscriber;
+import org.mjd.repro.handlers.message.ResponseMessage;
+import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.writers.ChannelWriter;

@@ -1,4 +1,4 @@
-package org.mjd.repro.handlers.message;
+package org.mjd.repro.handlers.subscriber;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -11,6 +11,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
+import org.mjd.repro.handlers.message.MessageHandler;
+import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestWithArgs;
 import org.slf4j.Logger;

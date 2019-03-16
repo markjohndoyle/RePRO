@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.mjd.repro.handlers.message.SubscriptionRegistrar;
-import org.mjd.repro.handlers.message.SubscriptionRegistrar.Subscriber;
+import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar;
+import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
 import org.mjd.repro.support.Broadcaster.Listener;
 
 /**
