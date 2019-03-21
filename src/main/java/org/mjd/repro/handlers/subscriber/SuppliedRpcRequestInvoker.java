@@ -9,13 +9,10 @@ import java.util.function.Function;
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.handlers.request.RpcRequestInvoker;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 import org.mjd.repro.util.kryo.KryoPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
@@ -23,11 +20,8 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements MessageHandler<R> {
 	private final RpcRequestMethodInvoker methodInvoker;
 	private final ExecutorService executor;
-	private Function<R, Object> rpcTargetSupplier;
-
 	private final KryoPool kryos;
-
-	private static final Logger LOG = LoggerFactory.getLogger(RpcRequestInvoker.class);
+	private Function<R, Object> rpcTargetSupplier;
 
 	public SuppliedRpcRequestInvoker(final ExecutorService executor, final KryoPool kryos,
 			final RpcRequestMethodInvoker rpcMethodInvoker, final Function<R, Object> supplier) {
