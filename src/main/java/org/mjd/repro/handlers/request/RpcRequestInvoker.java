@@ -14,31 +14,29 @@ import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 
 import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
-//TODO move kryo serialisation to strategy
+// TODO move kryo serialisation to strategy
 public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHandler<R> {
 	private final Kryo kryo;
 	private final RpcRequestMethodInvoker methodInvoker;
 	private final ExecutorService executor;
 
-	public RpcRequestInvoker(final ExecutorService executor, final Kryo kryo,
-							 final RpcRequestMethodInvoker rpcMethodInvoker) {
+	public RpcRequestInvoker(final ExecutorService executor, final Kryo kryo, final RpcRequestMethodInvoker rpcMethodInvoker) {
 		this.executor = executor;
 		this.kryo = kryo;
 		this.methodInvoker = rpcMethodInvoker;
 	}
 
 	@Override
-	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext,
-											   final Message<R> message) {
+	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final Message<R> message) {
 		return executor.submit(() -> {
 			final Object result = methodInvoker.invoke(message.getValue());
 			if (result == null) {
 				return Optional.empty();
 			}
+
 			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
 		});
 	}
 }
-

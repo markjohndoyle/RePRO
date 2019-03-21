@@ -26,8 +26,8 @@ public final class ResponseMessage<T> implements Serializable {
 	private Throwable exception;
 
 	/**
-	 * Creates a "void" version of this {@link ResponseMessage}. The type will be {@link Void} and the
-	 * {@link #value} will be {@link Optional#empty()} and {@link #isError()} will be false.
+	 * Creates a "void" version of this {@link ResponseMessage}. The type will be {@link Void} and the {@link #value} will
+	 * be {@link Optional#empty()} and {@link #isError()} will be false.
 	 *
 	 * @param id the ID this response is for
 	 * @return new {@link ResponseMessage} representing {@link Void}
@@ -70,6 +70,10 @@ public final class ResponseMessage<T> implements Serializable {
 		return new ResponseMessage<>(id, ex);
 	}
 
+	@Override
+	public String toString() {
+		return "ResponseMessage [id=" + id + ", value=" + value + ", exception=" + exception + "]";
+	}
 
 	public static final class ResponseMessageSerialiser extends Serializer<ResponseMessage<Object>> {
 		public ResponseMessageSerialiser() {
@@ -79,7 +83,7 @@ public final class ResponseMessage<T> implements Serializable {
 		@Override
 		public void write(final Kryo kryo, final Output output, final ResponseMessage<Object> object) {
 			output.writeLong(object.getId());
-			if(object.isError()) {
+			if (object.isError()) {
 				output.writeBoolean(true);
 				kryo.writeObject(output, object.getError().get());
 			}
@@ -90,13 +94,13 @@ public final class ResponseMessage<T> implements Serializable {
 		}
 
 		@Override
-		public ResponseMessage<Object>
-		read(final Kryo kryo, final Input input, final Class<? extends ResponseMessage<Object>> type) {
+		public ResponseMessage<Object> read(final Kryo kryo, final Input input,
+				final Class<? extends ResponseMessage<Object>> type) {
 			final long readId = input.readLong();
-			if(input.readBoolean()) {
+			if (input.readBoolean()) {
 				return new ResponseMessage<>(readId, kryo.readObject(input, HandlerException.class));
 			}
 			return new ResponseMessage<>(readId, kryo.readClassAndObject(input));
-		}}
+		}
+	}
 }
-
