@@ -155,6 +155,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		return !isAvailable();
 	}
 
+	/** @return the port this {@link Server} is bound to */
 	public int getPort() {
 		return port;
 	}
