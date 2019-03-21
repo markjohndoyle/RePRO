@@ -24,6 +24,7 @@ public final class KryoRpcUtils {
 			outputStream.write(Ints.toByteArray(bos.size()));
 			outputStream.write(bos.toByteArray());
 			clientOut.write(outputStream.toByteArray());
+
 			return clientOut;
 		}
 	}
@@ -40,8 +41,7 @@ public final class KryoRpcUtils {
 	}
 
 	public static <T> T readBytesWithKryo(final Kryo kryo, final byte[] data, final Class<T> type) {
-		try (ByteArrayInputStream bin = new ByteArrayInputStream(data);
-			 Input kryoByteArrayIn = new Input(bin)) {
+		try (ByteArrayInputStream bin = new ByteArrayInputStream(data); Input kryoByteArrayIn = new Input(bin)) {
 			return kryo.readObject(kryoByteArrayIn, type);
 		}
 		catch (final IOException e) {

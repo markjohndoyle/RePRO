@@ -25,7 +25,7 @@ public final class AcceptProtocol<K extends SelectionKey> extends AbstractHandle
 
 	@Override
 	public void handle(final K key) {
-		if(key.isAcceptable() && key.isValid()) {
+		if (key.isAcceptable() && key.isValid()) {
 			LOG.trace("{} is acceptable, a client is connecting.", key.attachment());
 			SocketChannel clientChannel;
 			try {
@@ -35,6 +35,7 @@ public final class AcceptProtocol<K extends SelectionKey> extends AbstractHandle
 					clientChannel.register(selector, OP_READ, "client " + conId);
 					LOG.trace("Socket accepted for client {}", conId);
 					conId++;
+					return;
 				}
 			}
 			catch (final IOException e) {

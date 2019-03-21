@@ -13,6 +13,7 @@ import org.mjd.repro.handlers.request.RpcRequestInvoker;
 import org.mjd.repro.handlers.subscriber.SuppliedRpcRequestInvoker;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.ReflectionInvoker;
+import org.mjd.repro.util.kryo.KryoPool;
 
 /**
  * Factory and utility methods for RPC based {@link MessageHandler}s.
@@ -81,10 +82,10 @@ public final class RpcHandlers {
 	 *                          the RPC call on.
 	 * @return {@link MessageHandler} for {@link RpcRequest} messages.
 	 */
-	public static <R extends RpcRequest> MessageHandler<R> newFixedThreadRpcInvoker(final Kryo kryo, final int threadCount,
+	public static <R extends RpcRequest> MessageHandler<R> newFixedThreadRpcInvoker(final KryoPool kryos, final int threadCount,
 			final Function<R, Object> rpcTargetSupplier) {
 		final ThreadFactory nameFactory = new ThreadFactoryBuilder().setNameFormat(SuppliedRpcRequestInvoker.class.getName()).build();
-		return new SuppliedRpcRequestInvoker<>(Executors.newFixedThreadPool(threadCount, nameFactory), kryo,
+		return new SuppliedRpcRequestInvoker<>(Executors.newFixedThreadPool(threadCount, nameFactory), kryos,
 				new ReflectionInvoker(), rpcTargetSupplier);
 	}
 }
