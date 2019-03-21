@@ -24,7 +24,7 @@ import com.esotericsoftware.kryo.Kryo;
  * </pre>
  *
  */
-public class KryoPool
+public final class KryoPool
 {
     private final Queue<Kryo> pool;
     private final Function<Kryo, Kryo>[] configurators;
