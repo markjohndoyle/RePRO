@@ -1,4 +1,3 @@
-package org.mjd.repro.util.kryo;
 
 import java.util.ArrayDeque;
 import java.util.Queue;

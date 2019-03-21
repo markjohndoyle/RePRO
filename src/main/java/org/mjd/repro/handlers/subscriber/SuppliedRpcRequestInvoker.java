@@ -20,7 +20,6 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements MessageHandler<R> {
 	private final RpcRequestMethodInvoker methodInvoker;
 	private final ExecutorService executor;
-	private final KryoPool kryos;
 	private Function<R, Object> rpcTargetSupplier;
 
 	public SuppliedRpcRequestInvoker(final ExecutorService executor, final KryoPool kryos,
