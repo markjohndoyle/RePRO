@@ -52,10 +52,8 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private int port;
 
 	/**
-	 * Creates a fully initialised single threaded non-blocking {@link Server}.
-	 *
-	 * The server is not started and will not accept connections until you call {@link #start()}.
-	 *
+	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
+	 * The server is not started and will not accept connections until you call {@link #start()}.</br>
 	 * The port will be assigned by the operating system.
 	 *
 	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
@@ -64,6 +62,14 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		this(new InetSocketAddress(0), messageFactory);
 	}
 
+	/**
+	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
+	 * The server is not started and will not accept connections until you call {@link #start()}.</br>
+	 * The server will attempt to bind on the given {@link InetSocketAddress} {@code serverAddress}
+	 *
+	 * @param serverAddress  the address this server shoudl bind to
+	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
+	 */
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory) {
 		setupNonblockingServer(serverAddress);
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
