@@ -36,12 +36,17 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 		return executor.submit(() -> {
 			methodInvoker.changeTarget(rpcTargetSupplier.apply(message.getValue()));
 			// ^ Maybe add a caching option users can configure so we don't need to set this every call.
-			final Object result = methodInvoker.invoke(message.getValue());
-			if (result == null) {
-				return Optional.empty();
+			ResponseMessage<Object> responseMessage;
+			try
+			{
+				final Object result = methodInvoker.invoke(message.getValue());
+				responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
+			} catch (RpcRequestMethodInvoker.InvocationException e)
+			{
+				responseMessage = new ResponseMessage<>(message.getValue().getId(), e.getCause());
 			}
-			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
-			final Kryo kryo = kryos.obtain();
+
+			Kryo kryo = kryos.obtain();
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			kryos.free(kryo);
 			return Optional.of(ByteBuffer.wrap(msgBytes));

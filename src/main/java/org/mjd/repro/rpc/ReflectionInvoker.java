@@ -37,7 +37,7 @@ public final class ReflectionInvoker implements RpcRequestMethodInvoker {
 	}
 
 	@Override
-	public Object invoke(final RpcRequest request) {
+	public Object invoke(final RpcRequest request) throws InvocationException {
 		if(rpcTarget == null) {
 			throw new IllegalStateException("RPC target has not been set");
 		}

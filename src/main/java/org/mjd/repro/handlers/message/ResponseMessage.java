@@ -38,7 +38,7 @@ public final class ResponseMessage<T> implements Serializable {
 
 	public ResponseMessage(final long id, final T value) {
 		this.id = id;
-		this.value = Optional.of(value);
+		this.value = Optional.ofNullable(value);
 	}
 
 	public ResponseMessage(final long id, final Throwable ex) {
@@ -89,7 +89,15 @@ public final class ResponseMessage<T> implements Serializable {
 			}
 			else {
 				output.writeBoolean(false);
-				kryo.writeClassAndObject(output, object.getValue().get());
+				if (object.getValue().isPresent())
+				{
+					output.writeBoolean(true);
+					kryo.writeClassAndObject(output, object.getValue().get());
+				}
+				else
+				{
+					output.writeBoolean(false);
+				}
 			}
 		}
 
@@ -100,7 +108,12 @@ public final class ResponseMessage<T> implements Serializable {
 			if (input.readBoolean()) {
 				return new ResponseMessage<>(readId, kryo.readObject(input, HandlerException.class));
 			}
-			return new ResponseMessage<>(readId, kryo.readClassAndObject(input));
+			if (input.readBoolean()) {
+				return new ResponseMessage<>(readId, kryo.readClassAndObject(input));
+			} else
+			{
+				return new ResponseMessage<>(readId, null);
+			}
 		}
 	}
 }
