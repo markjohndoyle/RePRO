@@ -36,11 +36,11 @@ public final class IntMessage implements Message<Integer>
     /* (non-Javadoc)
      * @see org.mjd.repro.Message#asByteArray()
      */
-    @Override
-    public byte[] asByteArray()
-    {
-        return bytes;
-    }
+//    @Override
+//    public byte[] asByteArray()
+//    {
+//        return bytes;
+//    }
 
     public static Message<Integer> from(byte[] message)
     {

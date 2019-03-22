@@ -1,7 +1,6 @@
 package org.mjd.repro.readers.body;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Objects;
 
 import com.mscharhag.oleaster.runner.OleasterRunner;
@@ -203,7 +202,7 @@ public final class SingleMessageBodyReaderTest {
 		StringMessage(final String value) { this.value = value; this.array = value.getBytes(); }
 		@Override public String getValue() { return value; }
 		@Override public int size() { return array.length; }
-		@Override public byte[] asByteArray() { return Arrays.copyOf(array, array.length); }
+//		@Override public byte[] asByteArray() { return Arrays.copyOf(array, array.length); }
 
 		@Override
 		public boolean equals(final Object obj) {
