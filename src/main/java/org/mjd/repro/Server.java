@@ -16,7 +16,6 @@ import org.mjd.repro.async.SequentialMessageJobExecutor;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.repro.handlers.op.AcceptProtocol;
-import org.mjd.repro.handlers.op.KeyOpProtocol;
 import org.mjd.repro.handlers.op.ReadOpHandler;
 import org.mjd.repro.handlers.op.RootMessageHandler;
 import org.mjd.repro.handlers.op.WriteOpHandler;
@@ -24,6 +23,7 @@ import org.mjd.repro.handlers.response.ResponseRefiner;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
+import org.mjd.repro.util.chain.ProtocolChain;
 import org.mjd.repro.writers.ChannelWriter;
 import org.mjd.repro.writers.RefiningChannelWriter;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
-	private final KeyOpProtocol<SelectionKey> keyProtocol;
+	private final ProtocolChain<SelectionKey> keyProtocol;
 	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
@@ -69,10 +69,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
-		keyProtocol = new KeyOpProtocol<SelectionKey>()
-				.add(new AcceptProtocol<>(serverChannel, selector))
-				.add(new ReadOpHandler<>(messageFactory, this))
-				.add(new WriteOpHandler<>(channelWriter));
+		keyProtocol = new ProtocolChain<SelectionKey>()
+							.add(new AcceptProtocol<>(serverChannel, selector))
+							.add(new ReadOpHandler<>(messageFactory, this))
+							.add(new WriteOpHandler<>(channelWriter));
 	}
 
 	/**
