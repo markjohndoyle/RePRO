@@ -44,7 +44,7 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 			final Kryo kryo = kryos.obtain();
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			kryos.free(kryo);
-			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
+			return Optional.of(ByteBuffer.wrap(msgBytes));
 		});
 	}
 }
