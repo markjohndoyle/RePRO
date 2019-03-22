@@ -13,7 +13,7 @@ public interface RpcRequestMethodInvoker {
 	 * Wrapping exception that {@link RpcRequestMethodInvoker} implementations can through for circumstances
 	 * the client can't deal with at runtime.
 	 */
-	final class InvocationException extends RuntimeException {
+	final class InvocationException extends Exception {
 		private static final long serialVersionUID = 1L;
 
 		public InvocationException(final String message, final Throwable cause) {
@@ -26,8 +26,9 @@ public interface RpcRequestMethodInvoker {
 	 *
 	 * @param request the {@link RpcRequest} to invoke
 	 * @return the result of the invocation
+	 * @throws InvocationException
 	 */
-	Object invoke(RpcRequest request);
+	Object invoke(RpcRequest request) throws InvocationException;
 
 	void changeTarget(Object newTarget);
 }
