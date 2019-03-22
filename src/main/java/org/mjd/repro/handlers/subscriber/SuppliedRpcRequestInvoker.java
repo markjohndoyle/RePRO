@@ -41,7 +41,7 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 				return Optional.empty();
 			}
 			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
-			Kryo kryo = kryos.obtain();
+			final Kryo kryo = kryos.obtain();
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			kryos.free(kryo);
 			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));

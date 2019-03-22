@@ -20,7 +20,7 @@ public final class IntHeaderReader implements HeaderReader<Integer> {
 	private static final int headerSize = Integer.BYTES;
 
 	private final String id;
-	private ByteBuffer headerBuffer = null;
+	private ByteBuffer headerBuffer;
 
 	// Header value defaults to -1 which means unknown. We use this rather than optional for performance
 	// This is ok since it's completely an implementation detail of this class.
@@ -34,7 +34,7 @@ public final class IntHeaderReader implements HeaderReader<Integer> {
 	 *
 	 * @param id identifer for this {@link HeaderReader}.
 	 */
-	public IntHeaderReader(String id) {
+	public IntHeaderReader(final String id) {
 		this.id = id;
 	}
 
@@ -51,7 +51,7 @@ public final class IntHeaderReader implements HeaderReader<Integer> {
 	public void readHeader(final ByteBuffer buffer) {
 		LOG.trace("[{}] Reading header from {} with {} remaining ", id, buffer, buffer.remaining());
 		if (thereIsDataInTheBuffer(buffer)) {
-			if (thereIsPartOfTheDataInThe(buffer)) {
+			if (thereIsOnlyPartOfTheDataInThe(buffer)) {
 				setupLocalBufferIfNecessary();
 				headerBuffer.put(buffer);
 				if (!headerBuffer.hasRemaining()) {
@@ -110,7 +110,7 @@ public final class IntHeaderReader implements HeaderReader<Integer> {
 		return headerSize;
 	}
 
-	private static boolean thereIsPartOfTheDataInThe(final ByteBuffer buffer) {
+	private static boolean thereIsOnlyPartOfTheDataInThe(final ByteBuffer buffer) {
 		return buffer.remaining() < headerSize;
 	}
 
