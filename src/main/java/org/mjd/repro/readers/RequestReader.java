@@ -211,11 +211,10 @@ public final class RequestReader<T> implements MessageReader<T> {
 		// message body didn't leak into the end of the header buffer in a vectored read.
 		if (headerReader.remaining() < headerSize) {
 			final int inThisBuffer = Math.min(headerReader.remaining(), Math.toIntExact(totalBytesReadThisCall));
-			LOG.trace(
-					"{} header remaining is not equal to {} header size. "
-							+ "Reseting to mark and moving limit back to {} before passing to header reader."
-							+ "There are {} bytes of header in this buffer",
-					headerReader.remaining(), headerSize, headerBuffer.position() + inThisBuffer, inThisBuffer);
+			LOG.trace("{} header remaining is not equal to {} header size. "
+					  + "Reseting to mark and moving limit back to {} before passing to header reader."
+					  + "There are {} bytes of header in this buffer",
+					  headerReader.remaining(), headerSize, headerBuffer.position() + inThisBuffer, inThisBuffer);
 			headerReader.readHeader((ByteBuffer) headerBuffer.reset().limit(headerBuffer.position() + inThisBuffer));
 		}
 		else {

@@ -23,24 +23,24 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
     private int bodySize;
     private int totalBodyRead;
     private byte[] bytesReadFromChannel;
-    private Message<T> message = null;
+    private Message<T> message;
 	private final MessageFactory<T> msgFactory;
 
-	public SingleMessageBodyReader(String id, MessageFactory<T> messageFactory) {
+	public SingleMessageBodyReader(final String id, final MessageFactory<T> messageFactory) {
 		this.id = id;
 		this.msgFactory = messageFactory;
 	}
 
 	@Override
-	public ByteBuffer read(ByteBuffer bodyBuffer) {
+	public ByteBuffer read(final ByteBuffer bodyBuffer) {
 		final int bytesInBuffer = bodyBuffer.remaining();
-		int bytesBelongingToThis = getNumRelevantBytes(bytesInBuffer);
-		ByteBuffer followingData = copyFollowingData(bodyBuffer, bytesInBuffer, bytesBelongingToThis);
+		final int bytesBelongingToThis = getNumRelevantBytes(bytesInBuffer);
+		final ByteBuffer followingData = copyFollowingData(bodyBuffer, bytesInBuffer, bytesBelongingToThis);
 		handleRelevantBytes(bodyBuffer, bytesBelongingToThis);
 		return followingData;
 	}
 
-	private void handleRelevantBytes(ByteBuffer bodyBuffer, int bytesBelongingToThis) {
+	private void handleRelevantBytes(final ByteBuffer bodyBuffer, final int bytesBelongingToThis) {
 		if(bytesBelongingToThis > 0) {
 		    bodyBuffer.get(bytesReadFromChannel, totalBodyRead, bytesBelongingToThis);
 		    totalBodyRead += bytesBelongingToThis;
@@ -56,12 +56,12 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
 		}
 	}
 
-	private ByteBuffer copyFollowingData(ByteBuffer bodyBuffer, final int bytesInBuffer, int bytesBelongingToThis) {
+	private ByteBuffer copyFollowingData(final ByteBuffer bodyBuffer, final int bytesInBuffer, final int bytesBelongingToThis) {
 		if(bytesInBuffer > bytesBelongingToThis)
 		{
 			LOG.trace("[{}] We have part of the next message, {} bytes belong to this body of {} remaining in the body buffer",
 					id, remainingBody, bytesInBuffer);
-			byte[] remainder = new byte[bytesInBuffer - bytesBelongingToThis];
+			final byte[] remainder = new byte[bytesInBuffer - bytesBelongingToThis];
 			bodyBuffer.mark();
 			bodyBuffer.position(bytesInBuffer - remainder.length);
 			bodyBuffer.get(remainder, 0, remainder.length);
@@ -118,7 +118,7 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
 	}
 
 	@Override
-	public void setBodySize(int size) {
+	public void setBodySize(final int size) {
 		// TODO whole "setter" thing is garbage, it will be removed.
 		if(bytesReadFromChannel == null)
 		{
