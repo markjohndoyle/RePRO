@@ -2,7 +2,9 @@ package org.mjd.repro.writers;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Collections;
@@ -48,6 +50,9 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 			LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
 			key.interestOps(OP_READ);
 		}
+		catch(final CancelledKeyException e) {
+			LOG.warn("Key {} cancelled during write. Channel probably closed or server is shutting down", key.attachment());
+		}
 		catch (final IOException e) {
 			e.printStackTrace();
 			return;
@@ -62,7 +67,21 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 		final ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite);
 		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
 		add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
-		key.interestOps(key.interestOps() | OP_WRITE);
+		try {
+			key.interestOps(key.interestOps() | OP_WRITE);
+		}
+		catch(final CancelledKeyException | ClosedSelectorException ex) {
+			LOG.warn("Server was about to write response to client {} but it's key was cancelled. Removing all "
+					+ "writers for this key", key.attachment());
+			responseWritersLock.writeLock().lock();
+			try {
+				responseWriters.removeAll(key);
+			}
+			finally {
+				responseWritersLock.writeLock().unlock();
+			}
+			return;
+		}
 		selector.wakeup();
 	}
 
