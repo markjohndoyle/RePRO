@@ -2,14 +2,22 @@ package org.mjd.repro;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mjd.repro.async.AsyncMessageJob;
 import org.mjd.repro.async.AsyncMessageJobExecutor;
 import org.mjd.repro.async.SequentialMessageJobExecutor;
@@ -40,16 +48,20 @@ import static java.nio.channels.SelectionKey.OP_ACCEPT;
  * @param <MsgType> the type of message this server expects to receive.
  */
 public final class Server<MsgType> implements RootMessageHandler<MsgType> {
+	private static final String DEFAULT_MSG_HANDLER_ID = "default";
+
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 	private final ProtocolChain<SelectionKey> keyProtocol;
+	private final Map<String, MessageHandler<MsgType>> msgHandlers = new HashMap<>();
 	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
+	private final Function<MsgType, String> handlerRouter;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
-	private MessageHandler<MsgType> msgHandler;
 	private int port;
+
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
@@ -71,14 +83,24 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
 	 */
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory) {
+		this(serverAddress, messageFactory, (msg) -> DEFAULT_MSG_HANDLER_ID);
+	}
+
+	public Server(final MessageFactory<MsgType> messageFactory, final Function<MsgType, String> handlerRouter) {
+		this(new InetSocketAddress(0), messageFactory, handlerRouter);
+	}
+
+	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory,
+				  final Function<MsgType, String> handlerRouter) {
 		setupNonblockingServer(serverAddress);
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
 		keyProtocol = new ProtocolChain<SelectionKey>()
-							.add(new AcceptProtocol<>(serverChannel, selector))
-							.add(new ReadOpHandler<>(messageFactory, this))
-							.add(new WriteOpHandler<>(channelWriter));
+				.add(new AcceptProtocol<>(serverChannel, selector))
+				.add(new ReadOpHandler<>(messageFactory, this))
+				.add(new WriteOpHandler<>(channelWriter));
+		this.handlerRouter = handlerRouter;
 	}
 
 	/**
@@ -94,13 +116,16 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	@Override
 	public void handle(final SelectionKey key, final Message<MsgType> message) {
-		if (msgHandler == null) {
-			LOG.warn("No handler for {}. Message will be discarded.", key.attachment());
+		if (msgHandlers.isEmpty()) {
+			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
 		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-		asyncMsgJobExecutor.add(new AsyncMessageJob<>(
-							key, message, msgHandler.handle(new ConnectionContext<>(channelWriter, key), message)));
+		final String handlerId = handlerRouter.apply(message.getValue());
+		final MessageHandler<MsgType> msgHandler = msgHandlers.get(handlerId);
+		final ConnectionContext<MsgType> connectionContext = new ConnectionContext<>(channelWriter, key);
+		final Future<Optional<ByteBuffer>> handlingJob = msgHandler.handle(connectionContext, message);
+		asyncMsgJobExecutor.add(AsyncMessageJob.from(key, message, handlingJob));
 	}
 
 	/**
@@ -112,8 +137,19 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 *
 	 * @notThreadSafe
      */
+	public Server<MsgType> addHandler(final String id, final MessageHandler<MsgType> handler) {
+		final MessageHandler<MsgType> old = msgHandlers.putIfAbsent(id, handler);
+		if(old != null) {
+			LOG.warn("Message Handler for ID '{}' already exists. Repeated attempts to add handlers will be ignored", id);
+		}
+		return this;
+	}
+
 	public Server<MsgType> addHandler(final MessageHandler<MsgType> handler) {
-		this.msgHandler = handler;
+		final MessageHandler<MsgType> old = msgHandlers.putIfAbsent(DEFAULT_MSG_HANDLER_ID, handler);
+		if(old != null) {
+			LOG.warn("Default Message Handler already exists. Repeated attempts to add handlers will be ignored");
+		}
 		return this;
 	}
 
@@ -133,14 +169,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	 * Closes the selector which will pull the server out of the blocking loop.
 	 */
 	public void shutDown() {
-		try {
-			selector.close();
-		}
-		catch (final IOException e) {
-			LOG.error("Error closing the selector when shutting down the server. Will interrupt this thread to pull "
-					+ "selector out of the blocking select and then server out of it's event loop.", e);
-			Thread.currentThread().interrupt();
-		}
+		closeDownServer();
 	}
 
 	/**
@@ -188,22 +217,25 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 				handleReadyKeys(selectedKeys.iterator());
 			}
 		}
+		catch(final ClosedSelectorException e) {
+			LOG.warn("Selector closed when getting keys; probably shutting down");
+		}
 		catch (final IOException e) {
 			LOG.error("Fatal server error: {}", e.toString(), e);
 		}
 	}
 
-	private void handleReadyKeys(final Iterator<SelectionKey> iter) throws MessageCreationException {
-		while (iter.hasNext()) {
-			final SelectionKey key = iter.next();
-			keyProtocol.handle(key);
-			iter.remove();
+	private void handleReadyKeys(final Iterator<SelectionKey> keyIterator) throws MessageCreationException {
+		while (keyIterator.hasNext()) {
+			keyProtocol.handle(keyIterator.next());
+			keyIterator.remove();
 		}
 	}
 
 	private void closeDownServer() {
 		LOG.info("Server shutting down...");
 		try {
+			asyncMsgJobExecutor.stop();
 			selector.close();
 			serverChannel.close();
 		}
