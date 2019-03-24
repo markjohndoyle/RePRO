@@ -54,4 +54,9 @@ public final class AsyncMessageJob<MsgType> {
 	public Message<MsgType> getMessage() {
 		return message;
 	}
+
+	public static <MsgType> AsyncMessageJob<MsgType>
+	from(final SelectionKey key, final Message<MsgType> message, final Future<Optional<ByteBuffer>> handlingJob) {
+		return new AsyncMessageJob<>(key, message, handlingJob);
+	}
 }
