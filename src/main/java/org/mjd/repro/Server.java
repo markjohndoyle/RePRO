@@ -119,9 +119,9 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
 		keyProtocol = new ProtocolChain<SelectionKey>()
-				.add(new AcceptProtocol<>(serverChannel, selector))
-				.add(new ReadOpHandler<>(messageFactory, this))
-				.add(new WriteOpHandler<>(channelWriter));
+							.add(new AcceptProtocol<>(serverChannel, selector))
+							.add(new ReadOpHandler<>(messageFactory, this))
+							.add(new WriteOpHandler<>(channelWriter));
 		this.handlerRouter = handlerRouter;
 	}
 

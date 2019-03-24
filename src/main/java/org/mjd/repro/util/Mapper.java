@@ -3,6 +3,11 @@ package org.mjd.repro.util;
 import java.util.Map;
 import java.util.function.Supplier;
 
+/**
+ *
+ * @param <K>
+ * @param <V>
+ */
 public abstract class Mapper<K, V> {
 
 	public static <K, V> Mapper<K, V> findInMap(final Map<K, V> map, final K key) {
