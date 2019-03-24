@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import org.apache.commons.lang3.StringUtils;
 import org.mjd.repro.async.AsyncMessageJob;
 import org.mjd.repro.async.AsyncMessageJobExecutor;
 import org.mjd.repro.async.SequentialMessageJobExecutor;
@@ -52,10 +51,10 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
+	private final Map<String, MessageHandler<MsgType>> msgHandlers = new HashMap<>();
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 	private final ProtocolChain<SelectionKey> keyProtocol;
-	private final Map<String, MessageHandler<MsgType>> msgHandlers = new HashMap<>();
 	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
 	private final Function<MsgType, String> handlerRouter;
 	private ServerSocketChannel serverChannel;
@@ -77,7 +76,8 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
 	 * The server is not started and will not accept connections until you call {@link #start()}.</br>
-	 * The server will attempt to bind on the given {@link InetSocketAddress} {@code serverAddress}
+	 * The server will attempt to bind on the given {@link InetSocketAddress} {@code serverAddress}</br>
+	 * All messages will be routed through the default message handler.
 	 *
 	 * @param serverAddress  the address this server shoudl bind to
 	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
@@ -86,10 +86,32 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		this(serverAddress, messageFactory, (msg) -> DEFAULT_MSG_HANDLER_ID);
 	}
 
+	/**
+	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
+	 * The server is not started and will not accept connections until you call {@link #start()}.</br>
+	 * The server will bind on an available port provided by the OS. The port number is available via
+	 * {@link #getPort()}</br>
+	 * This server will route all messages based upon the given {@code handlerRouter}
+	 *
+	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
+	 * @param handlerRouter  a fucntional that accepts a message of type MsgType and returns a {@link MessageHandler} ID
+	 *                       string.
+	 */
 	public Server(final MessageFactory<MsgType> messageFactory, final Function<MsgType, String> handlerRouter) {
 		this(new InetSocketAddress(0), messageFactory, handlerRouter);
 	}
 
+	/**
+	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
+	 * The server is not started and will not accept connections until you call {@link #start()}.</br>
+	 * The server will attempt to bind on the given {@link InetSocketAddress} {@code serverAddress}</br>
+	 * This server will route all messages based upon the given {@code handlerRouter}
+	 *
+	 * @param serverAddress  the address this server shoudl bind to
+	 * @param messageFactory {@link MessageFactory} used to decode messages exepcted by this server
+	 * @param handlerRouter  a fucntional that accepts a message of type MsgType and returns a {@link MessageHandler} ID
+	 *                       string.
+	 */
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory,
 				  final Function<MsgType, String> handlerRouter) {
 		setupNonblockingServer(serverAddress);
@@ -129,14 +151,14 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	}
 
 	/**
-	 * Sets the {@link MessageHandler} this server will use to handle decoded messages.
+	 * Adds a {@link MessageHandler} this server can use to handle decoded messages. The given ID is used to
+	 * identify the handler when routing messages.
 	 *
+	 * @param id the identifier of this handler.
 	 * @param handler the {@link MessageHandler} this server should use to handle decoded messages
-	 *
 	 * @return This {@link Server} instance. Useful for chaining.
-	 *
 	 * @notThreadSafe
-     */
+	 */
 	public Server<MsgType> addHandler(final String id, final MessageHandler<MsgType> handler) {
 		final MessageHandler<MsgType> old = msgHandlers.putIfAbsent(id, handler);
 		if(old != null) {
@@ -145,6 +167,15 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		return this;
 	}
 
+	/**
+	 * Adds a {@link MessageHandler} as the "default" message handler this server will use to handle decoded messages.
+	 * Message routing functionals provided to this Server can also, if required, route to this handler. It's ID
+	 * will be {@value #DEFAULT_MSG_HANDLER_ID}
+	 *
+	 * @param handler the {@link MessageHandler} this server should use to handle decoded messages
+	 * @return This {@link Server} instance. Useful for chaining.
+	 * @notThreadSafe
+	 */
 	public Server<MsgType> addHandler(final MessageHandler<MsgType> handler) {
 		final MessageHandler<MsgType> old = msgHandlers.putIfAbsent(DEFAULT_MSG_HANDLER_ID, handler);
 		if(old != null) {
