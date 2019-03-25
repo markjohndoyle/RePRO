@@ -18,7 +18,7 @@ public final class RpcKryo {
 	}
 
 	public static Kryo configure(final Kryo kryo) {
-		kryo.addDefaultSerializer(java.lang.Throwable.class, new JavaSerializer());
+		kryo.addDefaultSerializer(Throwable.class, new JavaSerializer());
 		kryo.register(Request.class);
 		kryo.register(RequestWithArgs.class);
 		kryo.register(RpcRequest.class);
