@@ -121,7 +121,7 @@ public final class IntegerServerIT
 				    final ResponseMessage<String> responseMessage = new ResponseMessage<>(0, rsp);
 				    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
 
-					return Optional.of(ByteBuffer.allocate(rspMsgBytes.length).put(rspMsgBytes));
+					return Optional.of(ByteBuffer.wrap(rspMsgBytes));
 	        	}
 	        	finally {
 	        		kryos.free(kryo);
