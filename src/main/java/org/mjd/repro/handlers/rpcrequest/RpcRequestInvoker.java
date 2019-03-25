@@ -11,7 +11,6 @@ import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
-import org.mjd.repro.util.chain.AbstractHandler;
 
 import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
@@ -37,7 +36,7 @@ public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHan
 
 			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
-			return Optional.of(ByteBuffer.allocate(msgBytes.length).put(msgBytes));
+			return Optional.of(ByteBuffer.wrap(msgBytes));
 		});
 	}
 }
