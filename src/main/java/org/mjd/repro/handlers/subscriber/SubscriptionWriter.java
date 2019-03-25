@@ -56,6 +56,7 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 		resultByteBuffer.position(resultByteBuffer.limit());
 		LOG.trace(SubscriptionWriter.class + "received notification; handing result over to channel writer");
 		synchronized (mutex) {
+			resultByteBuffer.flip();
 			channelWriter.writeResult(key, message, resultByteBuffer);
 		}
 	}
