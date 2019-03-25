@@ -30,7 +30,6 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 	private final Selector selector;
 	private final List<ResponseRefiner<MsgType>> responseRefiners;
 
-
 	public RefiningChannelWriter(final Selector selector, final List<ResponseRefiner<MsgType>> refiners) {
 		this.selector = selector;
 		this.responseRefiners = Collections.unmodifiableList(refiners);
@@ -43,14 +42,14 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 			final List<Writer> rspWriters = responseWriters.get(key.channel());
 			LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
 			final Iterator<Writer> it = rspWriters.iterator();
-			while(it.hasNext()) {
+			while (it.hasNext()) {
 				it.next().write();
 				it.remove();
 			}
 			LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
 			key.interestOps(OP_READ);
 		}
-		catch(final CancelledKeyException e) {
+		catch (final CancelledKeyException e) {
 			LOG.warn("Key {} cancelled during write. Channel probably closed or server is shutting down", key.attachment());
 		}
 		catch (final IOException e) {
@@ -70,7 +69,7 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 		try {
 			key.interestOps(key.interestOps() | OP_WRITE);
 		}
-		catch(final CancelledKeyException | ClosedSelectorException ex) {
+		catch (final CancelledKeyException | ClosedSelectorException ex) {
 			LOG.warn("Server was about to write response to client {} but it's key was cancelled. Removing all "
 					+ "writers for this key", key.attachment());
 			responseWritersLock.writeLock().lock();
@@ -97,8 +96,8 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 	}
 
 	private ByteBuffer refineResponse(final MsgType message, final ByteBuffer resultToWrite) {
-		ByteBuffer refinedBuffer = (ByteBuffer) resultToWrite.flip();
-		for(final ResponseRefiner<MsgType> responseHandler : responseRefiners) {
+		ByteBuffer refinedBuffer = resultToWrite;
+		for (final ResponseRefiner<MsgType> responseHandler : responseRefiners) {
 			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
 			LOG.debug("Passing message value '{}' to response refiner", message);
 			refinedBuffer = responseHandler.execute(message, refinedBuffer);

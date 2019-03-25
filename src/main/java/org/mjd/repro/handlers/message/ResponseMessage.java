@@ -89,13 +89,11 @@ public final class ResponseMessage<T> implements Serializable {
 			}
 			else {
 				output.writeBoolean(false);
-				if (object.getValue().isPresent())
-				{
+				if (object.getValue().isPresent()) {
 					output.writeBoolean(true);
 					kryo.writeClassAndObject(output, object.getValue().get());
 				}
-				else
-				{
+				else {
 					output.writeBoolean(false);
 				}
 			}
@@ -110,10 +108,9 @@ public final class ResponseMessage<T> implements Serializable {
 			}
 			if (input.readBoolean()) {
 				return new ResponseMessage<>(readId, kryo.readClassAndObject(input));
-			} else
-			{
-				return new ResponseMessage<>(readId, null);
 			}
+			return new ResponseMessage<>(readId, null);
+
 		}
 	}
 }
