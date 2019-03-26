@@ -6,5 +6,4 @@ public interface Message<T>
 
     int size();
 
-//    byte[] asByteArray();
 }
