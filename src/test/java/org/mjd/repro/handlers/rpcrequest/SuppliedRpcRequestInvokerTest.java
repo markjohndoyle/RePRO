@@ -12,6 +12,7 @@ import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RequestMessage;
 import org.mjd.repro.message.RpcRequest;
+import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 import org.mjd.repro.util.kryo.KryoPool;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
@@ -71,7 +72,7 @@ public class SuppliedRpcRequestInvokerTest {
 				});
 				describe("that throws when executes", () -> {
 					before(() -> {
-						final RpcRequestMethodInvoker.InvocationException ex = new RpcRequestMethodInvoker.InvocationException("blah", new IllegalStateException());
+						final InvocationException ex = new InvocationException("blah", new IllegalStateException());
 						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenThrow(ex);
 					});
 					it("should return a ByteBuffer of a ResponseMessage where the message contains the correct value", () -> {
