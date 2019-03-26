@@ -29,7 +29,6 @@ public final class KryoPool
     private final Queue<Kryo> pool;
     private final Function<Kryo, Kryo>[] configurators;
 
-
     /**
      * Constructs a fully initialised {@link KryoPool}. Use the factories provided as they simplify using the
      * parameters.
@@ -43,7 +42,8 @@ public final class KryoPool
      *
      * @see KryoPool
      */
-    private KryoPool(boolean threadSafe, int maxCapacity, Function<Kryo, Kryo>[] creators)
+    @SafeVarargs
+	public KryoPool(final boolean threadSafe, final int maxCapacity, final Function<Kryo, Kryo>... creators)
     {
         this.configurators = creators;
         if (threadSafe)
@@ -55,7 +55,7 @@ public final class KryoPool
             pool = new ArrayDeque<Kryo>(maxCapacity)
             {
                 @Override
-                public boolean add(Kryo object)
+                public boolean add(final Kryo object)
                 {
                     if (size() >= maxCapacity)
                     {
@@ -80,7 +80,7 @@ public final class KryoPool
         if (kryo == null)
         {
             kryo = new Kryo();
-            for (Function<Kryo, Kryo> configurator : configurators)
+            for (final Function<Kryo, Kryo> configurator : configurators)
             {
                 kryo = configurator.apply(kryo);
             }
@@ -100,7 +100,7 @@ public final class KryoPool
      * @param kryo
      *            the {@link Kryo} to reset and return to the pool
      */
-    public void free(Kryo kryo)
+    public void free(final Kryo kryo)
     {
         pool.add(kryo);
         kryo.reset();
@@ -117,7 +117,7 @@ public final class KryoPool
      * @return {@link KryoPool}
      */
     @SafeVarargs
-    public static KryoPool newThreadSafePool(int maxCapacity, Function<Kryo, Kryo>... configurators)
+    public static KryoPool newThreadSafePool(final int maxCapacity, final Function<Kryo, Kryo>... configurators)
     {
         return new KryoPool(true, maxCapacity, configurators);
     }
@@ -133,7 +133,7 @@ public final class KryoPool
      * @return {@link KryoPool}
      */
     @SafeVarargs
-    public static KryoPool newPool(int maxCapacity, Function<Kryo, Kryo>... configurators)
+    public static KryoPool newPool(final int maxCapacity, final Function<Kryo, Kryo>... configurators)
     {
         return new KryoPool(false, maxCapacity, configurators);
     }

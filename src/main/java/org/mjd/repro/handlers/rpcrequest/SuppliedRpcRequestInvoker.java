@@ -11,7 +11,6 @@ import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 import org.mjd.repro.util.kryo.KryoPool;
 
@@ -38,16 +37,14 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 			methodInvoker.changeTarget(rpcTargetSupplier.apply(message.getValue()));
 			// ^ Maybe add a caching option users can configure so we don't need to set this every call.
 			ResponseMessage<Object> responseMessage;
-			try
-			{
+			try {
 				final Object result = methodInvoker.invoke(message.getValue());
 				responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
-			} catch (InvocationException e)
-			{
+			} 
+			catch (InvocationException e) {
 				responseMessage = new ResponseMessage<>(message.getValue().getId(), e.getCause());
 			}
-
-			Kryo kryo = kryos.obtain();
+			final Kryo kryo = kryos.obtain();
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			kryos.free(kryo);
 			return Optional.of(ByteBuffer.wrap(msgBytes));
