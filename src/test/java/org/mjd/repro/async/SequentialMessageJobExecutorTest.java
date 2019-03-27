@@ -36,7 +36,6 @@ public final class SequentialMessageJobExecutorTest {
 	private Selector selector;
 	private SequentialMessageJobExecutor<Integer> executorUnderTest;
 	private AsyncMessageJob<Integer> fakeJob;
-	private Integer fakeMessage = 1;
 	@Mock private ChannelWriter<Integer, SelectionKey> mockChannelWriter;
 	@Spy private SelectionKey selectionKey;
 	@Mock private Future<Optional<ByteBuffer>> mockFuture;
