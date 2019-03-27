@@ -13,7 +13,6 @@ public final class RequestMessage<R extends RequestWithArgs> implements Message<
     public RequestMessage(final R request) throws IOException
     {
         this.request = request;
-        //convertToByteStream(request);
     }
 
     private void convertToByteStream(final R request) throws IOException
@@ -38,16 +37,8 @@ public final class RequestMessage<R extends RequestWithArgs> implements Message<
         return byteBuffer.capacity();
     }
 
-//    @Override
-//    public byte[] asByteArray()
-//    {
-//        return byteBuffer.array();
-//    }
-
 	@Override
 	public String toString() {
 		return "RpcRequestMessage [request=" + request + ", byteBuffer=" + byteBuffer + "]";
 	}
-
-
 }
