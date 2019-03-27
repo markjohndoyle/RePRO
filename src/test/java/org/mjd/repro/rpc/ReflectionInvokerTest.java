@@ -3,7 +3,6 @@ package org.mjd.repro.rpc;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.rpc.RpcRequestMethodInvoker.InvocationException;
 
 import static com.mscharhag.oleaster.matcher.Matchers.expect;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.before;

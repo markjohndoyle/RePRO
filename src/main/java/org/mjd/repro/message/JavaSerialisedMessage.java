@@ -33,11 +33,6 @@ public final class JavaSerialisedMessage<T> implements Message<T> {
 		return array.length;
 	}
 
-//	@Override
-//	public byte[] asByteArray() {
-//		return array;
-//	}
-
 	public static <T> Message<T> from(final byte[] bytes, final Class<T> type) throws IOException, ClassNotFoundException
 	{
 		try(ByteArrayInputStream in = new ByteArrayInputStream(bytes);

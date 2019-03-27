@@ -11,6 +11,7 @@ import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;
+import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 import org.mjd.repro.util.kryo.KryoPool;
 
@@ -41,7 +42,7 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 				final Object result = methodInvoker.invoke(message.getValue());
 				responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
 			}
-			catch (final RpcRequestMethodInvoker.InvocationException e) {
+			catch (final InvocationException e) {
 				responseMessage = new ResponseMessage<>(message.getValue().getId(), e.getCause());
 			}
 			final Kryo kryo = kryos.obtain();
