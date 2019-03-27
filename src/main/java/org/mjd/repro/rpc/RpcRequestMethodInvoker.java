@@ -10,18 +10,6 @@ import org.mjd.repro.message.RpcRequest;
  */
 public interface RpcRequestMethodInvoker {
 	/**
-	 * Wrapping exception that {@link RpcRequestMethodInvoker} implementations can through for circumstances
-	 * the client can't deal with at runtime.
-	 */
-	final class InvocationException extends Exception {
-		private static final long serialVersionUID = 1L;
-
-		public InvocationException(final String message, final Throwable cause) {
-			super(message, cause);
-		}
-	}
-
-	/**
 	 * Invoke the given {@code request} and return the result.
 	 *
 	 * @param request the {@link RpcRequest} to invoke

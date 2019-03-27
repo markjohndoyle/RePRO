@@ -1,8 +1,6 @@
 package org.mjd.repro.message;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
 public final class RequestMessage<R extends RequestWithArgs> implements Message<R>
@@ -13,16 +11,6 @@ public final class RequestMessage<R extends RequestWithArgs> implements Message<
     public RequestMessage(final R request) throws IOException
     {
         this.request = request;
-    }
-
-    private void convertToByteStream(final R request) throws IOException
-    {
-        try(ByteArrayOutputStream bos = new ByteArrayOutputStream())
-        {
-            final ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(request);
-            ByteBuffer.wrap(bos.toByteArray());
-        }
     }
 
     @Override
