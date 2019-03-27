@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 public final class SequentialMessageJobExecutorTest {
 	private final Optional<ByteBuffer> fakeResult = Optional.of(ByteBuffer.allocate(0));
 	private final Optional<ByteBuffer> fakeVoidResult = Optional.empty();
+	private final Integer fakeMessage = 1;
 	private Selector selector;
 	private SequentialMessageJobExecutor<Integer> executorUnderTest;
 	private AsyncMessageJob<Integer> fakeJob;
