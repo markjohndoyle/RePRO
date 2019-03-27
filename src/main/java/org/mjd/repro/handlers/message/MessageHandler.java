@@ -6,7 +6,6 @@ import java.nio.channels.SelectionKey;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
-import org.mjd.repro.message.Message;
 import org.mjd.repro.writers.ChannelWriter;
 
 /**
@@ -31,10 +30,10 @@ public interface MessageHandler<MsgType> {
 	}
 
 	/**
-	 * Connection specifics related to the connection the {@link Message} was decoded on. {@link MessageHandler}
+	 * Connection specifics related to the connection the message was decoded on. {@link MessageHandler}
 	 * implementations are free to use this as required.
 	 *
-	 * @param <MsgType> the type of {@link Message} this {@link ConnectionContext} is related to
+	 * @param <MsgType> the type of message this {@link ConnectionContext} is related to
 	 */
 	final class ConnectionContext<MsgType> {
 		/** {@link SelectionKey} the Messages was decoded for */
@@ -47,7 +46,7 @@ public interface MessageHandler<MsgType> {
 		 *
 		 * @param channelWriter the {@link ChannelWriter} associated with the {@link SelectionKey} and it's
 		 * 						{@link Channel}
-		 * @param key           the {@link SelectionKey} the {@link Message} was decoded for.
+		 * @param key           the {@link SelectionKey} the message was decoded for.
 		 */
 		public ConnectionContext(final ChannelWriter<MsgType, SelectionKey> channelWriter, final SelectionKey key) {
 			this.writer = channelWriter;
@@ -70,7 +69,7 @@ public interface MessageHandler<MsgType> {
 	}
 
 	/**
-	 * Handles the given {@link Message}. {@link MessageHandler} implementations are free to do whatever they wish
+	 * Handles the given message. {@link MessageHandler} implementations are free to do whatever they wish
 	 * with the message.
 	 *
 	 * If there is a result to write back to the a client, it must be returned in a {@link Future} as a {@link Optional}
@@ -79,8 +78,8 @@ public interface MessageHandler<MsgType> {
 	 * The {@link ByteBuffer} must be flipped to a readable state.
 	 *
 	 * @param connectionContext {@link ConnectionContext} associated with the given {@code message}
-	 * @param message           the {@link Message} to handle
+	 * @param message           the message to handle
 	 * @return a Future containing an optional return value to write to the client that sent the message
 	 */
-	Future<Optional<ByteBuffer>> handle(ConnectionContext<MsgType> connectionContext, Message<MsgType> message);
+	Future<Optional<ByteBuffer>> handle(ConnectionContext<MsgType> connectionContext, MsgType message);
 }

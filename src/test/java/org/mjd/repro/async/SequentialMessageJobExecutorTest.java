@@ -11,7 +11,6 @@ import java.util.concurrent.TimeoutException;
 
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.writers.ChannelWriter;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -36,9 +35,9 @@ public final class SequentialMessageJobExecutorTest {
 	private Selector selector;
 	private SequentialMessageJobExecutor<Integer> executorUnderTest;
 	private AsyncMessageJob<Integer> fakeJob;
+	private Integer fakeMessage = 1;
 	@Mock private ChannelWriter<Integer, SelectionKey> mockChannelWriter;
 	@Spy private SelectionKey selectionKey;
-	@Mock private Message<Integer> fakeMessage;
 	@Mock private Future<Optional<ByteBuffer>> mockFuture;
 
 

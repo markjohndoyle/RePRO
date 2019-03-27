@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 
 public interface MessageReader<T>
@@ -13,7 +12,7 @@ public interface MessageReader<T>
 
     ByteBuffer[] readPreloaded(ByteBuffer headerBuffer, ByteBuffer bodyBuffer) throws IOException;
 
-    Optional<Message<T>> getMessage();
+    Optional<T> getMessage();
 
     boolean messageComplete();
 

@@ -2,7 +2,6 @@ package org.mjd.repro.readers.body;
 
 import java.nio.ByteBuffer;
 
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
     private int bodySize;
     private int totalBodyRead;
     private byte[] bytesReadFromChannel;
-    private Message<T> message;
+    private T message;
 	private final MessageFactory<T> msgFactory;
 
 	public SingleMessageBodyReader(final String id, final MessageFactory<T> messageFactory) {
@@ -113,7 +112,7 @@ public final class SingleMessageBodyReader<T> implements BodyReader<T> {
 	}
 
 	@Override
-	public Message<T> getMessage() {
+	public T getMessage() {
 		return message;
 	}
 

@@ -12,7 +12,6 @@ import org.mjd.repro.handlers.message.MessageHandler.HandlerException;
 import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
-import org.mjd.repro.message.RequestMessage;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.util.kryo.RpcRequestKryoPool;
 import org.mjd.repro.writers.ChannelWriter;
@@ -57,8 +56,7 @@ public class SubscriptionInvokerTest {
 			describe("is given a valid RPC target object" , () -> {
 				it("should be able to register as a Subscriber without error" , () -> {
 					final RequestWithArgs voidRequest = new RequestWithArgs(0L);
-					final RequestMessage<RequestWithArgs> fakeMsg = new RequestMessage<>(voidRequest);
-					invokerUnderTest.handle(fakeCtx, fakeMsg);
+					invokerUnderTest.handle(fakeCtx, voidRequest);
 					verify(mockBroadcaster).register(any(Subscriber.class));
 				});
 				describe("but the call throws an exception" , () -> {
@@ -67,8 +65,7 @@ public class SubscriptionInvokerTest {
 					});
 					it("should throw a HandlerException" , () -> {
 						final RequestWithArgs voidRequest = new RequestWithArgs(0L);
-						final RequestMessage<RequestWithArgs> fakeMsg = new RequestMessage<>(voidRequest);
-						final ByteBuffer actualReturn = invokerUnderTest.handle(fakeCtx, fakeMsg).get().get();
+						final ByteBuffer actualReturn = invokerUnderTest.handle(fakeCtx, voidRequest).get().get();
 						final Kryo kryo = kryos.obtain();
 						try(Input input = new Input(actualReturn.array())) {
 							final ResponseMessage<?> actualResponse = kryo.readObject(input, ResponseMessage.class);

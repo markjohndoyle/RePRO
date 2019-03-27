@@ -7,7 +7,6 @@ import java.nio.channels.SelectionKey;
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.writers.ChannelWriter;
 import org.slf4j.Logger;
@@ -20,7 +19,8 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
  * forwarding them to a {@link ChannelWriter} with the correct {@link SelectionKey}. It also maintains the original
  * request message as required by the {@link ChannelWriter}
  *
- * @param <MsgType> the type of messages that the Server processes to subscribe this {@link SubscriptionWriter}
+ * @param <R> the type of {@link RequestWithArgs} messages that the Server processes to subscribe this
+ *        {@link SubscriptionWriter}
  *
  * @ThreadSafe
  */
@@ -30,7 +30,7 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 	private final Kryo kryo;
 	private final SelectionKey key;
 	private final ChannelWriter<R, SelectionKey> channelWriter;
-	private final Message<R> message;
+	private final R message;
 
 	/**
 	 * Constructs a fully initialised {@link SubscriptionWriter} ready to process notifications.
@@ -39,10 +39,10 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 	 * @param key     the {@link SelectionKey} associated with the original client subscription request. This links the
 	 *                client {@link Channel}
 	 * @param writer  A {@link ChannelWriter} to handle writing back notifications to the client
-	 * @param message The original request {@link Message}
+	 * @param message The original {@link RequestWithArgs} message
 	 */
 	public SubscriptionWriter(final Kryo kryo, final SelectionKey key, final ChannelWriter<R, SelectionKey> writer,
-			final Message<R> message) {
+			final R message) {
 		this.kryo = kryo;
 		this.key = key;
 		this.channelWriter = writer;
@@ -51,7 +51,7 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 
 	@Override
 	public void receive(final String notification) {
-		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), notification);
+		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), notification);
 		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
 		resultByteBuffer.position(resultByteBuffer.limit());
 		LOG.trace(SubscriptionWriter.class + "received notification; handing result over to channel writer");

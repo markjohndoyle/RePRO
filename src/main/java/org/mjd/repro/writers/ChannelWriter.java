@@ -3,8 +3,6 @@ package org.mjd.repro.writers;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-import org.mjd.repro.message.Message;
-
 public interface ChannelWriter<MsgType, K extends SelectionKey> {
 
 	/**
@@ -14,7 +12,7 @@ public interface ChannelWriter<MsgType, K extends SelectionKey> {
 	 * @param message
 	 * @param resultToWrite
 	 */
-	void writeResult(SelectionKey key, Message<MsgType> message, ByteBuffer resultToWrite);
+	void writeResult(SelectionKey key, MsgType message, ByteBuffer resultToWrite);
 
 	void write(K key);
 

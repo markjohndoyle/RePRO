@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler;
-import org.mjd.repro.message.IntMessage;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -68,7 +67,7 @@ public final class ServerMessageHandlerRoutingTest {
 				await().atMost(ONE_MINUTE).until(serverUnderTest::isShutdown);
 			});
 			describe("that receives an integer message with the value 5", () -> {
-				final IntMessage msgFive = new IntMessage(5);
+				final int msgFive = 5;
 				beforeEach(() -> {
 					when(mockMsgFactory.createMessage(any(byte[].class))).thenReturn(msgFive);
 					when(mockHandlerDef.handle(any(MessageHandler.ConnectionContext.class), eq(msgFive))).thenReturn(mockAsyncHandle);
@@ -84,7 +83,7 @@ public final class ServerMessageHandlerRoutingTest {
 				});
 			});
 			describe("that receives an integer message with the value 1", () -> {
-				final IntMessage msgOne = new IntMessage(1);
+				final int msgOne = 1;
 				beforeEach(() -> {
 					when(mockMsgFactory.createMessage(any(byte[].class))).thenReturn(msgOne);
 					when(mockHandlerDef.handle(any(MessageHandler.ConnectionContext.class), any())).thenReturn(mockAsyncHandle);

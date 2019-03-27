@@ -1,9 +1,12 @@
 package org.mjd.repro.message.factory;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import org.mjd.repro.message.Message;
+import org.mjd.repro.message.RequestMessage;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.util.kryo.KryoPool;
 import org.slf4j.Logger;
@@ -34,10 +37,17 @@ public final class KryoRpcRequestMsgFactory<R extends RequestWithArgs> implement
 	public R createMessage(final byte[] bytesRead) {
 		final Kryo theKryo = this.kryo == null ? this.kryos.obtain() : this.kryo;
 		try {
+<<<<<<< Updated upstream
+			return new RequestMessage<>(readBytesWithKryo(theKryo, bytesRead));
+		}
+		catch (final IOException e) {
+=======
+			LOG.trace("Bytes read DAF:{} {}", bytesRead.length, Arrays.toString(bytesRead));
 			return readBytesWithKryo(theKryo, bytesRead);
 		}
 		catch (final Exception e) {
 			LOG.error("Exception", e);
+>>>>>>> Stashed changes
 			throw new MessageCreationException(e);
 		}
 		finally {
@@ -51,7 +61,7 @@ public final class KryoRpcRequestMsgFactory<R extends RequestWithArgs> implement
 		try (ByteArrayInputStream bin = new ByteArrayInputStream(data); Input kryoByteArrayIn = new Input(bin)) {
 			return kryo.readObject(kryoByteArrayIn, type);
 		}
-		catch (final Exception e) {
+		catch (final IOException e) {
 			LOG.error("Error deserialising response from server", e);
 			throw new MessageCreationException(e);
 		}

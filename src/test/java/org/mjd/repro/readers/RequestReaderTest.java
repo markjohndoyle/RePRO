@@ -11,8 +11,6 @@ import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
-import org.mjd.repro.message.IntMessage;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 import org.mockito.Mock;
@@ -39,8 +37,8 @@ public final class RequestReaderTest
     private final byte[] headerValueArray = Ints.toByteArray(sizeOfTestMsg);
     private final List<Byte> headerValueList = Bytes.asList(headerValueArray);
     private ByteBuffer bodyBuffer;
-    private final Message<Integer> expectedMsg = new IntMessage(17369615);
-    private final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg.getValue());
+    private final Integer expectedMsg = 17369615;
+    private final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg);
     private final List<Byte> bodyValueList = Bytes.asList(bodyValueBytes);
     private ByteBuffer[] remaining;
     private List<Byte> bodyWithNextHeader;
@@ -133,8 +131,8 @@ public final class RequestReaderTest
                         });
                         it("should produce the correct message, an integer 17369615", () -> {
                             expect(readerUnderTest.getMessage().isPresent()).toBeTrue();
-                            expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
-                            expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
+                            expect(readerUnderTest.getMessage().get()).toBeInstanceOf(Integer.class);
+                            expect(readerUnderTest.getMessage().get()).toEqual(17369615);
                         });
                     });
 
@@ -162,8 +160,8 @@ public final class RequestReaderTest
                                 expect(readerUnderTest.messageComplete()).toBeTrue();
                             });
                             it("should produce the correct message, i.e., an integer of value 17369615", () -> {
-                                expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
-                                expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
+                                expect(readerUnderTest.getMessage().get()).toBeInstanceOf(Integer.class);
+                                expect(readerUnderTest.getMessage().get()).toEqual(17369615);
                             });
                         });
                         // This case is where two requests are sent by the client back to back and requests
@@ -220,8 +218,8 @@ public final class RequestReaderTest
                             expect(readerUnderTest.isEndOfStream()).toBeFalse();
                         });
                         it("should produce the correct message, i.e., an integer of value 17369615", () -> {
-                            expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
-                            expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
+                            expect(readerUnderTest.getMessage().get()).toBeInstanceOf(Integer.class);
+                            expect(readerUnderTest.getMessage().get()).toEqual(17369615);
                         });
                     });
                 });
@@ -241,8 +239,8 @@ public final class RequestReaderTest
                     expect(readerUnderTest.isEndOfStream()).toBeFalse();
                 });
                 it("should produce the correct message, i.e., an integer of value 17369615", () -> {
-                    expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
-                    expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
+                    expect(readerUnderTest.getMessage().get()).toBeInstanceOf(Integer.class);
+                    expect(readerUnderTest.getMessage().get()).toEqual(17369615);
                 });
                 it("should return the following message in a ByteBuffer", () -> {
                 	expect(remaining).toBeNotNull();
@@ -265,8 +263,8 @@ public final class RequestReaderTest
             		expect(readerUnderTest.isEndOfStream()).toBeFalse();
             	});
             	it("should produce the correct message, i.e., an integer of value 17369615", () -> {
-            		expect(readerUnderTest.getMessage().get().getValue()).toBeInstanceOf(Integer.class);
-            		expect(readerUnderTest.getMessage().get().getValue()).toEqual(17369615);
+            		expect(readerUnderTest.getMessage().get()).toBeInstanceOf(Integer.class);
+            		expect(readerUnderTest.getMessage().get()).toEqual(17369615);
             	});
             	it("should return the following message in in a header and body ByteBuffer", () -> {
             		expect(remaining).toBeNotNull();

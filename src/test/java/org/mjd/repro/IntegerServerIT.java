@@ -11,14 +11,13 @@ import java.util.concurrent.Executors;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.IntMessage;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
 import org.mjd.repro.util.kryo.RpcRequestKryoPool;
 
@@ -108,16 +107,16 @@ public final class IntegerServerIT
 
     public void startServer()
     {
-        integerMessageServer = new Server<>(bytesRead -> IntMessage.from(bytesRead));
+        integerMessageServer = new Server<>(bytesRead -> Ints.fromByteArray(bytesRead));
         serverPort = integerMessageServer.getPort();
 
         // Add echo handler
-        integerMessageServer.addHandler((final ConnectionContext<Integer> context, final Message<Integer> message) -> {
+        integerMessageServer.addHandler((final ConnectionContext<Integer> context, final Integer message) -> {
         	final ExecutorService executor = MoreExecutors.newDirectExecutorService();
         	final Kryo kryo = kryos.obtain();
         	return executor.submit(() -> {
 	        	try {
-				    final String rsp = TEST_RSP_MSG + message.getValue();
+				    final String rsp = TEST_RSP_MSG + message;
 				    final ResponseMessage<String> responseMessage = new ResponseMessage<>(0, rsp);
 				    final byte[] rspMsgBytes = KryoRpcUtils.objectToKryoBytes(kryo, responseMessage);
 

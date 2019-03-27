@@ -1,11 +1,9 @@
 package org.mjd.repro.readers.body;
 
 import java.nio.ByteBuffer;
-import java.util.Objects;
 
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -24,7 +22,6 @@ public final class SingleMessageBodyReaderTest {
 	private static final String TEST_MSG_VAL = "I'm sorry, Dave; I'm afraid I can't do that.";
 	private static final byte[] TEST_MSG_VAL_BYTES = TEST_MSG_VAL.getBytes();
 	private ByteBuffer testMsgValBytes;
-	private final StringMessage testMessage = new StringMessage(TEST_MSG_VAL);
 	private ByteBuffer remaining;
 
 	private SingleMessageBodyReader<String> readerUnderTest;
@@ -35,7 +32,7 @@ public final class SingleMessageBodyReaderTest {
 	{
 		beforeEach(() -> {
 			MockitoAnnotations.initMocks(this);
-			when(mockMessageFactory.createMessage(aryEq(TEST_MSG_VAL_BYTES))).thenReturn(testMessage);
+			when(mockMessageFactory.createMessage(aryEq(TEST_MSG_VAL_BYTES))).thenReturn(TEST_MSG_VAL);
 			readerUnderTest = new SingleMessageBodyReader<>("unittest", mockMessageFactory);
 			readerUnderTest.setBodySize(TEST_MSG_VAL_BYTES.length);
 			testMsgValBytes = ByteBuffer.wrap(TEST_MSG_VAL_BYTES);
@@ -56,7 +53,7 @@ public final class SingleMessageBodyReaderTest {
 					expect(readerUnderTest.getMessage()).toBeNotNull();
 				});
 				it("should decode the correct message", () -> {
-					expect(readerUnderTest.getMessage().getValue()).toEqual(testMessage.getValue());
+					expect(readerUnderTest.getMessage()).toEqual(TEST_MSG_VAL);
 				});
 				it("should return null for remaining data", () -> {
 					expect(remaining.hasRemaining()).toBeFalse();
@@ -79,7 +76,7 @@ public final class SingleMessageBodyReaderTest {
 					expect(readerUnderTest.getMessage()).toBeNotNull();
 				});
 				it("should decode the correct message", () -> {
-					expect(readerUnderTest.getMessage().getValue()).toEqual(testMessage.getValue());
+					expect(readerUnderTest.getMessage()).toEqual(TEST_MSG_VAL);
 				});
 				it("should have " + Integer.BYTES + " bytes of remaining data", () -> {
 					expect(remaining).toBeNotNull();
@@ -127,7 +124,7 @@ public final class SingleMessageBodyReaderTest {
 						expect(readerUnderTest.getMessage()).toBeNotNull();
 					});
 					it("should decode the correct message", () -> {
-						expect(readerUnderTest.getMessage().getValue()).toEqual(testMessage.getValue());
+						expect(readerUnderTest.getMessage()).toEqual(TEST_MSG_VAL);
 					});
 				});
 
@@ -147,7 +144,7 @@ public final class SingleMessageBodyReaderTest {
 						expect(readerUnderTest.getMessage()).toBeNotNull();
 					});
 					it("should decode the correct message", () -> {
-						expect(readerUnderTest.getMessage().getValue()).toEqual(testMessage.getValue());
+						expect(readerUnderTest.getMessage()).toEqual(TEST_MSG_VAL);
 					});
 					it("should have " + Integer.BYTES + " bytes of remaining data", () -> {
 						expect(remaining).toBeNotNull();
@@ -186,40 +183,11 @@ public final class SingleMessageBodyReaderTest {
 							expect(readerUnderTest.getMessage()).toBeNotNull();
 						});
 						it("should decode the correct message", () -> {
-							expect(readerUnderTest.getMessage().getValue()).toEqual(testMessage.getValue());
+							expect(readerUnderTest.getMessage()).toEqual(TEST_MSG_VAL);
 						});
 					});
 				});
 			});
 		});
 	}
-
-
-	private static final class StringMessage implements Message<String>
-	{
-		private final String value;
-		private final byte[] array;
-		StringMessage(final String value) { this.value = value; this.array = value.getBytes(); }
-		@Override public String getValue() { return value; }
-		@Override public int size() { return array.length; }
-//		@Override public byte[] asByteArray() { return Arrays.copyOf(array, array.length); }
-
-		@Override
-		public boolean equals(final Object obj) {
-			if (obj == this) {
-				return true;
-			}
-			if (!(obj instanceof StringMessage)) {
-				return false;
-			}
-			final StringMessage msg = (StringMessage) obj;
-			return value.equals(msg.value);
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(this);
-		}
-	}
-
 }

@@ -13,7 +13,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RequestWithArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,9 +60,9 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 
 	@Override
 	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<RequestWithArgs> connectionContext,
-									   		   final Message<RequestWithArgs> message) {
+									   		   final RequestWithArgs message) {
 		return executor.submit(() -> {
-			final RequestWithArgs subscriptionRequest = message.getValue();
+			final RequestWithArgs subscriptionRequest = message;
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 				final SubscriptionWriter<RequestWithArgs> subscriptionWriter =

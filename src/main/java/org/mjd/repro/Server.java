@@ -27,7 +27,6 @@ import org.mjd.repro.handlers.op.ReadOpHandler;
 import org.mjd.repro.handlers.op.RootMessageHandler;
 import org.mjd.repro.handlers.op.WriteOpHandler;
 import org.mjd.repro.handlers.response.ResponseRefiner;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.repro.util.chain.ProtocolChain;
@@ -137,13 +136,13 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	}
 
 	@Override
-	public void handle(final SelectionKey key, final Message<MsgType> message) {
+	public void handle(final SelectionKey key, final MsgType message) {
 		if (msgHandlers.isEmpty()) {
 			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
 			return;
 		}
 		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-		final String handlerId = handlerRouter.apply(message.getValue());
+		final String handlerId = handlerRouter.apply(message);
 		final MessageHandler<MsgType> msgHandler = msgHandlers.get(handlerId);
 		final ConnectionContext<MsgType> connectionContext = new ConnectionContext<>(channelWriter, key);
 		final Future<Optional<ByteBuffer>> handlingJob = msgHandler.handle(connectionContext, message);

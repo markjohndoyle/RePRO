@@ -8,7 +8,6 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.repro.readers.body.BodyReader;
@@ -26,7 +25,7 @@ public final class RequestReader<T> implements MessageReader<T> {
 	private final BodyReader<T> bodyReader;
 	private final int headerSize;
 	private boolean vectoredIO;
-	private Message<T> message;
+	private T message;
 	private boolean endOfStream;
 
 	/**
@@ -226,7 +225,7 @@ public final class RequestReader<T> implements MessageReader<T> {
 	}
 
 	@Override
-	public Optional<Message<T>> getMessage() {
+	public Optional<T> getMessage() {
 		return Optional.ofNullable(message);
 	}
 

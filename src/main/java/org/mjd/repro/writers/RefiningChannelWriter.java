@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.mjd.repro.handlers.response.ResponseRefiner;
-import org.mjd.repro.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,8 +61,8 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 	}
 
 	@Override
-	public void writeResult(final SelectionKey key, final Message<MsgType> message, final ByteBuffer resultToWrite) {
-		final ByteBuffer bufferToWriteBack = refineResponse(message.getValue(), resultToWrite);
+	public void writeResult(final SelectionKey key, final MsgType message, final ByteBuffer resultToWrite) {
+		final ByteBuffer bufferToWriteBack = refineResponse(message, resultToWrite);
 		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
 		add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
 		try {

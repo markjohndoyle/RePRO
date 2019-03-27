@@ -5,13 +5,11 @@ import java.nio.channels.SelectionKey;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
-import org.mjd.repro.message.Message;
-
 /**
  * {@link AsyncMessageJob} is a data class that holds related information about an asynchronour message handling job,
- * it's associated {@link SelectionKey} and the original {@link Message}
+ * it's associated {@link SelectionKey} and the original message
  *
- * @param <MsgType> the type of {@link Message} this job is for
+ * @param <MsgType> the type of message this job is for
  */
 public final class AsyncMessageJob<MsgType> {
 	/**
@@ -25,18 +23,18 @@ public final class AsyncMessageJob<MsgType> {
 	private final SelectionKey key;
 
 	/**
-	 * The {@link Message} this asynchronous message processing job is processing/processed.
+	 * The message type this asynchronous message processing job is processing/processed.
 	 */
-	private final Message<MsgType> message;
+	private final MsgType message;
 
 	/**
 	 * Constructs a complete {@link AsyncMessageJob} for type MsgType.
 	 *
 	 * @param key         the {@link SelectionKey} this asynchronous message processing job was started for
-	 * @param message     the {@link Message} this asynchronous message processing job is processing/processed.
+	 * @param message     the message this asynchronous message processing job is processing/processed.
 	 * @param asyncHandle {@link Future} holding the result of the message processing job.
 	 */
-	public AsyncMessageJob(final SelectionKey key, final Message<MsgType> message,
+	public AsyncMessageJob(final SelectionKey key, final MsgType message,
 						   final Future<Optional<ByteBuffer>> asyncHandle) {
 		this.messageJob = asyncHandle;
 		this.key = key;
@@ -54,7 +52,7 @@ public final class AsyncMessageJob<MsgType> {
 	}
 
 	/** @return {@link #message} */
-	public Message<MsgType> getMessage() {
+	public MsgType getMessage() {
 		return message;
 	}
 
@@ -62,12 +60,12 @@ public final class AsyncMessageJob<MsgType> {
 	 * Simple factory for {@link AsyncMessageJob} for when a declarative style is more readable.
 	 *
 	 * @param key         the {@link SelectionKey} this asynchronous message processing job was started for
-	 * @param message     the {@link Message} this asynchronous message processing job is processing/processed.
+	 * @param message     the message this asynchronous message processing job is processing/processed.
 	 * @param handlingJob {@link Future} holding the result of the message processing job.
 	 * @return {@link AsyncMessageJob}
 	 */
 	public static <MsgType> AsyncMessageJob<MsgType>
-	from(final SelectionKey key, final Message<MsgType> message, final Future<Optional<ByteBuffer>> handlingJob) {
+	from(final SelectionKey key, final MsgType message, final Future<Optional<ByteBuffer>> handlingJob) {
 		return new AsyncMessageJob<>(key, message, handlingJob);
 	}
 }

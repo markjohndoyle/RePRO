@@ -10,7 +10,6 @@ import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.RequestMessage;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
@@ -60,7 +59,7 @@ public class SuppliedRpcRequestInvokerTest {
 						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenReturn(rpcTarget.length());
 					});
 					it("should return a ByteBuffer of a ResponseMessage where the message contains the correct value", () -> {
-						final RequestMessage<RpcRequest> testMessage = new RequestMessage<>(new RpcRequest(0L, "length"));
+						final RpcRequest testMessage = new RpcRequest(0L, "length");
 						final Optional<ByteBuffer> actual = invokerUnderTest.handle(mockConnCtx, testMessage).get();
 						expect(actual.get()).toBeNotNull();
 						final ResponseMessage<Integer> actualRspMsg = KryoRpcUtils.readBytesWithKryo(kryos.obtain(), actual.get().array(), ResponseMessage.class);
@@ -76,7 +75,7 @@ public class SuppliedRpcRequestInvokerTest {
 						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenThrow(ex);
 					});
 					it("should return a ByteBuffer of a ResponseMessage where the message contains the correct value", () -> {
-						final RequestMessage<RpcRequest> testMessage = new RequestMessage<>(new RpcRequest(0L, "length"));
+						final RpcRequest testMessage = new RpcRequest(0L, "length");
 						final Optional<ByteBuffer> actual = invokerUnderTest.handle(mockConnCtx, testMessage).get();
 						expect(actual.get()).toBeNotNull();
 						final ResponseMessage<Integer> actualRspMsg = KryoRpcUtils.readBytesWithKryo(kryos.obtain(), actual.get().array(), ResponseMessage.class);

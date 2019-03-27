@@ -9,7 +9,6 @@ import java.util.function.Function;
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
@@ -33,17 +32,17 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 	}
 
 	@Override
-	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final Message<R> message) {
+	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final R message) {
 		return executor.submit(() -> {
-			methodInvoker.changeTarget(rpcTargetSupplier.apply(message.getValue()));
+			methodInvoker.changeTarget(rpcTargetSupplier.apply(message));
 			// ^ Maybe add a caching option users can configure so we don't need to set this every call.
 			ResponseMessage<Object> responseMessage;
 			try {
-				final Object result = methodInvoker.invoke(message.getValue());
-				responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
+				final Object result = methodInvoker.invoke(message);
+				responseMessage = new ResponseMessage<>(message.getId(), result);
 			}
 			catch (final InvocationException e) {
-				responseMessage = new ResponseMessage<>(message.getValue().getId(), e.getCause());
+				responseMessage = new ResponseMessage<>(message.getId(), e.getCause());
 			}
 			final Kryo kryo = kryos.obtain();
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);

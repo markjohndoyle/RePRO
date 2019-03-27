@@ -8,7 +8,6 @@ import java.util.concurrent.Future;
 import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
-import org.mjd.repro.message.Message;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 
@@ -27,14 +26,14 @@ public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHan
 	}
 
 	@Override
-	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final Message<R> message) {
+	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final R message) {
 		return executor.submit(() -> {
-			final Object result = methodInvoker.invoke(message.getValue());
+			final Object result = methodInvoker.invoke(message);
 			if (result == null) {
 				return Optional.empty();
 			}
 
-			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getValue().getId(), result);
+			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), result);
 			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
 			return Optional.of(ByteBuffer.wrap(msgBytes));
 		});
