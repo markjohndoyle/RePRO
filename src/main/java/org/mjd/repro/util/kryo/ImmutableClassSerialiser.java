@@ -54,7 +54,7 @@ public final class ImmutableClassSerialiser<T> extends Serializer<T>
      * @param targetType
      *            the type the serialisers is serialising, it is of type T
      */
-    public ImmutableClassSerialiser(Class<T> targetType)
+    public ImmutableClassSerialiser(final Class<T> targetType)
     {
         super(false, true);
         this.type = targetType;
@@ -63,31 +63,31 @@ public final class ImmutableClassSerialiser<T> extends Serializer<T>
         {
             targetConstructor = findConstructor();
         }
-        catch (NoSuchMethodException e)
+        catch (final NoSuchMethodException e)
         {
             throw new KryoException(e);
         }
     }
 
     @Override
-    public void write(Kryo kryo, Output output, T object)
+    public void write(final Kryo kryo, final Output output, final T object)
     {
         try
         {
-            for (Field field : fieldsToSerialise)
+            for (final Field field : fieldsToSerialise)
             {
-                Object value = FieldUtils.readField(field, object, true);
+                final Object value = FieldUtils.readField(field, object, true);
                 kryo.writeClassAndObject(output, value);
             }
         }
-        catch (IllegalAccessException e)
+        catch (final IllegalAccessException e)
         {
             throw new KryoException(e);
         }
     }
 
     @Override
-	public T read(Kryo kryo, Input input, Class<? extends T> type) {
+	public T read(final Kryo kryo, final Input input, final Class<T> type) {
         try
         {
             return createInstance(input, kryo);
@@ -114,11 +114,11 @@ public final class ImmutableClassSerialiser<T> extends Serializer<T>
      * @throws InstantiationException
      *             if the new instance cannot be created or the attempt failed.
      */
-    private T createInstance(Input input, Kryo kryo) throws IllegalAccessException, InvocationTargetException,
+    private T createInstance(final Input input, final Kryo kryo) throws IllegalAccessException, InvocationTargetException,
                                                      InstantiationException
     {
-        int numArgs = fieldsToSerialise.size();
-        Object[] argValues = new Object[numArgs];
+        final int numArgs = fieldsToSerialise.size();
+        final Object[] argValues = new Object[numArgs];
         for (int i = 0; i < numArgs; i++)
         {
             argValues[i] = kryo.readClassAndObject(input);
@@ -134,10 +134,10 @@ public final class ImmutableClassSerialiser<T> extends Serializer<T>
      */
     private List<Field> getSortedConstructorFields()
     {
-        List<Field> serialiseFields = FieldUtils.getFieldsListWithAnnotation(type, SerialiseAsConstructorArg.class);
+        final List<Field> serialiseFields = FieldUtils.getFieldsListWithAnnotation(type, SerialiseAsConstructorArg.class);
         Collections.sort(serialiseFields, (lhs, rhs) -> {
-		    int leftIndex = lhs.getAnnotation(SerialiseAsConstructorArg.class).index();
-		    int rightIndex = rhs.getAnnotation(SerialiseAsConstructorArg.class).index();
+		    final int leftIndex = lhs.getAnnotation(SerialiseAsConstructorArg.class).index();
+		    final int rightIndex = rhs.getAnnotation(SerialiseAsConstructorArg.class).index();
 		    return Integer.compare(leftIndex, rightIndex);
 		});
         return serialiseFields;
@@ -159,8 +159,8 @@ public final class ImmutableClassSerialiser<T> extends Serializer<T>
      */
     private Constructor<T> findConstructor() throws NoSuchMethodException
     {
-        List<Class<?>> argTypes = Lists.transform(fieldsToSerialise, input -> input.getType());
-        Class<?>[] argsArray = Iterables.toArray(argTypes, Class.class);
+        final List<Class<?>> argTypes = Lists.transform(fieldsToSerialise, input -> input.getType());
+        final Class<?>[] argsArray = Iterables.toArray(argTypes, Class.class);
         return type.getConstructor(argsArray);
     }
 }

@@ -10,7 +10,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.apache.commons.lang3.tuple.Pair;
@@ -20,8 +19,9 @@ import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.repro.support.FakeRpcTarget;
+import org.mjd.repro.util.kryo.KryoPool;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool;
+import org.mjd.repro.util.kryo.RpcKryo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,8 @@ import static org.mjd.repro.support.ResponseReader.readResponse;
 public class ServerRpcSingleClientSubscribeIT
 {
     private static final Logger LOG = LoggerFactory.getLogger(ServerRpcSingleClientSubscribeIT.class);
-    private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
+//    private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
+    private final KryoPool kryos = KryoPool.newThreadSafePool(1000, RpcKryo::configure);
     private static final AtomicLong reqId = new AtomicLong();
     private ExecutorService serverService;
     private Server<RequestWithArgs> rpcServer;

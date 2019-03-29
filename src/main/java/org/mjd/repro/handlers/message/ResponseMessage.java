@@ -101,7 +101,7 @@ public final class ResponseMessage<T> implements Serializable {
 
 		@Override
 		public ResponseMessage<Object> read(final Kryo kryo, final Input input,
-				final Class<? extends ResponseMessage<Object>> type) {
+				final Class<ResponseMessage<Object>> type) {
 			final long readId = input.readLong();
 			if (input.readBoolean()) {
 				return new ResponseMessage<>(readId, kryo.readObject(input, HandlerException.class));

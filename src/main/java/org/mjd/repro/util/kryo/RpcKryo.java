@@ -10,7 +10,6 @@ import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Request;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool.ByteBufferSerializer;
 
 public final class RpcKryo {
 	private RpcKryo() {

@@ -13,7 +13,8 @@ import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
 import org.mjd.repro.message.RequestWithArgs;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool;
+import org.mjd.repro.util.kryo.KryoPool;
+import org.mjd.repro.util.kryo.RpcKryo;
 import org.mjd.repro.writers.ChannelWriter;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -35,7 +36,7 @@ public class SubscriptionInvokerTest {
 	@Spy private SelectionKey spyKey;
 	@Mock private ChannelWriter<RequestWithArgs, SelectionKey> mockChannelWriter;
 	@Mock private FakeBroadcaster mockBroadcaster;
-	private final RpcRequestKryoPool kryos = new RpcRequestKryoPool(true, false, 10);
+	private final KryoPool kryos = KryoPool.newThreadSafePool(10, RpcKryo::configure);
 	private final ConnectionContext<RequestWithArgs> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
 	private SubscriptionInvoker invokerUnderTest;
 

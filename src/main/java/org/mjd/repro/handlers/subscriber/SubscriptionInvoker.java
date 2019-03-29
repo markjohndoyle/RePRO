@@ -8,7 +8,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.repro.handlers.message.MessageHandler;
@@ -39,7 +38,7 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
 	 * use after this constructor completes.
 	 *
-	 * @param kryo      An {@link Pool} of kryos that can handle {@link RequestWithArgs} objects. Used for
+	 * @param kryo      A threadsafe pool of kryos that can handle {@link RequestWithArgs} objects. Used for
 	 * 					serialising the notifications back to the server.
 	 * @param rpcTarget the RPC target, in this case, the target of subscription
 	 *                  requests. It must have one method annotated with the
