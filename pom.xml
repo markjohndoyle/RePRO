@@ -33,7 +33,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Private-Package>org.mjd.nativesocket.internal.*</Private-Package>
+                        <Private-Package></Private-Package>
                     </instructions>
                 </configuration>
             </plugin>
