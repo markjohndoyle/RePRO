@@ -17,11 +17,13 @@ import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.message.RequestWithArgs;
-import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
+import org.mjd.repro.message.factory.MarshallerMsgFactory;
+import org.mjd.repro.serialisation.Marshaller;
 import org.mjd.repro.support.FakeRpcTarget;
+import org.mjd.repro.support.KryoMarshaller;
+import org.mjd.repro.support.KryoPool;
+import org.mjd.repro.support.KryoRpcUtils;
 import org.mjd.repro.support.RpcKryo;
-import org.mjd.repro.util.kryo.KryoPool;
-import org.mjd.repro.util.kryo.KryoRpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +44,8 @@ import static org.mjd.repro.support.ResponseReader.readResponse;
 public class ServerRpcSingleClientSubscribeIT
 {
     private static final Logger LOG = LoggerFactory.getLogger(ServerRpcSingleClientSubscribeIT.class);
-//    private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 1000);
     private final KryoPool kryos = KryoPool.newThreadSafePool(1000, RpcKryo::configure);
+    private final Marshaller marshaller = new KryoMarshaller(1000, RpcKryo::configure);
     private static final AtomicLong reqId = new AtomicLong();
     private ExecutorService serverService;
     private Server<RequestWithArgs> rpcServer;
@@ -57,7 +59,7 @@ public class ServerRpcSingleClientSubscribeIT
         beforeEach(()-> {
         	kryo = kryos.obtain();
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new SubscriptionInvoker(kryo, rpcTarget);
+        	rpcInvoker = new SubscriptionInvoker(marshaller, rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
         });
@@ -136,7 +138,7 @@ public class ServerRpcSingleClientSubscribeIT
 
 	private void startServer()
     {
-		rpcServer = new Server<>(new KryoRpcRequestMsgFactory<>(kryos.obtain(), RequestWithArgs.class));
+		rpcServer = new Server<>(new MarshallerMsgFactory<>(marshaller, RequestWithArgs.class));
         rpcServer.addHandler(rpcInvoker::handle)
         		 .addHandler(prepend::requestId);
 

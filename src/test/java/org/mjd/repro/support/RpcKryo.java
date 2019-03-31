@@ -21,7 +21,7 @@ public final class RpcKryo {
 		kryo.register(Request.class, new RequestSerialiser());
 		kryo.register(RequestWithArgs.class, new RequestWithArgsSerialiser());
 		kryo.register(RpcRequest.class, new RpcRequestSerialiser());
-		kryo.register(ResponseMessage.class, new ResponseMessage.ResponseMessageSerialiser());
+		kryo.register(ResponseMessage.class, new ResponseMessageSerialiser());
 		kryo.register(HandlerException.class);
 		kryo.register(Optional.class);
 		kryo.register(ByteBuffer.allocate(0).getClass(), new ByteBufferSerializer());

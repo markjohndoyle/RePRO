@@ -6,7 +6,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import org.mjd.repro.message.RequestWithArgs;
 
-public class RequestWithArgsSerialiser extends Serializer<RequestWithArgs> {
+public final class RequestWithArgsSerialiser extends Serializer<RequestWithArgs> {
 
 	@Override
 	public void write(final Kryo kryo, final Output output, final RequestWithArgs object) {
