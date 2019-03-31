@@ -13,9 +13,9 @@ import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
+import org.mjd.repro.support.RpcKryo;
 import org.mjd.repro.util.kryo.KryoPool;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
-import org.mjd.repro.util.kryo.RpcKryo;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 

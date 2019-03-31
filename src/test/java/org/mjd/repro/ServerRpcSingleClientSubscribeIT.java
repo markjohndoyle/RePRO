@@ -19,9 +19,9 @@ import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
 import org.mjd.repro.support.FakeRpcTarget;
+import org.mjd.repro.support.RpcKryo;
 import org.mjd.repro.util.kryo.KryoPool;
 import org.mjd.repro.util.kryo.KryoRpcUtils;
-import org.mjd.repro.util.kryo.RpcKryo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
