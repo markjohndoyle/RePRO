@@ -4,7 +4,8 @@ script: mvn clean verify
 
 before_install:
   - sudo apt-get install jq
-  - curl $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url') -o codacy-coverage-reporter-assembly.jar
+  - wget -O codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url')
+  #- curl $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url') -o codacy-coverage-reporter-assembly.jar
 
 after_success:
   - java -jar ~/codacy-coverage-reporter-assembly.jar report -l Java -r build/reports/jacoco/test/jacocoTestReport.xml
