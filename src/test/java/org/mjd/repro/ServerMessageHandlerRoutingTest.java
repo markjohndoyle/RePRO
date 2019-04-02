@@ -106,7 +106,7 @@ public final class ServerMessageHandlerRoutingTest {
 		await().atMost(TEN_SECONDS).until(serverUnderTest::isAvailable);
 	}
 
-	private DataOutputStream getOutStream() throws Exception {
+	private DataOutputStream getOutStream() throws IOException {
 		clientSocket = new Socket("localhost", serverUnderTest.getPort());
 		return new DataOutputStream(clientSocket.getOutputStream());
 	}
