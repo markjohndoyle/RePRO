@@ -1,9 +1,5 @@
 package org.mjd.repro.message;
 
-import com.esotericsoftware.kryo.DefaultSerializer;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
-
-@DefaultSerializer(JavaSerializer.class)
 public class RequestWithArgs extends Request {
 	private static final long serialVersionUID = 1L;
 

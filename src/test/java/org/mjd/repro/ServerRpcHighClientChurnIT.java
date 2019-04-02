@@ -17,7 +17,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mscharhag.oleaster.runner.OleasterRunner;
@@ -26,10 +25,13 @@ import org.junit.runner.RunWith;
 import org.mjd.repro.handlers.factories.RpcHandlers;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.message.factory.KryoRpcRequestMsgFactory;
+import org.mjd.repro.message.factory.MarshallerMsgFactory;
+import org.mjd.repro.serialisation.Marshaller;
 import org.mjd.repro.support.FakeRpcTarget;
-import org.mjd.repro.util.kryo.KryoRpcUtils;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool;
+import org.mjd.repro.support.KryoMarshaller;
+import org.mjd.repro.support.KryoPool;
+import org.mjd.repro.support.KryoRpcUtils;
+import org.mjd.repro.support.RpcKryo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +51,8 @@ public class ServerRpcHighClientChurnIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(ServerRpcHighClientChurnIT.class);
     private static final AtomicLong reqId = new AtomicLong();
-    private final Pool<Kryo> kryos = new RpcRequestKryoPool(true, false, 5000);
+    private final KryoPool kryos = KryoPool.newThreadSafePool(5000, RpcKryo::configure);
+    private final Marshaller marshaller = new KryoMarshaller(5000, RpcKryo::configure);
     private ExecutorService serverService;
     private Server<RpcRequest> rpcServer;
     private FakeRpcTarget rpcTarget;
@@ -61,7 +64,7 @@ public class ServerRpcHighClientChurnIT {
     {
         beforeEach(() -> {
         	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = RpcHandlers.singleThreadRpcInvoker(kryos.obtain(), rpcTarget);
+        	rpcInvoker = RpcHandlers.singleThreadRpcInvoker(marshaller, rpcTarget);
             // pre charge the kryo pool
             for(int i = 0; i < 500; i++)
             {
@@ -98,7 +101,7 @@ public class ServerRpcHighClientChurnIT {
 
     private void startServer()
     {
-        rpcServer = new Server<>(new KryoRpcRequestMsgFactory<>(kryos.obtain(), RpcRequest.class))
+        rpcServer = new Server<>(new MarshallerMsgFactory<>(marshaller, RpcRequest.class))
         						.addHandler(rpcInvoker)
         						.addHandler(prepend::requestId);
 
@@ -130,11 +133,11 @@ public class ServerRpcHighClientChurnIT {
 	private static final class RpcClientRequestJob implements Callable<Socket>
 	{
 		private static final Logger LOG = LoggerFactory.getLogger(RpcClientRequestJob.class);
-		private final Pool<Kryo> kryos;
+		private final KryoPool kryos;
 		private final AtomicLong requestId;
 		private final int port;
 
-		RpcClientRequestJob(final Pool<Kryo> kryos, final AtomicLong reqId, final int port) {
+		RpcClientRequestJob(final KryoPool kryos, final AtomicLong reqId, final int port) {
 			this.kryos = kryos;
 			this.requestId = reqId;
 			this.port = port;

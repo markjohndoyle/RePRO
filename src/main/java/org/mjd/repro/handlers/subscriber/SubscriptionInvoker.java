@@ -7,17 +7,14 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RequestWithArgs;
+import org.mjd.repro.serialisation.Marshaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
 /**
  * A {@link SubscriptionInvoker} will register your client for notifications on the rpcTarget Object using the
@@ -30,7 +27,7 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
  */
 public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
-	private final Kryo kryo;
+	private final Marshaller marshaller;
 	private final Object subscriptionService;
 	private final Method registrationMethod;
 	private final ExecutorService executor = MoreExecutors.newDirectExecutorService();
@@ -39,14 +36,12 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
 	 * use after this constructor completes.
 	 *
-	 * @param kryo      An {@link Pool} of kryos that can handle {@link RequestWithArgs} objects. Used for
-	 * 					serialising the notifications back to the server.
 	 * @param rpcTarget the RPC target, in this case, the target of subscription
 	 *                  requests. It must have one method annotated with the
 	 *                  {@link SubscriptionRegistrar} annotation.
 	 */
-	public SubscriptionInvoker(final Kryo kryo, final Object rpcTarget) {
-		this.kryo = kryo;
+	public SubscriptionInvoker(final Marshaller marshaller, final Object rpcTarget) {
+		this.marshaller = marshaller;
 		this.subscriptionService = rpcTarget;
 		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
 		if (registrationMethods.length != 1) {
@@ -66,14 +61,16 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
 				final SubscriptionWriter<RequestWithArgs> subscriptionWriter =
-					new SubscriptionWriter<>(kryo, connectionContext.getKey(), connectionContext.getWriter(), message);
+					new SubscriptionWriter<>(marshaller, connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
 			}
 			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 				LOG.error("Error invoking subscription", ex);
 				final HandlerException handlerEx = new HandlerException("Error invoking " + subscriptionRequest, ex);
-				return Optional.of(ByteBuffer.wrap(objectToKryoBytes(kryo, ResponseMessage.error(subscriptionRequest.getId(), handlerEx))));
+//				return Optional.of(ByteBuffer.wrap(objectToKryoBytes(kryo, ResponseMessage.error(subscriptionRequest.getId(), handlerEx))));
+				final byte[] bytes = marshaller.marshall(ResponseMessage.error(subscriptionRequest.getId(), handlerEx), ResponseMessage.class);
+				return Optional.of(ByteBuffer.wrap(bytes));
 			}
 		});
 	}

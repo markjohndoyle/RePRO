@@ -4,15 +4,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 
-import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
 import org.mjd.repro.message.RequestWithArgs;
+import org.mjd.repro.serialisation.Marshaller;
 import org.mjd.repro.writers.ChannelWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 
 /**
  * {@link SubscriptionWriter} is an implementation of {@link Subscriber}. It is capable of receiving notifications and
@@ -27,7 +25,7 @@ import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
 public final class SubscriptionWriter<R extends RequestWithArgs> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Object mutex = new Object();
-	private final Kryo kryo;
+	private final Marshaller marshaller;
 	private final SelectionKey key;
 	private final ChannelWriter<R, SelectionKey> channelWriter;
 	private final R message;
@@ -35,15 +33,15 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 	/**
 	 * Constructs a fully initialised {@link SubscriptionWriter} ready to process notifications.
 	 *
-	 * @param kryo    kryo object used to serialise incoming notifications
-	 * @param key     the {@link SelectionKey} associated with the original client subscription request. This links the
-	 *                client {@link Channel}
-	 * @param writer  A {@link ChannelWriter} to handle writing back notifications to the client
-	 * @param message The original {@link RequestWithArgs} message
+	 * @param marshaller kryo object used to serialise incoming notifications
+	 * @param key        the {@link SelectionKey} associated with the original client subscription request. This links
+	 * 					 the client {@link Channel}
+	 * @param writer     A {@link ChannelWriter} to handle writing back notifications to the client
+	 * @param message    The original {@link RequestWithArgs} message
 	 */
-	public SubscriptionWriter(final Kryo kryo, final SelectionKey key, final ChannelWriter<R, SelectionKey> writer,
-			final R message) {
-		this.kryo = kryo;
+	public SubscriptionWriter(final Marshaller marshaller, final SelectionKey key,
+			final ChannelWriter<R, SelectionKey> writer, final R message) {
+		this.marshaller = marshaller;
 		this.key = key;
 		this.channelWriter = writer;
 		this.message = message;
@@ -52,7 +50,7 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 	@Override
 	public void receive(final String notification) {
 		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), notification);
-		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(objectToKryoBytes(kryo, responseMessage));
+		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class));
 		resultByteBuffer.position(resultByteBuffer.limit());
 		LOG.trace(SubscriptionWriter.class + "received notification; handing result over to channel writer");
 		synchronized (mutex) {

@@ -13,7 +13,10 @@ import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
 import org.mjd.repro.message.RequestWithArgs;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool;
+import org.mjd.repro.serialisation.Marshaller;
+import org.mjd.repro.support.KryoMarshaller;
+import org.mjd.repro.support.KryoPool;
+import org.mjd.repro.support.RpcKryo;
 import org.mjd.repro.writers.ChannelWriter;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -35,7 +38,8 @@ public class SubscriptionInvokerTest {
 	@Spy private SelectionKey spyKey;
 	@Mock private ChannelWriter<RequestWithArgs, SelectionKey> mockChannelWriter;
 	@Mock private FakeBroadcaster mockBroadcaster;
-	private final RpcRequestKryoPool kryos = new RpcRequestKryoPool(true, false, 10);
+	private final KryoPool kryos = KryoPool.newThreadSafePool(20, RpcKryo::configure);
+	private final Marshaller marshaller = new KryoMarshaller(20, RpcKryo::configure);
 	private final ConnectionContext<RequestWithArgs> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
 	private SubscriptionInvoker invokerUnderTest;
 
@@ -44,13 +48,13 @@ public class SubscriptionInvokerTest {
 	{
 		before(()-> {
 			MockitoAnnotations.initMocks(this);
-			invokerUnderTest = new SubscriptionInvoker(kryos.obtain(), mockBroadcaster);
+			invokerUnderTest = new SubscriptionInvoker(marshaller, mockBroadcaster);
 		});
 
 		describe("when the " + SubscriptionInvoker.class, () -> {
 			describe("is given an RPC target object with no " + SubscriptionRegistrar.class + " method" , () -> {
 				it("should thrown an IllegalStateException exception", () -> {
-					expect(() -> new SubscriptionInvoker(kryos.obtain(), new Object())).toThrow(IllegalArgumentException.class);
+					expect(() -> new SubscriptionInvoker(marshaller, new Object())).toThrow(IllegalArgumentException.class);
 				});
 			});
 			describe("is given a valid RPC target object" , () -> {

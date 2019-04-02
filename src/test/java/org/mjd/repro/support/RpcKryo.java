@@ -1,4 +1,4 @@
-package org.mjd.repro.util.kryo;
+package org.mjd.repro.support;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -10,7 +10,6 @@ import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.Request;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.message.RpcRequest;
-import org.mjd.repro.util.kryo.RpcRequestKryoPool.ByteBufferSerializer;
 
 public final class RpcKryo {
 	private RpcKryo() {
@@ -19,10 +18,10 @@ public final class RpcKryo {
 
 	public static Kryo configure(final Kryo kryo) {
 		kryo.addDefaultSerializer(Throwable.class, new JavaSerializer());
-		kryo.register(Request.class);
-		kryo.register(RequestWithArgs.class);
-		kryo.register(RpcRequest.class);
-		kryo.register(ResponseMessage.class, new ResponseMessage.ResponseMessageSerialiser());
+		kryo.register(Request.class, new RequestSerialiser());
+		kryo.register(RequestWithArgs.class, new RequestWithArgsSerialiser());
+		kryo.register(RpcRequest.class, new RpcRequestSerialiser());
+		kryo.register(ResponseMessage.class, new ResponseMessageSerialiser());
 		kryo.register(HandlerException.class);
 		kryo.register(Optional.class);
 		kryo.register(ByteBuffer.allocate(0).getClass(), new ByteBufferSerializer());

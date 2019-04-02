@@ -13,9 +13,11 @@ import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
-import org.mjd.repro.util.kryo.KryoPool;
-import org.mjd.repro.util.kryo.KryoRpcUtils;
-import org.mjd.repro.util.kryo.RpcKryo;
+import org.mjd.repro.serialisation.Marshaller;
+import org.mjd.repro.support.KryoMarshaller;
+import org.mjd.repro.support.KryoPool;
+import org.mjd.repro.support.KryoRpcUtils;
+import org.mjd.repro.support.RpcKryo;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -36,6 +38,12 @@ public class SuppliedRpcRequestInvokerTest {
 														  	k.register(IllegalStateException.class);
 														  	return k;
 														  });
+
+	private final Marshaller marshaller = new KryoMarshaller(10, RpcKryo::configure,
+																 (k) -> {
+																     k.register(IllegalStateException.class);
+																  	 return k;
+																 });
 	private final String rpcTarget = "ThePhoenixProject";
 	private final Function<RpcRequest, Object> targetSupplier = (req) -> rpcTarget;
 	private final ExecutorService mockExecutor = MoreExecutors.newDirectExecutorService();
@@ -51,7 +59,7 @@ public class SuppliedRpcRequestInvokerTest {
 
 		describe("A SuppliedRpcRequestInvoker", () -> {
 			beforeEach(() -> {
-				invokerUnderTest = new SuppliedRpcRequestInvoker<>(mockExecutor, kryos, mockRpcInvoker, targetSupplier);
+				invokerUnderTest = new SuppliedRpcRequestInvoker<>(mockExecutor, marshaller, mockRpcInvoker, targetSupplier);
 			});
 			describe("receives a valid rcp request", () -> {
 				describe("that executes successfully", () -> {
