@@ -4,7 +4,7 @@
     
     <groupId>org.mjd</groupId>
     <artifactId>repro</artifactId>
-    <version>1.0.1-retro</version>
+    <version>1.0.2-SNAPSHOT</version>
     <packaging>bundle</packaging>
     
     <name>RePRO</name>
