@@ -1,11 +1,7 @@
 package org.mjd.repro.message;
 
-import com.esotericsoftware.kryo.DefaultSerializer;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
-
 /**
  */
-@DefaultSerializer(JavaSerializer.class)
 public class RpcRequest extends RequestWithArgs {
 	private static final long serialVersionUID = 3320910799863854768L;
 

@@ -16,7 +16,7 @@ public interface RpcRequestMethodInvoker {
 	 * @return the result of the invocation
 	 * @throws InvocationException
 	 */
-	Object invoke(RpcRequest request) throws InvocationException;
+	<T> T invoke(RpcRequest request) throws InvocationException;
 
 	void changeTarget(Object newTarget);
 }

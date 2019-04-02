@@ -2,7 +2,6 @@ package org.mjd.repro.readers.header;
 
 import java.nio.ByteBuffer;
 
-import org.checkerframework.checker.signature.qual.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,7 @@ public final class IntHeaderReader implements HeaderReader<Integer> {
 	 * Constructs a fully initialised {@link IntHeaderReader} with an identfier used in logging. This is useful to correlate
 	 * calls across both threads or non-blocking reads.
 	 * </p>
-	 * The {@link Identifier} can be anything you require.
+	 * The identifier can be anything you require.
 	 *
 	 * @param id identifer for this {@link HeaderReader}.
 	 */

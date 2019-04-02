@@ -5,23 +5,22 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
-
-import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
+import org.mjd.repro.serialisation.Marshaller;
 
 // TODO move kryo serialisation to strategy
 public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHandler<R> {
-	private final Kryo kryo;
+	private final Marshaller marshaller;
 	private final RpcRequestMethodInvoker methodInvoker;
 	private final ExecutorService executor;
 
-	public RpcRequestInvoker(final ExecutorService executor, final Kryo kryo, final RpcRequestMethodInvoker rpcMethodInvoker) {
+	public RpcRequestInvoker(final ExecutorService executor, final Marshaller marshaller,
+						     final RpcRequestMethodInvoker rpcMethodInvoker) {
 		this.executor = executor;
-		this.kryo = kryo;
+		this.marshaller = marshaller;
 		this.methodInvoker = rpcMethodInvoker;
 	}
 
@@ -34,8 +33,7 @@ public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHan
 			}
 
 			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), result);
-			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
-			return Optional.of(ByteBuffer.wrap(msgBytes));
+			return Optional.of(ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class)));
 		});
 	}
 }

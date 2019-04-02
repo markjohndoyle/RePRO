@@ -6,27 +6,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import com.esotericsoftware.kryo.Kryo;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RpcRequest;
 import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
-import org.mjd.repro.util.kryo.KryoPool;
-
-import static org.mjd.repro.util.kryo.KryoRpcUtils.objectToKryoBytes;
+import org.mjd.repro.serialisation.Marshaller;
 
 // TODO move kryo serialisation to strategy
 public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements MessageHandler<R> {
 	private final RpcRequestMethodInvoker methodInvoker;
 	private final ExecutorService executor;
-	private final KryoPool kryos;
+	private final Marshaller marshaller;
 	private Function<R, Object> rpcTargetSupplier;
 
-	public SuppliedRpcRequestInvoker(final ExecutorService executor, final KryoPool kryos,
+	public SuppliedRpcRequestInvoker(final ExecutorService executor, final Marshaller marshaller,
 			final RpcRequestMethodInvoker rpcMethodInvoker, final Function<R, Object> supplier) {
 		this.executor = executor;
-		this.kryos = kryos;
+		this.marshaller = marshaller;
 		this.methodInvoker = rpcMethodInvoker;
 		this.rpcTargetSupplier = supplier;
 	}
@@ -44,10 +41,7 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 			catch (final InvocationException e) {
 				responseMessage = new ResponseMessage<>(message.getId(), e.getCause());
 			}
-			final Kryo kryo = kryos.obtain();
-			final byte[] msgBytes = objectToKryoBytes(kryo, responseMessage);
-			kryos.free(kryo);
-			return Optional.of(ByteBuffer.wrap(msgBytes));
+			return Optional.of(ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class)));
 		});
 	}
 }

@@ -8,6 +8,9 @@ import static com.mscharhag.oleaster.matcher.Matchers.expect;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.before;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Unit tests for the {@link ReflectionInvoker}
@@ -32,7 +35,7 @@ public class ReflectionInvokerTest {
 					testRequest = new RpcRequest(0L, "voidMethod");
 				});
 				it("it should do so without error and return null", () -> {
-					expect(invokerUnderTest.invoke(testRequest)).toBeNull();
+					assertThat(invokerUnderTest.invoke(testRequest), is(nullValue()));
 				});
 			});
 			describe("a valid return method", () -> {
@@ -40,7 +43,7 @@ public class ReflectionInvokerTest {
 					testRequest = new RpcRequest(0L, "intReturn");
 				});
 				it("it should do so without error and return the correct response", () -> {
-					expect(invokerUnderTest.invoke(testRequest)).toEqual(120509);
+					assertThat(invokerUnderTest.invoke(testRequest), is(120509));
 				});
 			});
 			describe("an invalid method", () -> {
