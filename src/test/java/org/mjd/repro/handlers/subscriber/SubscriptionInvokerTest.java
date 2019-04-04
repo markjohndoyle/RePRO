@@ -1,4 +1,4 @@
-package org.mjd.repro.handlers.message;
+package org.mjd.repro.handlers.subscriber;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -7,6 +7,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
+import org.mjd.repro.handlers.message.MessageHandler;
+import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.repro.handlers.message.MessageHandler.HandlerException;
 import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
