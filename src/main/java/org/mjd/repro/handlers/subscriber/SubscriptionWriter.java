@@ -55,7 +55,7 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 		LOG.trace(SubscriptionWriter.class + "received notification; handing result over to channel writer");
 		synchronized (mutex) {
 			resultByteBuffer.flip();
-			channelWriter.writeResult(key, message, resultByteBuffer);
+			channelWriter.prepWrite(key, message, resultByteBuffer);
 		}
 	}
 

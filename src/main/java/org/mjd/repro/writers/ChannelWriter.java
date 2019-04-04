@@ -12,7 +12,7 @@ public interface ChannelWriter<MsgType, K extends SelectionKey> {
 	 * @param message
 	 * @param resultToWrite
 	 */
-	void writeResult(SelectionKey key, MsgType message, ByteBuffer resultToWrite);
+	void prepWrite(SelectionKey key, MsgType message, ByteBuffer resultToWrite);
 
 	void write(K key);
 

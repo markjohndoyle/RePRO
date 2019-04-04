@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiFunction;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -21,6 +22,18 @@ import org.slf4j.LoggerFactory;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
+/**
+ * The {@link RefiningChannelWriter} is an implementation of a {@link ChannelWriter}.
+ *
+ * It is able to maintain a collection of {@link Writer} instances associated with a {@link SelectionKey} and
+ * trigger each of them to write when requested.</br>
+ * As part of writing, this class can refined the response data before sending it to the Writer. This is configured
+ * by passing a list of {@link ResponseRefiner} instances at construction time.
+ *
+ *
+ * @param <MsgType>
+ * @param <K>
+ */
 public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implements ChannelWriter<MsgType, K> {
 	private static final Logger LOG = LoggerFactory.getLogger(RefiningChannelWriter.class);
 
@@ -28,10 +41,18 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 	private final ListMultimap<Channel, Writer> responseWriters = ArrayListMultimap.create();
 	private final Selector selector;
 	private final List<ResponseRefiner<MsgType>> responseRefiners;
+	private final BiFunction<SelectionKey, ByteBuffer, Writer> writerSupplier;
 
-	public RefiningChannelWriter(final Selector selector, final List<ResponseRefiner<MsgType>> refiners) {
+	/**
+	 * @param selector
+	 * @param refiners
+	 * @param writerSupplier
+	 */
+	public RefiningChannelWriter(final Selector selector, final List<ResponseRefiner<MsgType>> refiners,
+								 final BiFunction<SelectionKey, ByteBuffer, Writer> writerSupplier) {
 		this.selector = selector;
 		this.responseRefiners = Collections.unmodifiableList(refiners);
+		this.writerSupplier = writerSupplier;
 	}
 
 	@Override
@@ -61,10 +82,10 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 	}
 
 	@Override
-	public void writeResult(final SelectionKey key, final MsgType message, final ByteBuffer resultToWrite) {
+	public void prepWrite(final SelectionKey key, final MsgType message, final ByteBuffer resultToWrite) {
 		final ByteBuffer bufferToWriteBack = refineResponse(message, resultToWrite);
 		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
-		add(key, SizeHeaderWriter.from(key, bufferToWriteBack));
+		add(key, writerSupplier.apply(key, bufferToWriteBack));
 		try {
 			key.interestOps(key.interestOps() | OP_WRITE);
 		}
@@ -73,7 +94,7 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 					+ "writers for this key", key.attachment());
 			responseWritersLock.writeLock().lock();
 			try {
-				responseWriters.removeAll(key);
+				responseWriters.removeAll(key.channel());
 			}
 			finally {
 				responseWritersLock.writeLock().unlock();

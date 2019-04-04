@@ -32,6 +32,7 @@ import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.repro.util.chain.ProtocolChain;
 import org.mjd.repro.writers.ChannelWriter;
 import org.mjd.repro.writers.RefiningChannelWriter;
+import org.mjd.repro.writers.SizeHeaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +115,7 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory,
 				  final Function<MsgType, String> handlerRouter) {
 		setupNonblockingServer(serverAddress);
-		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners);
+		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners, (k, b) -> SizeHeaderWriter.from(k, b));
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
 		keyProtocol = new ProtocolChain<SelectionKey>()
