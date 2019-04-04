@@ -47,7 +47,6 @@ public class RefiningChannelWriterTest {
 	// TEST INSTANCE BLOCK
 	{
 		before(() -> {
-			System.err.println("BEFORE 0");
 			MockitoAnnotations.initMocks(this);
 			mockWriterSupplier = (k,b) -> mockWriter;
 			when(mockRefiner.execute(fakeMsg, fakeResult)).thenReturn(fakeResult);
@@ -56,12 +55,10 @@ public class RefiningChannelWriterTest {
 
 		describe("a RefiningChannelWriter with no refiners", () -> {
 			before(() -> {
-				System.err.println("BEFORE 1");
 				writerNoRefiners = new RefiningChannelWriter<>(mockSelector, ImmutableList.of(), mockWriterSupplier);
 			});
 			describe("prepares a write", () -> {
 				before(() -> {
-					System.err.println("BEFORE 1.1");
 					writerNoRefiners.prepWrite(mockKey, fakeMsg, fakeResult);
 				});
 				it("should add OP_WRITE to the selection key interested operations", () -> {
@@ -73,7 +70,6 @@ public class RefiningChannelWriterTest {
 			});
 			describe("prepares a write for a key that is cancelled", () -> {
 				before(() -> {
-					System.err.println("BEFORE 1.2");
 					when(mockKey.interestOps(anyInt())).thenThrow(CancelledKeyException.class);
 					writerNoRefiners.prepWrite(mockKey, fakeMsg, fakeResult);
 				});
@@ -88,12 +84,10 @@ public class RefiningChannelWriterTest {
 		});
 		describe("a RefiningChannelWriter with refiners", () -> {
 			before(() -> {
-				System.err.println("BEFORE 2");
 				writerWithRefiner = new RefiningChannelWriter<>(mockSelector, ImmutableList.of(mockRefiner), mockWriterSupplier);
 			});
 			describe("prepares a write", () -> {
 				before(() -> {
-					System.err.println("BEFORE 2.1");
 					writerWithRefiner.prepWrite(mockKey, fakeMsg, fakeResult);
 				});
 				it("should add OP_WRITE to the selection key interested operations", () -> {
@@ -104,7 +98,6 @@ public class RefiningChannelWriterTest {
 				});
 				describe("and is then asked to write", () -> {
 					before(() -> {
-						System.err.println("BEFORE 2.2");
 						writerWithRefiner.write(mockKey);
 					});
 					it("should trigger a write on the current response writers", () -> {
