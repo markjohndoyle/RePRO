@@ -11,6 +11,10 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SubscriptionRegistrar {
+	/**
+	 * Interface that classes using the {@link SubscriptionRegistrar} can write notifications too.
+	 */
+	@FunctionalInterface
 	interface Subscriber {
 		void receive(String notification);
 	}
