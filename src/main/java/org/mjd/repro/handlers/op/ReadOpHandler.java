@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Joiner;
+import org.mjd.repro.handlers.routing.MessageHandlerRouter;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mjd.repro.readers.MessageReader;
 import org.mjd.repro.readers.RequestReader;
@@ -25,7 +26,7 @@ import static org.mjd.repro.util.Mapper.findInMap;
  * </p>
  * The {@link ReadOpHandler} is able to read and decoded messages from the {@link Channel} associated with a
  * {@link SelectionKey}. It is able to do this over 1 to n reads, for example, in non-blocking I/O. Once a message has
- * been decoded, it is reported back to the {@link RootMessageHandler} given at construction.
+ * been decoded, it is reported back to the {@link MessageHandlerRouter} given at construction.
  * </p>
  * Messages are decoded using the givein {@link MessageFactory}
  *
@@ -36,7 +37,7 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 	private static final Logger LOG = LoggerFactory.getLogger(ReadOpHandler.class);
 
 	private final MessageFactory<MsgType> messageFactory;
-	private final RootMessageHandler<MsgType> rootHandler;
+	private final MessageHandlerRouter<MsgType> msgHandler;
 	private final ByteBuffer bodyBuffer = ByteBuffer.allocate(4096);
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
 	private ByteBuffer headerBuffer;
@@ -45,11 +46,11 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 	 * Constructs a ready to use {@link ReadOpHandler} for message types MsgType.
 	 *
 	 * @param messageFactory the {@link MessageFactory} used to decode messages from bytes read off the {@link Channel}
-	 * @param rootHandler    the {@link RootMessageHandler} decoded messages are forwarded to after decoding
+	 * @param msgHandler    the {@link MessageHandlerRouter} decoded messages are forwarded to after decoding
 	 */
-	public ReadOpHandler(final MessageFactory<MsgType> messageFactory, final RootMessageHandler<MsgType> rootHandler) {
+	public ReadOpHandler(final MessageFactory<MsgType> messageFactory, final MessageHandlerRouter<MsgType> rootHandler) {
 		this.messageFactory = messageFactory;
-		this.rootHandler = rootHandler;
+		this.msgHandler = rootHandler;
 	}
 
 	@Override
@@ -99,7 +100,7 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 
 	private void handleCompleteMsg(final MessageReader<MsgType> reader, final SelectionKey key) {
 		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
-		rootHandler.handle(key, reader.getMessage().get());
+		msgHandler.routetoHandler(key, reader.getMessage().get());
 		readers.remove(key.channel());
 		LOG.trace("[{}] Reader is complete, removed it from reader jobs. " + "There are {} read jobs remaining. {}",
 				key.attachment(), readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));

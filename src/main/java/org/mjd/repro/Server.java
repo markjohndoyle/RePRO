@@ -2,7 +2,6 @@ package org.mjd.repro;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -12,21 +11,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import org.mjd.repro.async.AsyncMessageJob;
 import org.mjd.repro.async.AsyncMessageJobExecutor;
 import org.mjd.repro.async.SequentialMessageJobExecutor;
 import org.mjd.repro.handlers.message.MessageHandler;
-import org.mjd.repro.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.repro.handlers.op.AcceptProtocol;
 import org.mjd.repro.handlers.op.ReadOpHandler;
-import org.mjd.repro.handlers.op.RootMessageHandler;
 import org.mjd.repro.handlers.op.WriteOpHandler;
 import org.mjd.repro.handlers.response.ResponseRefiner;
+import org.mjd.repro.handlers.routing.SuppliedMsgHandlerRouter;
 import org.mjd.repro.message.factory.MessageFactory;
 import org.mjd.repro.message.factory.MessageFactory.MessageCreationException;
 import org.mjd.repro.util.chain.ProtocolChain;
@@ -46,7 +41,7 @@ import static java.nio.channels.SelectionKey.OP_ACCEPT;
  *
  * @param <MsgType> the type of message this server expects to receive.
  */
-public final class Server<MsgType> implements RootMessageHandler<MsgType> {
+public final class Server<MsgType> {
 	private static final String DEFAULT_MSG_HANDLER_ID = "default";
 
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
@@ -56,10 +51,11 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 	private final ProtocolChain<SelectionKey> keyProtocol;
 	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
-	private final Function<MsgType, String> handlerRouter;
+	private final SuppliedMsgHandlerRouter<MsgType> msgRouter;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private int port;
+
 
 
 	/**
@@ -118,11 +114,11 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners, (k, b) -> SizeHeaderWriter.from(k, b));
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
+		msgRouter = new SuppliedMsgHandlerRouter<>(handlerRouter, msgHandlers, channelWriter, asyncMsgJobExecutor);
 		keyProtocol = new ProtocolChain<SelectionKey>()
 							.add(new AcceptProtocol<>(serverChannel, selector))
-							.add(new ReadOpHandler<>(messageFactory, this))
+							.add(new ReadOpHandler<>(messageFactory, msgRouter))
 							.add(new WriteOpHandler<>(channelWriter));
-		this.handlerRouter = handlerRouter;
 	}
 
 	/**
@@ -136,19 +132,19 @@ public final class Server<MsgType> implements RootMessageHandler<MsgType> {
 		closeDownServer();
 	}
 
-	@Override
-	public void handle(final SelectionKey key, final MsgType message) {
-		if (msgHandlers.isEmpty()) {
-			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
-			return;
-		}
-		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-		final String handlerId = handlerRouter.apply(message);
-		final MessageHandler<MsgType> msgHandler = msgHandlers.get(handlerId);
-		final ConnectionContext<MsgType> connectionContext = new ConnectionContext<>(channelWriter, key);
-		final Future<Optional<ByteBuffer>> handlingJob = msgHandler.handle(connectionContext, message);
-		asyncMsgJobExecutor.add(AsyncMessageJob.from(key, message, handlingJob));
-	}
+//	@Override
+//	public void routetoHandler(final SelectionKey key, final MsgType message) {
+//		if (msgHandlers.isEmpty()) {
+//			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
+//			return;
+//		}
+//		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
+//		final String handlerId = handlerRouter.apply(message);
+//		final MessageHandler<MsgType> msgHandler = msgHandlers.get(handlerId);
+//		final ConnectionContext<MsgType> connectionContext = new ConnectionContext<>(channelWriter, key);
+//		final Future<Optional<ByteBuffer>> handlingJob = msgHandler.handle(connectionContext, message);
+//		asyncMsgJobExecutor.add(AsyncMessageJob.from(key, message, handlingJob));
+//	}
 
 	/**
 	 * Adds a {@link MessageHandler} this server can use to handle decoded messages. The given ID is used to
