@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(OleasterRunner.class)
 public class SuppliedRpcRequestInvokerTest {
+	private static final String RPC_TARGET = "ThePhoenixProject";
+
 	@Mock private RpcRequestMethodInvoker mockRpcInvoker;
 
 	private final KryoPool kryos = new KryoPool(true, 10, RpcKryo::configure,
@@ -44,8 +46,7 @@ public class SuppliedRpcRequestInvokerTest {
 																     k.register(IllegalStateException.class);
 																  	 return k;
 																 });
-	private final String rpcTarget = "ThePhoenixProject";
-	private final Function<RpcRequest, Object> targetSupplier = (req) -> rpcTarget;
+	private final Function<RpcRequest, Object> targetSupplier = (req) -> RPC_TARGET;
 	private final ExecutorService mockExecutor = MoreExecutors.newDirectExecutorService();
 
 	private MessageHandler.ConnectionContext<RpcRequest> mockConnCtx;
@@ -64,7 +65,7 @@ public class SuppliedRpcRequestInvokerTest {
 			describe("receives a valid rcp request", () -> {
 				describe("that executes successfully", () -> {
 					before(() -> {
-						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenReturn(rpcTarget.length());
+						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenReturn(RPC_TARGET.length());
 					});
 					it("should return a ByteBuffer of a ResponseMessage where the message contains the correct value", () -> {
 						final RpcRequest testMessage = new RpcRequest(0L, "length");
@@ -74,7 +75,7 @@ public class SuppliedRpcRequestInvokerTest {
 						expect(actualRspMsg.isError()).toBeFalse();
 						expect(actualRspMsg.getId()).toEqual(0L);
 						expect(actualRspMsg.getValue()).toBeNotNull();
-						expect(actualRspMsg.getValue().get()).toEqual(rpcTarget.length());
+						expect(actualRspMsg.getValue().get()).toEqual(RPC_TARGET.length());
 					});
 				});
 				describe("that throws when executes", () -> {

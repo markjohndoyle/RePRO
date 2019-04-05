@@ -7,12 +7,9 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.mscharhag.oleaster.runner.OleasterRunner;
 import org.junit.runner.RunWith;
-import org.mjd.repro.handlers.message.MessageHandler;
-import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.handlers.message.MessageHandler.ConnectionContext;
 import org.mjd.repro.handlers.message.MessageHandler.HandlerException;
-import org.mjd.repro.handlers.subscriber.SubscriptionInvoker;
-import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar;
+import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.handlers.subscriber.SubscriptionRegistrar.Subscriber;
 import org.mjd.repro.message.RequestWithArgs;
 import org.mjd.repro.serialisation.Marshaller;
@@ -89,5 +86,5 @@ public class SubscriptionInvokerTest {
 
 	}
 
-	class FakeBroadcaster { @SubscriptionRegistrar public void register(final Subscriber sub) { /* nothing to do */ } }
+	interface FakeBroadcaster { @SubscriptionRegistrar void register(Subscriber sub); }
 }

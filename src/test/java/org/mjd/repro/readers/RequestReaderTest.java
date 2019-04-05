@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 @RunWith(OleasterRunner.class)
 public final class RequestReaderTest
 {
+	private static final Integer EXPECTED_MSG = 17369615;
     @Mock private ScatteringByteChannel mockChannel;
     @Mock private MessageFactory<Integer> mockFactory;
     private RequestReader<Integer> readerUnderTest;
@@ -37,8 +38,7 @@ public final class RequestReaderTest
     private final byte[] headerValueArray = Ints.toByteArray(sizeOfTestMsg);
     private final List<Byte> headerValueList = Bytes.asList(headerValueArray);
     private ByteBuffer bodyBuffer;
-    private final Integer expectedMsg = 17369615;
-    private final byte[] bodyValueBytes = Ints.toByteArray(expectedMsg);
+    private final byte[] bodyValueBytes = Ints.toByteArray(EXPECTED_MSG);
     private final List<Byte> bodyValueList = Bytes.asList(bodyValueBytes);
     private ByteBuffer[] remaining;
     private List<Byte> bodyWithNextHeader;
@@ -50,7 +50,7 @@ public final class RequestReaderTest
     {
         beforeEach(() -> {
             MockitoAnnotations.initMocks(this);
-            when(mockFactory.createMessage(bodyValueBytes)).thenReturn(expectedMsg);
+            when(mockFactory.createMessage(bodyValueBytes)).thenReturn(EXPECTED_MSG);
             readerUnderTest =  new RequestReader<>("unittest", mockChannel, mockFactory);
             headerBuffer = ByteBuffer.allocate(Integer.BYTES);
             bodyBuffer = ByteBuffer.allocate(1024);

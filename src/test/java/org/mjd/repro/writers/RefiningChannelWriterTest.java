@@ -18,7 +18,6 @@ import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.before;
-import static com.mscharhag.oleaster.runner.StaticRunnerSupport.beforeEach;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -38,10 +37,10 @@ public class RefiningChannelWriterTest {
 	@Mock private Writer mockWriter;
 	@Mock private SelectableChannel mockChannel;
 
-	private final String fakeMsg = "experience power";
+	private static final String FAKE_MSG = "experience power";
+	private final ByteBuffer fakeResult = ByteBuffer.wrap("Division".getBytes());
 	private RefiningChannelWriter<String, SelectionKey> writerNoRefiners;
 	private RefiningChannelWriter<String, SelectionKey> writerWithRefiner;
-	private ByteBuffer fakeResult = ByteBuffer.wrap("Division".getBytes());
 	private BiFunction<SelectionKey, ByteBuffer, Writer> mockWriterSupplier;
 
 	// TEST INSTANCE BLOCK
@@ -49,7 +48,7 @@ public class RefiningChannelWriterTest {
 		before(() -> {
 			MockitoAnnotations.initMocks(this);
 			mockWriterSupplier = (k,b) -> mockWriter;
-			when(mockRefiner.execute(fakeMsg, fakeResult)).thenReturn(fakeResult);
+			when(mockRefiner.execute(FAKE_MSG, fakeResult)).thenReturn(fakeResult);
 			when(mockKey.channel()).thenReturn(mockChannel);
 		});
 
@@ -59,7 +58,7 @@ public class RefiningChannelWriterTest {
 			});
 			describe("prepares a write", () -> {
 				before(() -> {
-					writerNoRefiners.prepWrite(mockKey, fakeMsg, fakeResult);
+					writerNoRefiners.prepWrite(mockKey, FAKE_MSG, fakeResult);
 				});
 				it("should add OP_WRITE to the selection key interested operations", () -> {
 					verify(mockKey).interestOps(mockKey.interestOps() | OP_WRITE);
@@ -71,7 +70,7 @@ public class RefiningChannelWriterTest {
 			describe("prepares a write for a key that is cancelled", () -> {
 				before(() -> {
 					when(mockKey.interestOps(anyInt())).thenThrow(CancelledKeyException.class);
-					writerNoRefiners.prepWrite(mockKey, fakeMsg, fakeResult);
+					writerNoRefiners.prepWrite(mockKey, FAKE_MSG, fakeResult);
 				});
 				it("should NOT wakeup the selector", () -> {
 					verify(mockSelector, never()).wakeup();
@@ -88,7 +87,7 @@ public class RefiningChannelWriterTest {
 			});
 			describe("prepares a write", () -> {
 				before(() -> {
-					writerWithRefiner.prepWrite(mockKey, fakeMsg, fakeResult);
+					writerWithRefiner.prepWrite(mockKey, FAKE_MSG, fakeResult);
 				});
 				it("should add OP_WRITE to the selection key interested operations", () -> {
 					verify(mockKey).interestOps(mockKey.interestOps() | OP_WRITE);
