@@ -23,18 +23,19 @@ import static org.mockito.Mockito.when;
 @RunWith(OleasterRunner.class)
 public class SubscriptionWriterTest {
 
+	private static final RequestWithArgs TEST_MSG = new RequestWithArgs(0L);
+
 	@Mock private Marshaller mockMarshaller;
 	@Mock private SelectionKey mockKey;
 	@Mock private ChannelWriter<RequestWithArgs, SelectionKey> mockWriter;
 
 	private SubscriptionWriter<RequestWithArgs> writerUnderTest;
-	private RequestWithArgs testMsg = new RequestWithArgs(0L);
 
 	// TEST INSTANCE BLOCK
 	{
 		before(() -> {
 			MockitoAnnotations.initMocks(this);
-			writerUnderTest = new SubscriptionWriter<>(mockMarshaller, mockKey, mockWriter, testMsg);
+			writerUnderTest = new SubscriptionWriter<>(mockMarshaller, mockKey, mockWriter, TEST_MSG);
 
 			when(mockMarshaller.marshall(any(ResponseMessage.class),
 										 ArgumentMatchers.<Class<ResponseMessage<Object>>>any()))
@@ -47,7 +48,7 @@ public class SubscriptionWriterTest {
 					writerUnderTest.receive("this thing!");
 				});
 				it("should prepate a valid write via the ChannelWriter", () -> {
-					mockWriter.prepWrite(eq(mockKey), eq(testMsg), any(ByteBuffer.class));
+					mockWriter.prepWrite(eq(mockKey), eq(TEST_MSG), any(ByteBuffer.class));
 				});
 			});
 		});
