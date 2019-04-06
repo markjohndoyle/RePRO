@@ -132,20 +132,6 @@ public final class Server<MsgType> {
 		closeDownServer();
 	}
 
-//	@Override
-//	public void routetoHandler(final SelectionKey key, final MsgType message) {
-//		if (msgHandlers.isEmpty()) {
-//			LOG.warn("No handlers for {}. Message will be discarded.", key.attachment());
-//			return;
-//		}
-//		LOG.trace("[{}] Using Async job {} for message {}", key.attachment(), message);
-//		final String handlerId = handlerRouter.apply(message);
-//		final MessageHandler<MsgType> msgHandler = msgHandlers.get(handlerId);
-//		final ConnectionContext<MsgType> connectionContext = new ConnectionContext<>(channelWriter, key);
-//		final Future<Optional<ByteBuffer>> handlingJob = msgHandler.handle(connectionContext, message);
-//		asyncMsgJobExecutor.add(AsyncMessageJob.from(key, message, handlingJob));
-//	}
-
 	/**
 	 * Adds a {@link MessageHandler} this server can use to handle decoded messages. The given ID is used to
 	 * identify the handler when routing messages.

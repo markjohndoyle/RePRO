@@ -46,11 +46,11 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 	 * Constructs a ready to use {@link ReadOpHandler} for message types MsgType.
 	 *
 	 * @param messageFactory the {@link MessageFactory} used to decode messages from bytes read off the {@link Channel}
-	 * @param msgHandler    the {@link MessageHandlerRouter} decoded messages are forwarded to after decoding
+	 * @param msgRouter    	 the {@link MessageHandlerRouter} decoded messages are forwarded to for routing to handlers
 	 */
-	public ReadOpHandler(final MessageFactory<MsgType> messageFactory, final MessageHandlerRouter<MsgType> rootHandler) {
+	public ReadOpHandler(final MessageFactory<MsgType> messageFactory, final MessageHandlerRouter<MsgType> msgRouter) {
 		this.messageFactory = messageFactory;
-		this.msgHandler = rootHandler;
+		this.msgHandler = msgRouter;
 	}
 
 	@Override
@@ -100,7 +100,7 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 
 	private void handleCompleteMsg(final MessageReader<MsgType> reader, final SelectionKey key) {
 		LOG.debug("Passing message {} to handlers.", reader.getMessage().get());
-		msgHandler.routetoHandler(key, reader.getMessage().get());
+		msgHandler.routeToHandler(key, reader.getMessage().get());
 		readers.remove(key.channel());
 		LOG.trace("[{}] Reader is complete, removed it from reader jobs. " + "There are {} read jobs remaining. {}",
 				key.attachment(), readers.size(), Joiner.on(",").withKeyValueSeparator("=").join(readers));
