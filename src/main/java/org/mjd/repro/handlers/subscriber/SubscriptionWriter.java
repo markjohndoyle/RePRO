@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * @param <R> the type of {@link RequestWithArgs} messages that the Server processes to subscribe this
  *        {@link SubscriptionWriter}
  *
- * @ThreadSafe
+ * @NotThreadSafe unless the marshaller is
  */
 public final class SubscriptionWriter<R extends RequestWithArgs> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);

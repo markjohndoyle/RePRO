@@ -42,10 +42,8 @@ import static java.nio.channels.SelectionKey.OP_ACCEPT;
  * @param <MsgType> the type of message this server expects to receive.
  */
 public final class Server<MsgType> {
-	private static final String DEFAULT_MSG_HANDLER_ID = "default";
-
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class);
-
+	private static final String DEFAULT_MSG_HANDLER_ID = "default";
 	private final Map<String, MessageHandler<MsgType>> msgHandlers = new HashMap<>();
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
@@ -53,8 +51,6 @@ public final class Server<MsgType> {
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private int port;
-
-
 
 	/**
 	 * Creates a fully initialised single threaded non-blocking {@link Server}.</br>
