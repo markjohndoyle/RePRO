@@ -36,9 +36,9 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
 	 * use after this constructor completes.
 	 *
-	 * @param rpcTarget the RPC target, in this case, the target of subscription
-	 *                  requests. It must have one method annotated with the
-	 *                  {@link SubscriptionRegistrar} annotation.
+	 * @param marshaller The {@link Marshaller} used to serialise responses into bytes
+	 * @param rpcTarget  The RPC target, in this case, the target of subscription requests. It must have one method
+	 * 					 annotated with the {@link SubscriptionRegistrar} annotation.
 	 */
 	public SubscriptionInvoker(final Marshaller marshaller, final Object rpcTarget) {
 		this.marshaller = marshaller;
@@ -68,7 +68,6 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 				LOG.error("Error invoking subscription", ex);
 				final HandlerException handlerEx = new HandlerException("Error invoking " + subscriptionRequest, ex);
-//				return Optional.of(ByteBuffer.wrap(objectToKryoBytes(kryo, ResponseMessage.error(subscriptionRequest.getId(), handlerEx))));
 				final byte[] bytes = marshaller.marshall(ResponseMessage.error(subscriptionRequest.getId(), handlerEx), ResponseMessage.class);
 				return Optional.of(ByteBuffer.wrap(bytes));
 			}

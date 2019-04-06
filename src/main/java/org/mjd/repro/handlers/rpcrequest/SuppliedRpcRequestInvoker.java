@@ -18,7 +18,7 @@ public final class SuppliedRpcRequestInvoker<R extends RpcRequest> implements Me
 	private final RpcRequestMethodInvoker methodInvoker;
 	private final ExecutorService executor;
 	private final Marshaller marshaller;
-	private Function<R, Object> rpcTargetSupplier;
+	private final Function<R, Object> rpcTargetSupplier;
 
 	public SuppliedRpcRequestInvoker(final ExecutorService executor, final Marshaller marshaller,
 			final RpcRequestMethodInvoker rpcMethodInvoker, final Function<R, Object> supplier) {

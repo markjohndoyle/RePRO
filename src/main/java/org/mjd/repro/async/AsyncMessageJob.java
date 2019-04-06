@@ -2,6 +2,7 @@ package org.mjd.repro.async;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
@@ -54,6 +55,21 @@ public final class AsyncMessageJob<MsgType> {
 	/** @return {@link #message} */
 	public MsgType getMessage() {
 		return message;
+	}
+
+	@Override
+	public boolean equals(final Object obj) {
+		 if (obj == null) { return false;}
+	     if (getClass() != obj.getClass()) {return false;}
+	     final AsyncMessageJob<?> other = AsyncMessageJob.class.cast(obj);
+         return Objects.equals(messageJob, other.messageJob)
+             && Objects.equals(key, other.key)
+             && Objects.equals(message, other.message);
+	}
+
+	@Override
+	public int hashCode() {
+		 return Objects.hash(messageJob, key, message);
 	}
 
 	/**

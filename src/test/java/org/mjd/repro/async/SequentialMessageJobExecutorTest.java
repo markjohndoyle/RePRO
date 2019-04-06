@@ -30,9 +30,9 @@ import static org.mockito.Mockito.when;
 
 @RunWith(OleasterRunner.class)
 public final class SequentialMessageJobExecutorTest {
+	private static final Integer FAKE_MSG = 1;
 	private final Optional<ByteBuffer> fakeResult = Optional.of(ByteBuffer.allocate(0));
 	private final Optional<ByteBuffer> fakeVoidResult = Optional.empty();
-	private final Integer fakeMessage = 1;
 	private Selector selector;
 	private SequentialMessageJobExecutor<Integer> executorUnderTest;
 	private AsyncMessageJob<Integer> fakeJob;
@@ -46,7 +46,7 @@ public final class SequentialMessageJobExecutorTest {
 		before(() -> {
 			MockitoAnnotations.initMocks(this);
 			selector = Selector.open();
-			fakeJob = new AsyncMessageJob<>(selectionKey, fakeMessage, mockFuture);
+			fakeJob = new AsyncMessageJob<>(selectionKey, FAKE_MSG, mockFuture);
 		});
 
 
@@ -63,7 +63,7 @@ public final class SequentialMessageJobExecutorTest {
 				});
 				it("should put the job back on the queue to be processed next time around", () -> {
 					executorUnderTest.start();
-					verify(mockChannelWriter, never()).writeResult(selectionKey, fakeMessage, fakeResult.get());
+					verify(mockChannelWriter, never()).prepWrite(selectionKey, FAKE_MSG, fakeResult.get());
 				});
 			});
 			describe("receives one job that has NOT finished processing", () -> {
@@ -75,7 +75,7 @@ public final class SequentialMessageJobExecutorTest {
 				});
 				it("should put the job back on the queue to be processed next time around", () -> {
 					executorUnderTest.start();
-					verify(mockChannelWriter, timeout(5000)).writeResult(selectionKey, fakeMessage, fakeResult.get());
+					verify(mockChannelWriter, timeout(5000)).prepWrite(selectionKey, FAKE_MSG, fakeResult.get());
 				});
 			});
 			describe("receives has one job that has finished processing", () -> {
@@ -89,7 +89,7 @@ public final class SequentialMessageJobExecutorTest {
 						executorUnderTest.start();
 					});
 					it("should not write anything to the channel writer", () -> {
-						verify(mockChannelWriter, timeout(5000)).writeResult(selectionKey, fakeMessage, ByteBuffer.allocate(0));
+						verify(mockChannelWriter, timeout(5000)).prepWrite(selectionKey, FAKE_MSG, ByteBuffer.allocate(0));
 					});
 
 				});
@@ -100,7 +100,7 @@ public final class SequentialMessageJobExecutorTest {
 					});
 
 					it("write the result of the job to the channel writer", () -> {
-						verify(mockChannelWriter, timeout(5000)).writeResult(selectionKey, fakeMessage, fakeResult.get());
+						verify(mockChannelWriter, timeout(5000)).prepWrite(selectionKey, FAKE_MSG, fakeResult.get());
 					});
 				});
 			});

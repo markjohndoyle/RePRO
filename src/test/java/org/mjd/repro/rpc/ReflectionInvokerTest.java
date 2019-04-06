@@ -28,22 +28,25 @@ public class ReflectionInvokerTest {
 	// TEST INSTANCE BLOCK
 	{
 		final ReflectionInvoker invokerUnderTest = new ReflectionInvoker(fakeTarget);
+		final ReflectionInvoker invokerNoTargetUnderTest = new ReflectionInvoker();
 
-		describe("when a " + ReflectionInvoker.class + " invokes a valid void method", () -> {
-			describe("a valid void method", () -> {
-				before(() -> {
-					testRequest = new RpcRequest(0L, "voidMethod");
+		describe("when a " + ReflectionInvoker.class + " invokes a", () -> {
+			describe("valid method", () -> {
+				describe("with a void return", () -> {
+					before(() -> {
+						testRequest = new RpcRequest(0L, "voidMethod");
+					});
+					it("it should do so without error and return null", () -> {
+						assertThat(invokerUnderTest.invoke(testRequest), is(nullValue()));
+					});
 				});
-				it("it should do so without error and return null", () -> {
-					assertThat(invokerUnderTest.invoke(testRequest), is(nullValue()));
-				});
-			});
-			describe("a valid return method", () -> {
-				before(() -> {
-					testRequest = new RpcRequest(0L, "intReturn");
-				});
-				it("it should do so without error and return the correct response", () -> {
-					assertThat(invokerUnderTest.invoke(testRequest), is(120509));
+				describe("a non-null return", () -> {
+					before(() -> {
+						testRequest = new RpcRequest(0L, "intReturn");
+					});
+					it("it should do so without error and return the correct response", () -> {
+						assertThat(invokerUnderTest.invoke(testRequest), is(120509));
+					});
 				});
 			});
 			describe("an invalid method", () -> {
@@ -52,6 +55,29 @@ public class ReflectionInvokerTest {
 				});
 				it("it should throw an " + InvocationException.class, () -> {
 					expect(() -> invokerUnderTest.invoke(testRequest)).toThrow(InvocationException.class);
+				});
+			});
+		});
+		describe("when a " + ReflectionInvoker.class + " with no target", () -> {
+			before(() -> {
+				testRequest = new RpcRequest(0L, "voidMethod");
+			});
+			describe("invokes a method", () -> {
+				it("it should throw an " + IllegalStateException.class, () -> {
+					expect(() -> invokerNoTargetUnderTest.invoke(testRequest)).toThrow(IllegalStateException.class);
+				});
+			});
+			describe("has a target assigned", () -> {
+				before(() -> {
+					invokerNoTargetUnderTest.changeTarget(fakeTarget);
+				});
+				describe("and then invokes a valid method", () -> {
+					before(() -> {
+						testRequest = new RpcRequest(0L, "voidMethod");
+					});
+					it("it should do so without error and return null", () -> {
+						assertThat(invokerUnderTest.invoke(testRequest), is(nullValue()));
+					});
 				});
 			});
 		});

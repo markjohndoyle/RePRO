@@ -16,17 +16,6 @@ public final class ResponseMessage<T> implements Serializable {
 	private Optional<T> value = Optional.empty();
 	private Throwable exception;
 
-	/**
-	 * Creates a "void" version of this {@link ResponseMessage}. The type will be {@link Void} and the {@link #value} will
-	 * be {@link Optional#empty()} and {@link #isError()} will be false.
-	 *
-	 * @param id the ID this response is for
-	 * @return new {@link ResponseMessage} representing {@link Void}
-	 */
-	public static ResponseMessage<Void> voidMsg(final long id) {
-		return new ResponseMessage<>(id);
-	}
-
 	public ResponseMessage(final long id, final T value) {
 		this.id = id;
 		this.value = Optional.ofNullable(value);
@@ -50,11 +39,22 @@ public final class ResponseMessage<T> implements Serializable {
 	}
 
 	public Optional<Throwable> getError() {
-		return Optional.of(exception);
+		return Optional.ofNullable(exception);
 	}
 
 	public boolean isError() {
 		return exception != null;
+	}
+
+	/**
+	 * Creates a "void" version of this {@link ResponseMessage}. The type will be {@link Void} and the {@link #value} will
+	 * be {@link Optional#empty()} and {@link #isError()} will be false.
+	 *
+	 * @param id the ID this response is for
+	 * @return new {@link ResponseMessage} representing {@link Void}
+	 */
+	public static ResponseMessage<Void> voidMsg(final long id) {
+		return new ResponseMessage<>(id);
 	}
 
 	public static ResponseMessage<Object> error(final long id, final Exception ex) {
