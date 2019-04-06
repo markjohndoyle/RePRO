@@ -50,8 +50,6 @@ public final class Server<MsgType> {
 	private final List<ResponseRefiner<MsgType>> responseRefiners = new ArrayList<>();
 	private final AsyncMessageJobExecutor<MsgType> asyncMsgJobExecutor;
 	private final ProtocolChain<SelectionKey> keyProtocol;
-	private final ChannelWriter<MsgType, SelectionKey> channelWriter;
-	private final SuppliedMsgHandlerRouter<MsgType> msgRouter;
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private int port;
@@ -111,10 +109,12 @@ public final class Server<MsgType> {
 	public Server(final InetSocketAddress serverAddress, final MessageFactory<MsgType> messageFactory,
 				  final Function<MsgType, String> handlerRouter) {
 		setupNonblockingServer(serverAddress);
-		channelWriter = new RefiningChannelWriter<>(selector, responseRefiners, (k, b) -> SizeHeaderWriter.from(k, b));
+		final ChannelWriter<MsgType, SelectionKey> channelWriter =
+				new RefiningChannelWriter<>(selector, responseRefiners, (k, b) -> SizeHeaderWriter.from(k, b));
 		asyncMsgJobExecutor = new SequentialMessageJobExecutor<>(selector, channelWriter, true);
 
-		msgRouter = new SuppliedMsgHandlerRouter<>(handlerRouter, msgHandlers, channelWriter, asyncMsgJobExecutor);
+		final SuppliedMsgHandlerRouter<MsgType> msgRouter =
+				new SuppliedMsgHandlerRouter<>(handlerRouter, msgHandlers, channelWriter, asyncMsgJobExecutor);
 		keyProtocol = new ProtocolChain<SelectionKey>()
 							.add(new AcceptProtocol<>(serverChannel, selector))
 							.add(new ReadOpHandler<>(messageFactory, msgRouter))
