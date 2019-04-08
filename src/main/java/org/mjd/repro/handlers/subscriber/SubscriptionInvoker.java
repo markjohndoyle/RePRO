@@ -23,9 +23,11 @@ import org.slf4j.LoggerFactory;
  * {@link SubscriptionRegistrar} annotation.
  * A Server using this {@link MessageHandler} would be restricted as a  subscription service.
  *
+ * @param <R> the type of {@link RequestWithArgs} message
+ *
  * @NotThreadSafe
  */
-public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs> {
+public final class SubscriptionInvoker<R extends RequestWithArgs> implements MessageHandler<R> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
 	private final Marshaller marshaller;
 	private final Object subscriptionService;
@@ -54,13 +56,12 @@ public final class SubscriptionInvoker implements MessageHandler<RequestWithArgs
 	}
 
 	@Override
-	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<RequestWithArgs> connectionContext,
-									   		   final RequestWithArgs message) {
+	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final R message) {
 		return executor.submit(() -> {
 			final RequestWithArgs subscriptionRequest = message;
 			try {
 				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
-				final SubscriptionWriter<RequestWithArgs> subscriptionWriter =
+				final SubscriptionWriter<R> subscriptionWriter =
 					new SubscriptionWriter<>(marshaller, connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
 				return Optional.empty();
