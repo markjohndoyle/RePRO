@@ -40,20 +40,20 @@ public class SubscriptionInvokerTest {
 	private final KryoPool kryos = KryoPool.newThreadSafePool(20, RpcKryo::configure);
 	private final Marshaller marshaller = new KryoMarshaller(20, RpcKryo::configure);
 	private final ConnectionContext<RequestWithArgs> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
-	private SubscriptionInvoker invokerUnderTest;
+	private SubscriptionInvoker<RequestWithArgs> invokerUnderTest;
 
 
 	// TEST INSTANCE BLOCK
 	{
 		before(()-> {
 			MockitoAnnotations.initMocks(this);
-			invokerUnderTest = new SubscriptionInvoker(marshaller, mockBroadcaster);
+			invokerUnderTest = new SubscriptionInvoker<>(marshaller, mockBroadcaster);
 		});
 
 		describe("when the " + SubscriptionInvoker.class, () -> {
 			describe("is given an RPC target object with no " + SubscriptionRegistrar.class + " method" , () -> {
 				it("should thrown an IllegalStateException exception", () -> {
-					expect(() -> new SubscriptionInvoker(marshaller, new Object())).toThrow(IllegalArgumentException.class);
+					expect(() -> new SubscriptionInvoker<>(marshaller, new Object())).toThrow(IllegalArgumentException.class);
 				});
 			});
 			describe("is given a valid RPC target object" , () -> {

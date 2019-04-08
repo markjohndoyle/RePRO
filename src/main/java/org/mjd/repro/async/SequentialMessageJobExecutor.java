@@ -22,6 +22,7 @@ import static org.mjd.repro.util.thread.Threads.called;
 /**
  * Single threaded sequential implementation of an {@link AsyncMessageJobExecutor}.</br>
  * In this implementation one {@link AsyncMessageJob} will be processed one at a time, in the order they were added.
+ * When writing the results of the job to the channelWriter, the associated Selector is woken up.
  *
  * @param <MsgType>
  */
