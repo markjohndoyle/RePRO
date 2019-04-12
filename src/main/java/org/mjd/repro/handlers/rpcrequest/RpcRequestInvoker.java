@@ -28,10 +28,6 @@ public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHan
 	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final R message) {
 		return executor.submit(() -> {
 			final Object result = methodInvoker.invoke(message);
-			if (result == null) {
-				return Optional.empty();
-			}
-
 			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), result);
 			return Optional.of(ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class)));
 		});

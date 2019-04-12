@@ -29,7 +29,7 @@ public class SubscriptionWriterTest {
 	@Mock private SelectionKey mockKey;
 	@Mock private ChannelWriter<RequestWithArgs, SelectionKey> mockWriter;
 
-	private SubscriptionWriter<RequestWithArgs> writerUnderTest;
+	private SubscriptionWriter<RequestWithArgs, String> writerUnderTest;
 
 	// TEST INSTANCE BLOCK
 	{

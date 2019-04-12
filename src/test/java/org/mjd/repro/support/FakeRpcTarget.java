@@ -12,10 +12,12 @@ import org.mjd.repro.support.Broadcaster.Listener;
 
 /**
  * Fake target for RPC calls. A server will have direct access to something like this when it's setup.
+ *
+ * @param <T> The type of the notification object
  */
-public final class FakeRpcTarget implements AutoCloseable, Listener {
+public final class FakeRpcTarget<T> implements AutoCloseable, Listener<T> {
 	public static final Map<String, Object> methodNamesAndReturnValues = new HashMap<>();
-	private final List<Subscriber> subs = Collections.synchronizedList(new ArrayList<>());
+	private final List<Subscriber<T>> subs = Collections.synchronizedList(new ArrayList<>());
 	private Thing thing;
 
 	public FakeRpcTarget() {
@@ -44,8 +46,8 @@ public final class FakeRpcTarget implements AutoCloseable, Listener {
 	}
 
 	@SubscriptionRegistrar
-	public void subscribe(final Subscriber sub, final Object... args) {
-		if(thing == null) {
+	public void subscribe(final Subscriber<T> sub, final Object... args) {
+		if (thing == null) {
 			thing = new Thing();
 		}
 		thing.register(this);
@@ -58,8 +60,8 @@ public final class FakeRpcTarget implements AutoCloseable, Listener {
 	}
 
 	@Override
-	public void notify(final String notification) {
-		for (final Subscriber sub : subs) {
+	public void notify(final T notification) {
+		for (final Subscriber<T> sub : subs) {
 			sub.receive(notification);
 		}
 	}

@@ -13,9 +13,10 @@ import java.lang.annotation.Target;
 public @interface SubscriptionRegistrar {
 	/**
 	 * Interface that classes using the {@link SubscriptionRegistrar} can write notifications too.
+	 * @param <T> the type of the notification object
 	 */
 	@FunctionalInterface
-	interface Subscriber {
-		void receive(String notification);
+	interface Subscriber<T> {
+		void receive(T notification);
 	}
 }
