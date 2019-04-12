@@ -81,35 +81,8 @@ public class SubscriptionInvokerTest {
 					});
 				});
 			});
-			describe("is given a valid target object" , () -> {
-				it("should be able to register as a Subscriber without error" , () -> {
-					final RequestWithArgs voidRequest = new RequestWithArgs(0L);
-					invokerUnderTest.handle(fakeCtx, voidRequest);
-					verify(mockBroadcaster).register(any(Subscriber.class));
-				});
-				describe("but the call throws an exception" , () -> {
-					before(() -> {
-						doThrow(RuntimeException.class).when(mockBroadcaster).register(any(Subscriber.class));
-					});
-					it("should throw a HandlerException" , () -> {
-						final RequestWithArgs voidRequest = new RequestWithArgs(0L);
-						final ByteBuffer actualReturn = invokerUnderTest.handle(fakeCtx, voidRequest).get().get();
-						final Kryo kryo = kryos.obtain();
-						try(Input input = new Input(actualReturn.array())) {
-							final ResponseMessage<?> actualResponse = kryo.readObject(input, ResponseMessage.class);
-							expect(actualResponse).toBeNotNull();
-							expect(actualResponse.isError()).toBeTrue();
-							expect(actualResponse.getError().get()).toBeInstanceOf(HandlerException.class);
-						}
-						finally {
-							kryos.free(kryo);
-						}
-					});
-				});
-			});
 		});
-
 	}
 
-	interface FakeBroadcaster { @SubscriptionRegistrar void register(Subscriber sub); }
+	interface FakeBroadcaster { @SubscriptionRegistrar void register(Subscriber<String> sub); }
 }
