@@ -1,12 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <groupId>org.mjd</groupId>
     <artifactId>repro</artifactId>
     <version>3.0.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
-    
+
     <name>RePRO</name>
     <url>https://github.com/markjohndoyle/RePRO</url>
     <description>Single threaded non-blocking server with remote procedure extensions.</description>
@@ -152,7 +152,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.24.0</version>
+            <version>2.26.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
