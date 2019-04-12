@@ -49,89 +49,85 @@ import static org.mjd.repro.support.ResponseReader.readResponse;
 @RunWith(OleasterRunner.class)
 public class ServerRpcHighClientChurnIT {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ServerRpcHighClientChurnIT.class);
-    private static final AtomicLong reqId = new AtomicLong();
-    private final KryoPool kryos = KryoPool.newThreadSafePool(5000, RpcKryo::configure);
-    private final Marshaller marshaller = new KryoMarshaller(5000, RpcKryo::configure);
-    private ExecutorService serverService;
-    private Server<RpcRequest> rpcServer;
-    private FakeRpcTarget rpcTarget;
-    private MessageHandler<RpcRequest> rpcInvoker;
+	private static final Logger LOG = LoggerFactory.getLogger(ServerRpcHighClientChurnIT.class);
+	private static final AtomicLong reqId = new AtomicLong();
+	private final KryoPool kryos = KryoPool.newThreadSafePool(5000, RpcKryo::configure);
+	private final Marshaller marshaller = new KryoMarshaller(5000, RpcKryo::configure);
+	private ExecutorService serverService;
+	private Server<RpcRequest> rpcServer;
+	private FakeRpcTarget<String> rpcTarget;
+	private MessageHandler<RpcRequest> rpcInvoker;
 	private int port;
 
-
-    // TEST BLOCK
-    {
-        beforeEach(() -> {
-        	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = RpcHandlers.singleThreadRpcInvoker(marshaller, rpcTarget);
-            // pre charge the kryo pool
-            for(int i = 0; i < 500; i++)
-            {
-                kryos.free(kryos.obtain());
-            }
-            serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
-            startServer();
-        });
-
-        afterEach(() -> {
-            shutdownServer();
-        });
-
-        describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
-            it("should reply correctly to all of them", () -> {
-                final int numClients = 1200;
-                final ExecutorService executor = Executors.newFixedThreadPool(600);
-
-                final BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
-                for(int i = 0; i < numClients; i++)
-                {
-                    clientJobs.add(executor.submit(new RpcClientRequestJob(kryos, reqId, port)));
-                }
-
-                final Iterator<Future<?>> it = clientJobs.iterator();
-                while(it.hasNext()) {
-                	final Future<?> clientJob = it.next();
-                	((Socket) clientJob.get()).close();
-                	it.remove();
-                }
-            });
-        });
-    }
-
-    private void startServer()
-    {
-        rpcServer = new Server<>(new MarshallerMsgFactory<>(marshaller, RpcRequest.class))
-        						.addHandler(rpcInvoker)
-        						.addHandler(prepend::requestId);
-
-        serverService.submit(() ->  {
-            try
-            {
-                rpcServer.start();
-            }
-            catch (final Exception e)
-            {
-                LOG.error("ERROR IN SERVER, see following stack trace:");
-                LOG.error(Joiner.on(System.lineSeparator()).join(e.getStackTrace()));
-                e.printStackTrace();
-            }
-        });
-        await().until(() -> { return rpcServer.isAvailable();});
-        port = rpcServer.getPort();
-    }
-
-	private void shutdownServer()
-    {
-        LOG.debug("Test is shutting down server....");
-        serverService.shutdownNow();
-        await().atMost(TEN_SECONDS).until(() -> { return rpcServer.isShutdown();});
-        await().atMost(TEN_SECONDS).until(() -> { return serverService.isTerminated();});
-    }
-
-
-	private static final class RpcClientRequestJob implements Callable<Socket>
+	// TEST BLOCK
 	{
+		beforeEach(() -> {
+			rpcTarget = new FakeRpcTarget<>();
+			rpcInvoker = RpcHandlers.singleThreadRpcInvoker(marshaller, rpcTarget);
+			// pre charge the kryo pool
+			for (int i = 0; i < 500; i++) {
+				kryos.free(kryos.obtain());
+			}
+			serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
+			startServer();
+		});
+
+		afterEach(() -> {
+			shutdownServer();
+		});
+
+		describe("When a valid kryo RPC request/reply RpcRequest is sent to the server by multple clients", () -> {
+			it("should reply correctly to all of them", () -> {
+				final int numClients = 1200;
+				final ExecutorService executor = Executors.newFixedThreadPool(600);
+
+				final BlockingQueue<Future<?>> clientJobs = new ArrayBlockingQueue<>(numClients);
+				for (int i = 0; i < numClients; i++) {
+					clientJobs.add(executor.submit(new RpcClientRequestJob(kryos, reqId, port)));
+				}
+
+				final Iterator<Future<?>> it = clientJobs.iterator();
+				while (it.hasNext()) {
+					final Future<?> clientJob = it.next();
+					((Socket) clientJob.get()).close();
+					it.remove();
+				}
+			});
+		});
+	}
+
+	private void startServer() {
+		rpcServer = new Server<>(new MarshallerMsgFactory<>(marshaller, RpcRequest.class)).addHandler(rpcInvoker)
+				.addHandler(prepend::requestId);
+
+		serverService.submit(() -> {
+			try {
+				rpcServer.start();
+			}
+			catch (final Exception e) {
+				LOG.error("ERROR IN SERVER, see following stack trace:");
+				LOG.error(Joiner.on(System.lineSeparator()).join(e.getStackTrace()));
+				e.printStackTrace();
+			}
+		});
+		await().until(() -> {
+			return rpcServer.isAvailable();
+		});
+		port = rpcServer.getPort();
+	}
+
+	private void shutdownServer() {
+		LOG.debug("Test is shutting down server....");
+		serverService.shutdownNow();
+		await().atMost(TEN_SECONDS).until(() -> {
+			return rpcServer.isShutdown();
+		});
+		await().atMost(TEN_SECONDS).until(() -> {
+			return serverService.isTerminated();
+		});
+	}
+
+	private static final class RpcClientRequestJob implements Callable<Socket> {
 		private static final Logger LOG = LoggerFactory.getLogger(RpcClientRequestJob.class);
 		private final KryoPool kryos;
 		private final AtomicLong requestId;
@@ -169,10 +165,11 @@ public class ServerRpcHighClientChurnIT {
 		private Pair<Long, Object> makeRpcCall(final Kryo kryo, final Socket clientSocket) throws IOException {
 			final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 			final int methodIndex = new Random().nextInt(FakeRpcTarget.methodNamesAndReturnValues.size());
-			final Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex).findFirst().get();
+			final Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex)
+					.findFirst().get();
 			final long id = requestId.getAndIncrement();
 			final Pair<Long, Object> requestIdAndExpectedReturn = Pair.of(id, call.getValue());
-			LOG.trace("Making request to {}", call.getKey()	);
+			LOG.trace("Making request to {}", call.getKey());
 			final RpcRequest rpcRequest = new RpcRequest(id, call.getKey());
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, rpcRequest).flush();
 			return requestIdAndExpectedReturn;
@@ -195,4 +192,3 @@ public class ServerRpcHighClientChurnIT {
 
 	}
 }
-

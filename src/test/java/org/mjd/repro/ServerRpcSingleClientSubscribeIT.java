@@ -49,7 +49,7 @@ public class ServerRpcSingleClientSubscribeIT
     private static final AtomicLong reqId = new AtomicLong();
     private ExecutorService serverService;
     private Server<RequestWithArgs> rpcServer;
-    private FakeRpcTarget rpcTarget;
+    private FakeRpcTarget<String> rpcTarget;
     private Socket clientSocket;
     private MessageHandler<RequestWithArgs> rpcInvoker;
     private Kryo kryo;
@@ -58,8 +58,8 @@ public class ServerRpcSingleClientSubscribeIT
     {
         beforeEach(()-> {
         	kryo = kryos.obtain();
-        	rpcTarget = new FakeRpcTarget();
-        	rpcInvoker = new SubscriptionInvoker(marshaller, rpcTarget);
+        	rpcTarget = new FakeRpcTarget<>();
+        	rpcInvoker = new SubscriptionInvoker<>(marshaller, rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
             startServer();
         });

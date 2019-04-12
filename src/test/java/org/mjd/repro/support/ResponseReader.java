@@ -39,11 +39,6 @@ public final class ResponseReader {
 		final int responseSize = in.readInt();
 		final long requestId = in.readLong();
 
-		if(responseSize == Long.BYTES) {
-			LOG.trace("Returning void message, only have ID");
-			return Pair.of(requestId, null);
-		}
-
 		final byte[] bytesRead = new byte[responseSize];
 		int bodyRead = 0;
 		LOG.trace("Reading response of size: {}", responseSize);
@@ -53,10 +48,13 @@ public final class ResponseReader {
 
 		try (Input kin = new Input(bytesRead)) {
 			final ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
-	        if(responseMessage.isError()) {
-	        	return Pair.of(requestId, responseMessage.getError().get().toString());
-	        }
-			return Pair.of(requestId, responseMessage.getValue().get());
+			if (responseMessage.isError()) {
+				return Pair.of(requestId, responseMessage.getError().get().toString());
+			}
+			if (responseMessage.getValue().isPresent()) {
+				return Pair.of(requestId, responseMessage.getValue().get());
+			}
+			return Pair.of(requestId, null);
 		}
 	}
 
