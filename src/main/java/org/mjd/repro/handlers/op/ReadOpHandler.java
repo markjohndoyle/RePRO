@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.mjd.repro.util.Mapper.findInMap;
+import static org.mjd.repro.util.SelectionKeys.closeChannel;
 
 /**
  * A {@link ReadOpHandler} is a {@link SelectionKey} handler whose job is to handle keys in the readable operation
@@ -121,18 +122,7 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 	private void handleEndOfStream(final SelectionKey key) {
 		LOG.debug("{} end of stream.", key.attachment());
 		readers.remove(key.channel());
-		cancelClient(key);
-	}
-
-	private static void cancelClient(final SelectionKey key) {
-		try {
-			LOG.debug("Closing channel for client '{}'", key.attachment());
-			key.channel().close();
-			key.cancel(); // necessary?
-		}
-		catch (final IOException e) {
-			LOG.warn("Exception closing channel of cancelled client {}. Key is already invalid", key.attachment());
-		}
+		closeChannel(key);
 	}
 
 	private void clearReadBuffers() {
