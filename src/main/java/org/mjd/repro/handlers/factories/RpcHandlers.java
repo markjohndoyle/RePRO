@@ -16,6 +16,13 @@ import org.mjd.repro.serialisation.Marshaller;
 
 /**
  * Factory and utility methods for RPC based {@link MessageHandler}s.
+ *
+ * Example:
+ * <pre class="code"><code class="java">
+ * import static org.mjd.repro.handlers.factories.RpcHandlers.*
+ *
+ * MessageHandler&ltInteger&gt mh = singleThreadRpcInvoker(marshaller, targetObj);
+ * </code></pre>
  */
 public final class RpcHandlers {
 	private RpcHandlers() {
