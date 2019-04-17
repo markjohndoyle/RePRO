@@ -40,7 +40,7 @@ public class SubscriptionInvokerTest {
 	private final KryoPool kryos = KryoPool.newThreadSafePool(20, RpcKryo::configure);
 	private final Marshaller marshaller = new KryoMarshaller(20, RpcKryo::configure);
 	private final ConnectionContext<RequestWithArgs> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
-	private SubscriptionInvoker<RequestWithArgs, String> invokerUnderTest;
+	private SubscriptionInvoker<RequestWithArgs> invokerUnderTest;
 
 	// TEST INSTANCE BLOCK
 	{
@@ -84,5 +84,5 @@ public class SubscriptionInvokerTest {
 		});
 	}
 
-	interface FakeBroadcaster { @SubscriptionRegistrar void register(Subscriber<String> sub); }
+	interface FakeBroadcaster { @SubscriptionRegistrar void register(Subscriber sub); }
 }
