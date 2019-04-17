@@ -29,13 +29,13 @@ public class SubscriptionWriterTest {
 	@Mock private SelectionKey mockKey;
 	@Mock private ChannelWriter<RequestWithArgs, SelectionKey> mockWriter;
 
-	private SubscriptionWriter<RequestWithArgs, String> writerUnderTest;
+	private SubscriptionWriter<RequestWithArgs> writerUnderTest;
 
 	// TEST INSTANCE BLOCK
 	{
 		before(() -> {
 			MockitoAnnotations.initMocks(this);
-			writerUnderTest = new SubscriptionWriter<>(mockMarshaller, mockKey, mockWriter, TEST_MSG);
+			writerUnderTest = new SubscriptionWriter(mockMarshaller, mockKey, mockWriter, TEST_MSG);
 
 			when(mockMarshaller.marshall(any(ResponseMessage.class),
 										 ArgumentMatchers.<Class<ResponseMessage<Object>>>any()))

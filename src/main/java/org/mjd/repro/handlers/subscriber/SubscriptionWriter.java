@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  *
  * @NotThreadSafe unless the marshaller is
  */
-public final class SubscriptionWriter<R extends RequestWithArgs, T> implements Subscriber<T>{
+public final class SubscriptionWriter<R extends RequestWithArgs> implements Subscriber {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionWriter.class);
 	private final Object mutex = new Object();
 	private final Marshaller marshaller;
@@ -49,7 +49,7 @@ public final class SubscriptionWriter<R extends RequestWithArgs, T> implements S
 	}
 
 	@Override
-	public void receive(final T notification) {
+	public void receive(final Object notification) {
 		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), notification);
 		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class));
 		resultByteBuffer.position(resultByteBuffer.limit());
