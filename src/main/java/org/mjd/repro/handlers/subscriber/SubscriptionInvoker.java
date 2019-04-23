@@ -18,10 +18,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@link SubscriptionInvoker} will register your client for notifications on the rpcTarget Object using the
- * identifier passed in the {@link RequestWithArgs} message.
- * The {@link SubscriptionInvoker} looks up the registration method on the rpcTarget denoted by the
- * {@link SubscriptionRegistrar} annotation.
- * A Server using this {@link MessageHandler} would be restricted as a  subscription service.
+ * identifier passed in the {@link RequestWithArgs} message. The {@link SubscriptionInvoker} looks up the registration
+ * method on the rpcTarget denoted by the {@link SubscriptionRegistrar} annotation. A Server using this
+ * {@link MessageHandler} would be restricted as a subscription service.
  *
  * @param <R> the type of {@link RequestWithArgs} message
  *
@@ -30,29 +29,29 @@ import org.slf4j.LoggerFactory;
 public final class SubscriptionInvoker<R extends RequestWithArgs> implements MessageHandler<R> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
 	private final Marshaller marshaller;
-	private final Object subscriptionService;
-	private final Method registrationMethod;
+	private Object subscriptionService;
+	private Method registrationMethod;
 	private final ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
 	/**
-	 * Constrcuts a fully initialised {@link SubscriptionInvoker}, it is ready to
-	 * use after this constructor completes.
+	 * Constructs a fully initialised {@link SubscriptionInvoker}, it is ready to use after this constructor completes.
 	 *
 	 * @param marshaller The {@link Marshaller} used to serialise responses into bytes
 	 * @param rpcTarget  The RPC target, in this case, the target of subscription requests. It must have one method
-	 * 					 annotated with the {@link SubscriptionRegistrar} annotation.
+	 *                   annotated with the {@link SubscriptionRegistrar} annotation.
 	 */
 	public SubscriptionInvoker(final Marshaller marshaller, final Object rpcTarget) {
 		this.marshaller = marshaller;
 		this.subscriptionService = rpcTarget;
-		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(rpcTarget.getClass(), SubscriptionRegistrar.class);
+		final Method[] registrationMethods = MethodUtils.getMethodsWithAnnotation(subscriptionService.getClass(),
+				SubscriptionRegistrar.class);
 		if (registrationMethods.length != 1) {
 			throw new IllegalArgumentException(
 					"SubscriptionInvoker requires the RPC target providing the subscription service has 1 method "
-					+ "annotated on RPC target " + rpcTarget.getClass() + " with "
-					+ SubscriptionRegistrar.class.getName() + " for subscription calls");
+							+ "annotated on RPC target " + subscriptionService.getClass() + " with "
+							+ SubscriptionRegistrar.class.getName() + " for subscription calls");
 		}
-		registrationMethod = registrationMethods[0];
+		this.registrationMethod = registrationMethods[0];
 	}
 
 	@Override
@@ -60,16 +59,19 @@ public final class SubscriptionInvoker<R extends RequestWithArgs> implements Mes
 		return executor.submit(() -> {
 			final RequestWithArgs subscriptionRequest = message;
 			try {
-				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(), subscriptionRequest.getArgValues());
-				final SubscriptionWriter<R> subscriptionWriter =
-					new SubscriptionWriter<>(marshaller, connectionContext.getKey(), connectionContext.getWriter(), message);
+				LOG.debug("Invoking subscription for ID '{}' with args {}", subscriptionRequest.getId(),
+						subscriptionRequest.getArgValues());
+				final SubscriptionWriter<R> subscriptionWriter = new SubscriptionWriter<>(marshaller,
+						connectionContext.getKey(), connectionContext.getWriter(), message);
 				MethodUtils.invokeMethod(subscriptionService, registrationMethod.getName(), subscriptionWriter);
-				return Optional.empty();
+				return Optional.of(
+						ByteBuffer.wrap(marshaller.marshall(ResponseMessage.voidMsg(message.getId()), ResponseMessage.class)));
 			}
 			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException ex) {
 				LOG.error("Error invoking subscription", ex);
 				final HandlerException handlerEx = new HandlerException("Error invoking " + subscriptionRequest, ex);
-				final byte[] bytes = marshaller.marshall(ResponseMessage.error(subscriptionRequest.getId(), handlerEx), ResponseMessage.class);
+				final byte[] bytes = marshaller.marshall(ResponseMessage.error(subscriptionRequest.getId(), handlerEx),
+						ResponseMessage.class);
 				return Optional.of(ByteBuffer.wrap(bytes));
 			}
 		});

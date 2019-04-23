@@ -52,14 +52,14 @@ public class ServerRpcSingleClientIT
     private final Marshaller marshaller = new KryoMarshaller(1000, RpcKryo::configure);
     private ExecutorService serverService;
     private Server<RpcRequest> rpcServer;
-    private FakeRpcTarget rpcTarget;
+    private FakeRpcTarget<String> rpcTarget;
     private Socket clientSocket;
     private MessageHandler<RpcRequest> rpcInvoker;
 
 	// TEST BLOCK
     {
         before(()->{
-        	rpcTarget = new FakeRpcTarget();
+        	rpcTarget = new FakeRpcTarget<>();
         	rpcInvoker = RpcHandlers.singleThreadRpcInvoker(marshaller, rpcTarget);
             serverService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Server").build());
         });

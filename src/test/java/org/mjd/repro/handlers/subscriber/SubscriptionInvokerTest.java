@@ -42,7 +42,6 @@ public class SubscriptionInvokerTest {
 	private final ConnectionContext<RequestWithArgs> fakeCtx = new ConnectionContext<>(mockChannelWriter, spyKey);
 	private SubscriptionInvoker<RequestWithArgs> invokerUnderTest;
 
-
 	// TEST INSTANCE BLOCK
 	{
 		before(()-> {
@@ -83,7 +82,6 @@ public class SubscriptionInvokerTest {
 				});
 			});
 		});
-
 	}
 
 	interface FakeBroadcaster { @SubscriptionRegistrar void register(Subscriber sub); }

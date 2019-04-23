@@ -35,7 +35,7 @@ public class SubscriptionWriterTest {
 	{
 		before(() -> {
 			MockitoAnnotations.initMocks(this);
-			writerUnderTest = new SubscriptionWriter<>(mockMarshaller, mockKey, mockWriter, TEST_MSG);
+			writerUnderTest = new SubscriptionWriter(mockMarshaller, mockKey, mockWriter, TEST_MSG);
 
 			when(mockMarshaller.marshall(any(ResponseMessage.class),
 										 ArgumentMatchers.<Class<ResponseMessage<Object>>>any()))

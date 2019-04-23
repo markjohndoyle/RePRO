@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The {@link SubscriptionRegistrar} annotation marks a method as capacble of registering a {@link Subscriber}.
+ * The {@link SubscriptionRegistrar} annotation marks a method as capable of registering a {@link Subscriber}.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -16,6 +16,6 @@ public @interface SubscriptionRegistrar {
 	 */
 	@FunctionalInterface
 	interface Subscriber {
-		void receive(String notification);
+		void receive(Object notification);
 	}
 }

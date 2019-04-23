@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
  *
  * @param <R> the type of {@link RequestWithArgs} messages that the Server processes to subscribe this
  *        {@link SubscriptionWriter}
+ * @param <T> the type of the notification object
  *
  * @NotThreadSafe unless the marshaller is
  */
@@ -48,15 +49,14 @@ public final class SubscriptionWriter<R extends RequestWithArgs> implements Subs
 	}
 
 	@Override
-	public void receive(final String notification) {
+	public void receive(final Object notification) {
 		final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), notification);
 		final ByteBuffer resultByteBuffer = ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class));
 		resultByteBuffer.position(resultByteBuffer.limit());
-		LOG.trace(SubscriptionWriter.class + "received notification; handing result over to channel writer");
+		LOG.trace(SubscriptionWriter.class + " received notification; handling result over to channel writer");
 		synchronized (mutex) {
 			resultByteBuffer.flip();
 			channelWriter.prepWrite(key, message, resultByteBuffer);
 		}
 	}
-
 }
