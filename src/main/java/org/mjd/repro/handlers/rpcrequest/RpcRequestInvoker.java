@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import org.mjd.repro.handlers.message.MessageHandler;
 import org.mjd.repro.handlers.message.ResponseMessage;
 import org.mjd.repro.message.RpcRequest;
+import org.mjd.repro.rpc.InvocationException;
 import org.mjd.repro.rpc.RpcRequestMethodInvoker;
 import org.mjd.repro.serialisation.Marshaller;
 
@@ -18,7 +19,7 @@ public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHan
 	private final ExecutorService executor;
 
 	public RpcRequestInvoker(final ExecutorService executor, final Marshaller marshaller,
-						     final RpcRequestMethodInvoker rpcMethodInvoker) {
+			final RpcRequestMethodInvoker rpcMethodInvoker) {
 		this.executor = executor;
 		this.marshaller = marshaller;
 		this.methodInvoker = rpcMethodInvoker;
@@ -27,8 +28,14 @@ public final class RpcRequestInvoker<R extends RpcRequest> implements MessageHan
 	@Override
 	public Future<Optional<ByteBuffer>> handle(final ConnectionContext<R> connectionContext, final R message) {
 		return executor.submit(() -> {
-			final Object result = methodInvoker.invoke(message);
-			final ResponseMessage<Object> responseMessage = new ResponseMessage<>(message.getId(), result);
+			ResponseMessage<Object> responseMessage;
+			try {
+				final Object result = methodInvoker.invoke(message);
+				responseMessage = new ResponseMessage<>(message.getId(), result);
+			}
+			catch (final InvocationException e) {
+				responseMessage = new ResponseMessage<>(message.getId(), e.getCause());
+			}
 			return Optional.of(ByteBuffer.wrap(marshaller.marshall(responseMessage, ResponseMessage.class)));
 		});
 	}
