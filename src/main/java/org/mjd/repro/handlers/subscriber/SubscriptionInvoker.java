@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
 public final class SubscriptionInvoker<R extends RequestWithArgs> implements MessageHandler<R> {
 	private static final Logger LOG = LoggerFactory.getLogger(SubscriptionInvoker.class);
 	private final Marshaller marshaller;
-	private Object subscriptionService;
-	private Method registrationMethod;
+	private final Object subscriptionService;
+	private final Method registrationMethod;
 	private final ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
 	/**
