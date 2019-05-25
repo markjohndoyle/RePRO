@@ -50,6 +50,7 @@ public class RefiningChannelWriterTest {
 			mockWriterSupplier = (k,b) -> mockWriter;
 			when(mockRefiner.execute(FAKE_MSG, fakeResult)).thenReturn(fakeResult);
 			when(mockKey.channel()).thenReturn(mockChannel);
+			when(mockWriter.isComplete()).thenReturn(false).thenReturn(true);
 		});
 
 		describe("a RefiningChannelWriter with no refiners", () -> {

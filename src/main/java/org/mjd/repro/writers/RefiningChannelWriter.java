@@ -63,7 +63,10 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 			LOG.trace("There are {} write jobs for the {} key/channel", rspWriters.size(), key.attachment());
 			final Iterator<Writer> it = rspWriters.iterator();
 			while (it.hasNext()) {
-				it.next().write();
+				final Writer rspWriter = it.next();
+				while(!rspWriter.isComplete()) {
+					rspWriter.write();
+				}
 				it.remove();
 			}
 			LOG.trace("Response writers for {} are complete, resetting to read ops only", key.attachment());
@@ -74,7 +77,6 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 		}
 		catch (final IOException e) {
 			e.printStackTrace();
-			return;
 		}
 		finally {
 			responseWritersLock.writeLock().unlock();
