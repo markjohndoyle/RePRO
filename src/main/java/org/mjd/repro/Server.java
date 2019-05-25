@@ -252,4 +252,55 @@ public final class Server<MsgType> {
 			LOG.error("Error shutting down server: {}. We're going anyway ¯\\_(ツ)_/¯ ", e.toString());
 		}
 	}
+
+	public static final class ServerBuilder<T> {
+		private InetSocketAddress bindAddress;
+		private String hostname;
+		private int port = 0;
+		private MessageFactory<T> msgFactory;
+		private Function<T, String> handlerRouter;
+		private MessageHandler<T> defaultHandler;
+		private List<HandlerReg> handlers = new ArrayList<>();
+
+		private final class HandlerReg {
+			String id;
+			MessageHandler<T> handler;
+			HandlerReg(final String id, final MessageHandler<T> handler) {this.id = id; this.handler = handler;}
+		}
+
+		public Server<T> build() {
+			final Server<T> builtServer;
+			if(hostname != null) {
+				bindAddress = new InetSocketAddress(hostname, port);
+			}
+			else {
+				bindAddress = new InetSocketAddress(port);
+			}
+			builtServer = new Server<>(bindAddress, msgFactory, handlerRouter);
+			handlers.forEach(hr -> builtServer.addHandler(hr.id, hr.handler));
+
+
+			return builtServer;
+		}
+
+		public ServerBuilder<T> onHost(final InetSocketAddress address) { this.bindAddress = address; return this; }
+		public ServerBuilder<T> listensOnPort(final int port) { this.port = port; return this; }
+		public ServerBuilder<T> router(final Function<T, String> router) { this.handlerRouter = router; return this; }
+		public ServerBuilder<T> defaultHandler(final MessageHandler<T> handler) { this.defaultHandler = handler; return this; }
+		public ServerBuilder<T> handler(final String id, final MessageHandler<T> handler) {
+			this.handlers.add(new HandlerReg(id, handler));
+			return this;
+		}
+
+		public ServerBuilder<T> using() { return this; }
+		public ServerBuilder<T> that() { return this; }
+		public ServerBuilder<T> and() { return this; }
+	}
+	/**
+	 * @param msgType the type of {@link ServerBuilder} to create.
+	 * @return a new {@link ServerBuilder} of type T
+	 */
+	public static <T> ServerBuilder<T> createServer(@SuppressWarnings("unused") final Class<T> msgType) {
+		return new ServerBuilder<>();
+	}
 }
