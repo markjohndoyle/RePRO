@@ -258,12 +258,14 @@ public final class Server<MsgType> {
 		private MessageFactory<T> msgFactory;
 		private Function<T, String> handlerRouter;
 		private MessageHandler<T> defaultHandler;
-		private List<HandlerReg> handlers = new ArrayList<>();
+		private final List<HandlerReg> handlers = new ArrayList<>();
 
 		private final class HandlerReg {
-			String id;
-			MessageHandler<T> handler;
+			private final String id;
+			private final MessageHandler<T> handler;
 			HandlerReg(final String id, final MessageHandler<T> handler) {this.id = id; this.handler = handler;}
+			public String getId() { return id; }
+			public MessageHandler<T> getHandler() { return handler; }
 		}
 
 		public Server<T> build() {
@@ -275,7 +277,7 @@ public final class Server<MsgType> {
 				bindAddress = new InetSocketAddress(port);
 			}
 			builtServer = new Server<>(bindAddress, msgFactory, handlerRouter);
-			handlers.forEach(hr -> builtServer.addHandler(hr.id, hr.handler));
+			handlers.forEach(hr -> builtServer.addHandler(hr.getId(), hr.getHandler()));
 
 
 			return builtServer;
