@@ -78,6 +78,8 @@ public final class AsyncMessageJob<MsgType> {
 	 * @param key         the {@link SelectionKey} this asynchronous message processing job was started for
 	 * @param message     the message this asynchronous message processing job is processing/processed.
 	 * @param handlingJob {@link Future} holding the result of the message processing job.
+	 * @param <MsgType>   the type of messages the {@link AsyncMessageJob} handles.
+	 *
 	 * @return {@link AsyncMessageJob}
 	 */
 	public static <MsgType> AsyncMessageJob<MsgType>

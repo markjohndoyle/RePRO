@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.mjd.repro.async.AsyncMessageJobExecutor;
@@ -222,8 +221,7 @@ public final class Server<MsgType> {
 		try {
 			while (!Thread.interrupted()) {
 				selector.select();
-				final Set<SelectionKey> selectedKeys = selector.selectedKeys();
-				handleReadyKeys(selectedKeys.iterator());
+				handleReadyKeys(selector.selectedKeys().iterator());
 			}
 		}
 		catch(final ClosedSelectorException e) {

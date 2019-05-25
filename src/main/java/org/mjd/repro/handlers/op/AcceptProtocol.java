@@ -45,7 +45,7 @@ public final class AcceptProtocol<K extends SelectionKey> extends AbstractHandle
 	 * @param selector the {@link Selector} the clients will be registered with.
 	 */
 	public AcceptProtocol(final ServerSocketChannel channel, final Selector selector) {
-		this(channel, selector, (ssc) -> ssc.accept());
+		this(channel, selector, ssc -> ssc.accept());
 	}
 
 	public AcceptProtocol(final ServerSocketChannel channel, final Selector selector, final Acceptor acceptor) {

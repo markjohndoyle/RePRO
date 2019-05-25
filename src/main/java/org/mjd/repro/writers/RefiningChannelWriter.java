@@ -84,7 +84,7 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 	@Override
 	public void prepWrite(final SelectionKey key, final MsgType message, final ByteBuffer resultToWrite) {
 		final ByteBuffer bufferToWriteBack = refineResponse(message, resultToWrite);
-		LOG.trace("Buffer post refinement, pre write {}", bufferToWriteBack);
+		LOG.debug("Preparing writer for msg ID {}. Bufffer state post refinement, pre write {}", message, bufferToWriteBack);
 		add(key, writerSupplier.apply(key, bufferToWriteBack));
 		try {
 			key.interestOps(key.interestOps() | OP_WRITE);
@@ -119,7 +119,6 @@ public final class RefiningChannelWriter<MsgType, K extends SelectionKey> implem
 		ByteBuffer refinedBuffer = resultToWrite;
 		for (final ResponseRefiner<MsgType> responseHandler : responseRefiners) {
 			LOG.trace("Buffer post message handler pre response refininer {}", refinedBuffer);
-			LOG.debug("Passing message value '{}' to response refiner", message);
 			refinedBuffer = responseHandler.execute(message, refinedBuffer);
 			refinedBuffer.flip();
 		}

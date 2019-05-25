@@ -6,10 +6,10 @@ import org.mjd.repro.handlers.message.MessageHandler;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static com.mscharhag.oleaster.matcher.Matchers.expect;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.before;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.describe;
 import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
-import static com.mscharhag.oleaster.matcher.Matchers.expect;
 import static org.mjd.repro.Server.createServer;
 
 @RunWith(OleasterRunner.class)

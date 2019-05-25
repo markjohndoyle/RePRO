@@ -43,6 +43,7 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 	private final Map<Channel, MessageReader<MsgType>> readers = new HashMap<>();
 	private ByteBuffer headerBuffer;
 
+
 	/**
 	 * Constructs a ready to use {@link ReadOpHandler} for message types MsgType.
 	 *
@@ -140,5 +141,4 @@ public final class ReadOpHandler<MsgType, K extends SelectionKey> extends Abstra
 	private static boolean thereIsUnreadData(final ByteBuffer[] unread) {
 		return unread[0].capacity() > 0;
 	}
-
 }

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ScatteringByteChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -241,7 +240,7 @@ public final class RequestReader<T> implements MessageReader<T> {
 
 	public static <MsgType> RequestReader<MsgType>
 	from(final SelectionKey key, final MessageFactory<MsgType> messageFactory) {
-		return new RequestReader<>((String) key.attachment(), (SocketChannel) key.channel(), messageFactory);
+		return new RequestReader<>((String) key.attachment(), (ScatteringByteChannel) key.channel(), messageFactory);
 	}
 
 	@Override
