@@ -36,27 +36,46 @@ public final class ResponseReader {
 	 * @throws IOException
 	 */
 	public static Pair<Long, Object> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
-		final int responseSize = in.readInt();
+		final int responseSize = in.readInt() - Long.BYTES;
 		final long requestId = in.readLong();
 
-		final byte[] bytesRead = new byte[responseSize];
-		int bodyRead = 0;
 		LOG.trace("Reading response of size: {}", responseSize);
-		while ((bodyRead = in.read(bytesRead, bodyRead, responseSize - Long.BYTES - bodyRead)) > 0) {
-			// Just keep reading
-		}
+		final byte[] bytesRead = readBytes(in, responseSize);
 
-		try (Input kin = new Input(bytesRead)) {
-			final ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
-			if (responseMessage.isError()) {
-				return Pair.of(requestId, responseMessage.getError().get().toString());
+		if (bytesRead != null)
+        {
+			try (Input kin = new Input(bytesRead)) {
+				final ResponseMessage<String> responseMessage = kryo.readObject(kin, ResponseMessage.class);
+				if (responseMessage.isError()) {
+					return Pair.of(requestId, responseMessage.getError().get().toString());
+				}
+				if (responseMessage.getValue().isPresent()) {
+					return Pair.of(requestId, responseMessage.getValue().get());
+				}
+				return Pair.of(requestId, null);
 			}
-			if (responseMessage.getValue().isPresent()) {
-				return Pair.of(requestId, responseMessage.getValue().get());
-			}
-			return Pair.of(requestId, null);
-		}
+        }
+		return null;
 	}
+
+	private static byte[] readBytes(final DataInputStream in, final int payloadSize) throws IOException
+    {
+        final byte[] payloadStore = new byte[payloadSize];
+        int totalBytesRead = 0;
+        int payloadBytesRead = 0;
+        LOG.debug("Reading response of size: {}", payloadSize);
+        while (totalBytesRead < payloadSize)
+        {
+            payloadBytesRead = in.read(payloadStore, payloadBytesRead, payloadSize - payloadBytesRead);
+            if (payloadBytesRead == -1)
+            {
+                LOG.warn("End of stream reached");
+                return null;
+            }
+			totalBytesRead += payloadBytesRead;
+        }
+        return payloadStore;
+    }
 
 	public static final class BlockingResponseReader implements Callable<Pair<Long, Object>> {
 		private final Kryo readRespKryo;
