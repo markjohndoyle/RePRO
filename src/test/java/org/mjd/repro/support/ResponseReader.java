@@ -22,11 +22,11 @@ public final class ResponseReader {
 	 * Response is as follows:
 	 *
 	 * <pre>
-	 *   ------------------------------------------------
-	 *  | header [4 bytes] |        body [n Bytes]       |
-	 *  |                  |-----------------------------|
-	 *  |     msgSize      | ID [8 bytes] |    msg       |
-	 *   ------------------------------------------------
+	 *   --------------------------------------------------------------------
+	 *  | header [4 bytes] |                 body [n Bytes]                  |
+	 *  |                  |-------------------------------------------------|
+	 *  |     msgSize      |   ID size   |   ID [ID size bytes] |    msg     |
+	 *   --------------------------------------------------------------------
 	 * </pre>
 	 *
 	 * @param kryo
@@ -35,10 +35,14 @@ public final class ResponseReader {
 	 * @return {@link Pair} containing the request ID (Key/Left) and the response value {@link Object} (Value/Right)
 	 * @throws IOException
 	 */
-	public static Pair<Long, Object> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
-		final int responseSize = in.readInt() - Long.BYTES;
-		final long requestId = in.readLong();
+	public static Pair<String, Object> readResponse(final Kryo kryo, final DataInputStream in) throws IOException {
+		final int messageSize = in.readInt();
+		final int idSize = in.readInt();
+		final byte[] idBytes = new byte[idSize];
+		in.read(idBytes);
 
+		final String requestId = new String(idBytes);
+		final int responseSize = messageSize - (Integer.BYTES + idSize);
 		LOG.trace("Reading response of size: {}", responseSize);
 		final byte[] bytesRead = readBytes(in, responseSize);
 
@@ -77,7 +81,7 @@ public final class ResponseReader {
         return payloadStore;
     }
 
-	public static final class BlockingResponseReader implements Callable<Pair<Long, Object>> {
+	public static final class BlockingResponseReader implements Callable<Pair<String, Object>> {
 		private final Kryo readRespKryo;
 		private final DataInputStream in;
 
@@ -87,7 +91,7 @@ public final class ResponseReader {
 		}
 
 		@Override
-		public Pair<Long, Object> call() throws Exception {
+		public Pair<String, Object> call() throws Exception {
 			return readResponse(readRespKryo, in);
 		}
 	}

@@ -7,11 +7,11 @@ public class RpcRequest extends RequestWithArgs {
 
 	private String method;
 
-	public RpcRequest(final long id, final String method) {
+	public RpcRequest(final String id, final String method) {
 		this(id, method, new Object[0]);
 	}
 
-	public RpcRequest(final long id, final String method, final Object[] argVals) {
+	public RpcRequest(final String id, final String method, final Object[] argVals) {
 		super(id, argVals);
 		this.method = method;
 	}

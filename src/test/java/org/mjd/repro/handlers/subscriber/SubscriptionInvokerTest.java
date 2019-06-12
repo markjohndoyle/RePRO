@@ -57,7 +57,7 @@ public class SubscriptionInvokerTest {
 			});
 			describe("is given a valid RPC target object" , () -> {
 				it("should be able to register as a Subscriber without error" , () -> {
-					final RequestWithArgs voidRequest = new RequestWithArgs(0L);
+					final RequestWithArgs voidRequest = new RequestWithArgs("client-0");
 					invokerUnderTest.handle(fakeCtx, voidRequest);
 					verify(mockBroadcaster).register(any(Subscriber.class));
 				});
@@ -66,7 +66,7 @@ public class SubscriptionInvokerTest {
 						doThrow(RuntimeException.class).when(mockBroadcaster).register(any(Subscriber.class));
 					});
 					it("should throw a HandlerException" , () -> {
-						final RequestWithArgs voidRequest = new RequestWithArgs(0L);
+						final RequestWithArgs voidRequest = new RequestWithArgs("client-0");
 						final ByteBuffer actualReturn = invokerUnderTest.handle(fakeCtx, voidRequest).get().get();
 						final Kryo kryo = kryos.obtain();
 						try(Input input = new Input(actualReturn.array())) {

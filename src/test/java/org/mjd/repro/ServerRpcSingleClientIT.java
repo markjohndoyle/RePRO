@@ -82,23 +82,23 @@ public class ServerRpcSingleClientIT
 
 	        		final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 	        		LOG.trace("Running client");
-	        		final ConcurrentHashMap<Long, Future<?>> calls = new ConcurrentHashMap<>();
+	        		final ConcurrentHashMap<String, Future<?>> calls = new ConcurrentHashMap<>();
 
 	        		FakeRpcTarget.methodNamesAndReturnValues.forEach((methodName, returnValue) -> {
-	        			final long id = reqId.getAndIncrement();
+	        			final String id = "client-" + reqId.getAndIncrement();
 	        			calls.put(id, executor.submit(() -> makeRpcCall(clientOut, id, methodName)));
 	        		});
 
 	        		// Fire off a few method calls with args
-	        		final long argCallId = reqId.getAndIncrement();
+	        		final String argCallId = "client-" + reqId.getAndIncrement();
 	        		calls.put(argCallId,
 	        				  executor.submit(() -> makeRpcCall(clientOut, argCallId, "hackTheGibson", 543)));
 
-	        		final long argCallId2 = reqId.getAndIncrement();
+	        		final String argCallId2 = "client-" + reqId.getAndIncrement();
 	        		calls.put(argCallId2,
 	        				  executor.submit(() -> makeRpcCall(clientOut, argCallId2, "hackTheGibson", 999)));
 
-	        		final long argCallId3 = reqId.getAndIncrement();
+	        		final String argCallId3 = "client-" + reqId.getAndIncrement();
 	        		calls.put(argCallId3,
 	        				  executor.submit(() -> makeRpcCall(clientOut, argCallId3, "hackTheGibson",  98995786)));
 
@@ -107,8 +107,8 @@ public class ServerRpcSingleClientIT
 	        		final Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < calls.size(); i++) {
 	        			LOG.debug("Reading response; iteration {} ", i);
-	        			final Pair<Long, Object> response = readResponse(kryo, dataIn);
-	        			final Long responseId = response.getLeft();
+	        			final Pair<String, Object> response = readResponse(kryo, dataIn);
+	        			final String responseId = response.getLeft();
 	        			LOG.debug("Got reponse {}; getting the call with that ID", responseId);
 	        			final Future<?> call = calls.get(responseId);
 	        			LOG.debug("Got request from call future...");
@@ -125,10 +125,10 @@ public class ServerRpcSingleClientIT
 	        		final ExecutorService executor = Executors.newFixedThreadPool(50);
 
 	        		final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
-	        		final ConcurrentHashMap<Long, Future<?>> calls = new ConcurrentHashMap<>();
+	        		final ConcurrentHashMap<String, Future<?>> calls = new ConcurrentHashMap<>();
 
 	        		for(int i = 0; i < numCalls; i++) {
-	        			final long argCallId = reqId.getAndIncrement();
+	        			final String argCallId = "client-" + reqId.getAndIncrement();
 	        			calls.put(argCallId,
 	        					  executor.submit(() -> makeRpcCall(clientOut, argCallId, "hackTheGibson", 543)));
 	        		}
@@ -137,8 +137,8 @@ public class ServerRpcSingleClientIT
 
 	        		final Kryo kryo = kryos.obtain();
 	        		for(int i = 0; i < numCalls; i++) {
-	        			final Pair<Long, Object> response = readResponse(kryo, dataIn);
-	        			final Long responseId = response.getLeft();
+	        			final Pair<String, Object> response = readResponse(kryo, dataIn);
+	        			final String responseId = response.getLeft();
 	        			final Future<?> call = calls.get(responseId);
 	        			final RpcRequest requestMade = (RpcRequest) call.get();
 	        			expect(responseId).toEqual(requestMade.getId());
@@ -150,11 +150,11 @@ public class ServerRpcSingleClientIT
         	describe("sends a void return method request", () -> {
         		it("it should recieve an empty response as an acknowledgement", () -> {
         			final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
-        			final RpcRequest sentRequest = makeRpcCall(clientOut, 1701L, "callMeVoid");
+        			final RpcRequest sentRequest = makeRpcCall(clientOut, "client-1701", "callMeVoid");
 
         			final DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
         			final Kryo kryo = kryos.obtain();
-        			final Pair<Long, Object> response = readResponse(kryo, dataIn);
+        			final Pair<String, Object> response = readResponse(kryo, dataIn);
 
         			expect(response.getLeft()).toEqual(sentRequest.getId());
         			expect(response.getRight()).toBeNull();
@@ -163,7 +163,7 @@ public class ServerRpcSingleClientIT
         });
     }
 
-	private RpcRequest makeRpcCall(final DataOutputStream clientOut, final long id, final String methodName,
+	private RpcRequest makeRpcCall(final DataOutputStream clientOut, final String id, final String methodName,
 			final Object... args) throws IOException
     {
     	final Kryo kryo = kryos.obtain();

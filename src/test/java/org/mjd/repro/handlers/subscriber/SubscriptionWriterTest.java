@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 @RunWith(OleasterRunner.class)
 public class SubscriptionWriterTest {
 
-	private static final RequestWithArgs TEST_MSG = new RequestWithArgs(0L);
+	private static final RequestWithArgs TEST_MSG = new RequestWithArgs("client-0");
 
 	@Mock private Marshaller mockMarshaller;
 	@Mock private SelectionKey mockKey;

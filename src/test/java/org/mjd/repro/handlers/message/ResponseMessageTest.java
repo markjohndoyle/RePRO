@@ -10,15 +10,19 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
 @RunWith(OleasterRunner.class)
 public class ResponseMessageTest {
 
+	private static final String VALUE_MSG_ID = "client-0";
+	private static final String ERROR_MSG_ID = "client-1";
+	private static final String VOID_MSG_ID = "client-2";
+
 	// TEST INSTANCE BLOCK
 	{
-		final ResponseMessage<Integer> valueMsg = new ResponseMessage<>(0L, 2);
-		final ResponseMessage<Object> errorMsg = ResponseMessage.error(1L, new IllegalStateException());
-		final ResponseMessage<Void> voidMsg = ResponseMessage.voidMsg(2L);
+		final ResponseMessage<Integer> valueMsg = new ResponseMessage<>(VALUE_MSG_ID, 2);
+		final ResponseMessage<Object> errorMsg = ResponseMessage.error(ERROR_MSG_ID, new IllegalStateException());
+		final ResponseMessage<Void> voidMsg = ResponseMessage.voidMsg(VOID_MSG_ID);
 
 		describe("a value message", () -> {
 			it("should return the correct ID", () -> {
-				expect(valueMsg.getId()).toEqual(0L);
+				expect(valueMsg.getId()).toEqual(VALUE_MSG_ID);
 			});
 			it("should return the correct value", () -> {
 				expect(valueMsg.getValue().isPresent()).toBeTrue();
@@ -30,7 +34,7 @@ public class ResponseMessageTest {
 		});
 		describe("an error message", () -> {
 			it("should return the correct ID", () -> {
-				expect(errorMsg.getId()).toEqual(1L);
+				expect(errorMsg.getId()).toEqual(ERROR_MSG_ID);
 			});
 			it("should not have a value", () -> {
 				expect(errorMsg.getValue().isPresent()).toBeFalse();
@@ -43,7 +47,7 @@ public class ResponseMessageTest {
 		});
 		describe("a void message", () -> {
 			it("should return the correct ID", () -> {
-				expect(voidMsg.getId()).toEqual(2L);
+				expect(voidMsg.getId()).toEqual(VOID_MSG_ID);
 			});
 			it("should not have a value", () -> {
 				expect(voidMsg.getValue().isPresent()).toBeFalse();

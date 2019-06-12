@@ -14,7 +14,7 @@ public final class ResponseMessageSerialiser extends Serializer<ResponseMessage<
 
 	@Override
 	public void write(final Kryo kryo, final Output output, final ResponseMessage<Object> object) {
-		output.writeLong(object.getId());
+		output.writeString(object.getId());
 		if (object.isError()) {
 			output.writeBoolean(true);
 			kryo.writeObject(output, object.getError().get());
@@ -34,7 +34,7 @@ public final class ResponseMessageSerialiser extends Serializer<ResponseMessage<
 	@Override
 	public ResponseMessage<Object> read(final Kryo kryo, final Input input,
 			final Class<ResponseMessage<Object>> type) {
-		final long readId = input.readLong();
+		final String readId = input.readString();
 		if (input.readBoolean()) {
 			return new ResponseMessage<>(readId, kryo.readObject(input, HandlerException.class));
 		}

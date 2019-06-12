@@ -11,12 +11,12 @@ public final class RequestSerialiser extends Serializer<Request> {
 
 	@Override
 	public void write(final Kryo kryo, final Output output, final Request object) {
-		output.writeLong(object.getId());
+		output.writeString(object.getId());
 	}
 
 	@Override
 	public RequestWithArgs read(final Kryo kryo, final Input input, final Class<Request> type) {
-		return new RequestWithArgs(input.readLong());
+		return new RequestWithArgs(input.readString());
 	}
 
 }

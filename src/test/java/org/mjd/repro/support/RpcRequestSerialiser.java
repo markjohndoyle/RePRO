@@ -13,7 +13,7 @@ public final class RpcRequestSerialiser extends Serializer<RpcRequest> {
 
 	@Override
 	public void write(final Kryo kryo, final Output output, final RpcRequest object) {
-		output.writeLong(object.getId());
+		output.writeString(object.getId());
 		output.writeString(object.getMethod());
 		final Object[] argValues = object.getArgValues();
 		output.writeInt(argValues.length);
@@ -24,7 +24,7 @@ public final class RpcRequestSerialiser extends Serializer<RpcRequest> {
 
 	@Override
 	public RpcRequest read(final Kryo kryo, final Input input, final Class<RpcRequest> type) {
-		final long id = input.readLong();
+		final String id = input.readString();
 		final String method = input.readString();
 		final int numArgs = input.readInt();
 		if(numArgs > 0) {

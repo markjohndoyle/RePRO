@@ -10,7 +10,7 @@ public final class RequestWithArgsSerialiser extends Serializer<RequestWithArgs>
 
 	@Override
 	public void write(final Kryo kryo, final Output output, final RequestWithArgs object) {
-		output.writeLong(object.getId());
+		output.writeString(object.getId());
 		final Object[] argValues = object.getArgValues();
 		output.writeInt(argValues.length);
 		for(final Object arg : argValues) {
@@ -20,7 +20,7 @@ public final class RequestWithArgsSerialiser extends Serializer<RequestWithArgs>
 
 	@Override
 	public RequestWithArgs read(final Kryo kryo, final Input input, final Class<RequestWithArgs> type) {
-		final long id = input.readLong();
+		final String id = input.readString();
 		final int numArgs = input.readInt();
 		if(numArgs > 0) {
 			final Object[] argVals = new Object[numArgs];

@@ -21,7 +21,13 @@ public final class RpcRequestRefiners {
 		 * @return
 		 */
 		public ByteBuffer requestId(RequestWithArgs rpcRequest, ByteBuffer buffer) {
-			return ByteBuffer.allocate(Long.BYTES + buffer.capacity()).putLong(rpcRequest.getId()).put(buffer);
+			byte[] idBytes = rpcRequest.getId().getBytes();
+			final ByteBuffer refinerBuffer = ByteBuffer.allocate(Integer.BYTES + idBytes.length + buffer.capacity());
+			refinerBuffer.putInt(idBytes.length);
+			refinerBuffer.put(idBytes);
+			refinerBuffer.put(buffer);
+
+			return refinerBuffer;
 		}
 	}
 }

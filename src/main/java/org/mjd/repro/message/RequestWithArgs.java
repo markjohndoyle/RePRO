@@ -5,12 +5,12 @@ public class RequestWithArgs extends Request {
 
 	private final Object[] argValues;
 
-	public RequestWithArgs(final long id) {
+	public RequestWithArgs(final String id) {
 		super(id);
 		this.argValues = new Object[0];
 	}
 
-	public RequestWithArgs(final long id, final Object[] argValues) {
+	public RequestWithArgs(final String id, final Object[] argValues) {
 		super(id);
 		this.argValues = argValues;
 	}

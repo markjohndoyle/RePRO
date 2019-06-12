@@ -68,12 +68,12 @@ public class SuppliedRpcRequestInvokerTest {
 						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenReturn(RPC_TARGET.length());
 					});
 					it("should return a ByteBuffer of a ResponseMessage where the message contains the correct value", () -> {
-						final RpcRequest testMessage = new RpcRequest(0L, "length");
+						final RpcRequest testMessage = new RpcRequest("client-0", "length");
 						final Optional<ByteBuffer> actual = invokerUnderTest.handle(mockConnCtx, testMessage).get();
 						expect(actual.get()).toBeNotNull();
 						final ResponseMessage<Integer> actualRspMsg = KryoRpcUtils.readBytesWithKryo(kryos.obtain(), actual.get().array(), ResponseMessage.class);
 						expect(actualRspMsg.isError()).toBeFalse();
-						expect(actualRspMsg.getId()).toEqual(0L);
+						expect(actualRspMsg.getId()).toEqual("client-0");
 						expect(actualRspMsg.getValue()).toBeNotNull();
 						expect(actualRspMsg.getValue().get()).toEqual(RPC_TARGET.length());
 					});
@@ -84,11 +84,11 @@ public class SuppliedRpcRequestInvokerTest {
 						when(mockRpcInvoker.invoke(any(RpcRequest.class))).thenThrow(ex);
 					});
 					it("should return a ByteBuffer of a ResponseMessage where the message contains the correct value", () -> {
-						final RpcRequest testMessage = new RpcRequest(0L, "length");
+						final RpcRequest testMessage = new RpcRequest("client-0", "length");
 						final Optional<ByteBuffer> actual = invokerUnderTest.handle(mockConnCtx, testMessage).get();
 						expect(actual.get()).toBeNotNull();
 						final ResponseMessage<Integer> actualRspMsg = KryoRpcUtils.readBytesWithKryo(kryos.obtain(), actual.get().array(), ResponseMessage.class);
-						expect(actualRspMsg.getId()).toEqual(0L);
+						expect(actualRspMsg.getId()).toEqual("client-0");
 						expect(actualRspMsg.isError()).toBeTrue();
 						expect(actualRspMsg.getValue().isPresent()).toBeFalse();
 						expect(actualRspMsg.getError().get()).toBeInstanceOf(IllegalStateException.class);

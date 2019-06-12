@@ -85,7 +85,7 @@ public class ServerRpcSingleClientSubscribeIT
 		        		final int numNotifications = 5;
 		        		final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 
-		        		final long subscriptionId = reqId.getAndIncrement();
+		        		final String subscriptionId = "client-" + reqId.getAndIncrement();
 	        			subscribeOverRpc(clientOut, subscriptionId);
 
 	        			final Kryo responseReaderKryo = kryos.obtain();
@@ -96,8 +96,8 @@ public class ServerRpcSingleClientSubscribeIT
 		        			int notifications = 0;
 		        			while(notifications <  numNotifications) {
 			        			try {
-			        				final Pair<Long, Object> readResponse = readResponse(responseReaderKryo, dataIn);
-			        				if(readResponse.getLeft() == subscriptionId) {
+			        				final Pair<String, Object> readResponse = readResponse(responseReaderKryo, dataIn);
+			        				if(readResponse.getLeft().equals(subscriptionId)) {
 			        		    		expect(readResponse.getLeft()).toEqual(subscriptionId);
 			        		    		if(readResponse.getRight() != null)
 			        		    		{
@@ -121,7 +121,7 @@ public class ServerRpcSingleClientSubscribeIT
         });
     }
 
-	private RequestWithArgs subscribeOverRpc(final DataOutputStream clientOut, final long id)
+	private RequestWithArgs subscribeOverRpc(final DataOutputStream clientOut, final String id)
 			throws IOException {
 		final Kryo kryo = kryos.obtain();
 		try {

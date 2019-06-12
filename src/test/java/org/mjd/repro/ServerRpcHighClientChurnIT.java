@@ -143,7 +143,7 @@ public class ServerRpcHighClientChurnIT {
 		public Socket call() throws Exception {
 			final Kryo kryo = kryos.obtain();
 			final Socket clientSocket = connectToServer(port);
-			final Pair<Long, Object> request = makeRpcCall(kryo, clientSocket);
+			final Pair<String, Object> request = makeRpcCall(kryo, clientSocket);
 
 			LOG.trace("Reading response from server...");
 			final DataInputStream clientIn = new DataInputStream(clientSocket.getInputStream());
@@ -162,20 +162,20 @@ public class ServerRpcHighClientChurnIT {
 			return clientSocket;
 		}
 
-		private Pair<Long, Object> makeRpcCall(final Kryo kryo, final Socket clientSocket) throws IOException {
+		private Pair<String, Object> makeRpcCall(final Kryo kryo, final Socket clientSocket) throws IOException {
 			final DataOutputStream clientOut = new DataOutputStream(clientSocket.getOutputStream());
 			final int methodIndex = new Random().nextInt(FakeRpcTarget.methodNamesAndReturnValues.size());
 			final Entry<String, Object> call = FakeRpcTarget.methodNamesAndReturnValues.entrySet().stream().skip(methodIndex)
 					.findFirst().get();
-			final long id = requestId.getAndIncrement();
-			final Pair<Long, Object> requestIdAndExpectedReturn = Pair.of(id, call.getValue());
+			final String id = "client-" + requestId.getAndIncrement();
+			final Pair<String, Object> requestIdAndExpectedReturn = Pair.of(id, call.getValue());
 			LOG.trace("Making request to {}", call.getKey());
 			final RpcRequest rpcRequest = new RpcRequest(id, call.getKey());
 			KryoRpcUtils.writeKryoWithHeader(kryo, clientOut, rpcRequest).flush();
 			return requestIdAndExpectedReturn;
 		}
 
-		private final class ReadResponse implements Callable<Pair<Long, Object>> {
+		private final class ReadResponse implements Callable<Pair<String, Object>> {
 			private final Kryo readRespKryo;
 			private final DataInputStream in;
 
@@ -185,7 +185,7 @@ public class ServerRpcHighClientChurnIT {
 			}
 
 			@Override
-			public Pair<Long, Object> call() throws Exception {
+			public Pair<String, Object> call() throws Exception {
 				return readResponse(readRespKryo, in);
 			}
 		}

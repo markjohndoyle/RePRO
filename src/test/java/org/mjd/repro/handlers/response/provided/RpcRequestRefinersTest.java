@@ -19,7 +19,10 @@ import static com.mscharhag.oleaster.runner.StaticRunnerSupport.it;
  */
 @RunWith(OleasterRunner.class)
 public class RpcRequestRefinersTest {
-	private static final int SIZE_OF_REQ_ID = Long.BYTES;
+
+	private static final String ID = "client-5478";
+	private static final int SIZE_OF_REQ_ID = Integer.BYTES + ID.getBytes().length;
+
 	private RequestWithArgs rpcRequest;
 	private ByteBuffer buffer;
 	private Prepend prependRefinerUnderTest;
@@ -29,7 +32,7 @@ public class RpcRequestRefinersTest {
 	{
 		before(() -> {
 			prependRefinerUnderTest = RpcRequestRefiners.prepend;
-			rpcRequest = new RpcRequest(5478L, "warp5");
+			rpcRequest = new RpcRequest(ID, "warp5");
 		});
 		beforeEach(() -> {
 			buffer = (ByteBuffer) ByteBuffer.allocate(Integer.BYTES).putInt(5).flip();
@@ -40,8 +43,13 @@ public class RpcRequestRefinersTest {
 				beforeEach(() -> {
 					result = (ByteBuffer) prependRefinerUnderTest.requestId(rpcRequest, buffer).flip();
 				});
-				it("should prepend the correct long value to the given buffer", () -> {
-					expect(result.getLong()).toEqual(5478);
+				it("should prepend the correct String value to the given buffer", () -> {
+					final int idLength = result.getInt();
+					expect(idLength).toEqual(ID.getBytes().length);
+					final byte[] idBytes = new byte[idLength];
+					result.get(idBytes, 0, idLength);
+					final String id = new String(idBytes);
+					expect(id).toEqual(ID);
 				});
 				it("should return a buffer with the original data at the end", () -> {
 					result.position(SIZE_OF_REQ_ID);

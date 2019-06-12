@@ -12,21 +12,21 @@ import java.util.Optional;
  */
 public final class ResponseMessage<T> implements Serializable {
 	private static final long serialVersionUID = 1L;
-	private final long id;
+	private final String id;
 	private Optional<T> value = Optional.empty();
 	private Throwable exception;
 
-	public ResponseMessage(final long id, final T value) {
+	public ResponseMessage(final String id, final T value) {
 		this.id = id;
 		this.value = Optional.ofNullable(value);
 	}
 
-	public ResponseMessage(final long id, final Throwable ex) {
+	public ResponseMessage(final String id, final Throwable ex) {
 		this.id = id;
 		this.exception = ex;
 	}
 
-	private ResponseMessage(final long id) {
+	private ResponseMessage(final String id) {
 		this.id = id;
 	}
 
@@ -34,7 +34,7 @@ public final class ResponseMessage<T> implements Serializable {
 		return value;
 	}
 
-	public long getId() {
+	public String getId() {
 		return id;
 	}
 
@@ -53,11 +53,11 @@ public final class ResponseMessage<T> implements Serializable {
 	 * @param id the ID this response is for
 	 * @return new {@link ResponseMessage} representing {@link Void}
 	 */
-	public static ResponseMessage<Void> voidMsg(final long id) {
+	public static ResponseMessage<Void> voidMsg(final String id) {
 		return new ResponseMessage<>(id);
 	}
 
-	public static ResponseMessage<Object> error(final long id, final Exception ex) {
+	public static ResponseMessage<Object> error(final String id, final Exception ex) {
 		return new ResponseMessage<>(id, ex);
 	}
 

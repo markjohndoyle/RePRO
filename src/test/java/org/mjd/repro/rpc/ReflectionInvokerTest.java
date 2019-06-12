@@ -34,7 +34,7 @@ public class ReflectionInvokerTest {
 			describe("valid method", () -> {
 				describe("with a void return", () -> {
 					before(() -> {
-						testRequest = new RpcRequest(0L, "voidMethod");
+						testRequest = new RpcRequest("client-0", "voidMethod");
 					});
 					it("it should do so without error and return null", () -> {
 						assertThat(invokerUnderTest.invoke(testRequest), is(nullValue()));
@@ -42,7 +42,7 @@ public class ReflectionInvokerTest {
 				});
 				describe("a non-null return", () -> {
 					before(() -> {
-						testRequest = new RpcRequest(0L, "intReturn");
+						testRequest = new RpcRequest("client-0", "intReturn");
 					});
 					it("it should do so without error and return the correct response", () -> {
 						assertThat(invokerUnderTest.invoke(testRequest), is(120509));
@@ -51,7 +51,7 @@ public class ReflectionInvokerTest {
 			});
 			describe("an invalid method", () -> {
 				before(() -> {
-					testRequest = new RpcRequest(0L, "youwantmetocallwhat?");
+					testRequest = new RpcRequest("client-0", "youwantmetocallwhat?");
 				});
 				it("it should throw an " + InvocationException.class, () -> {
 					expect(() -> invokerUnderTest.invoke(testRequest)).toThrow(InvocationException.class);
@@ -60,7 +60,7 @@ public class ReflectionInvokerTest {
 		});
 		describe("when a " + ReflectionInvoker.class + " with no target", () -> {
 			before(() -> {
-				testRequest = new RpcRequest(0L, "voidMethod");
+				testRequest = new RpcRequest("client-0", "voidMethod");
 			});
 			describe("invokes a method", () -> {
 				it("it should throw an " + IllegalStateException.class, () -> {
@@ -73,7 +73,7 @@ public class ReflectionInvokerTest {
 				});
 				describe("and then invokes a valid method", () -> {
 					before(() -> {
-						testRequest = new RpcRequest(0L, "voidMethod");
+						testRequest = new RpcRequest("client-0", "voidMethod");
 					});
 					it("it should do so without error and return null", () -> {
 						assertThat(invokerUnderTest.invoke(testRequest), is(nullValue()));
